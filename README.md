@@ -1,4 +1,4 @@
-# API7 Developer Portal v0.2.x
+# API7 Developer Portal
 
 ## Preparation
 
