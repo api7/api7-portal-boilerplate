@@ -1,0 +1,13 @@
+node_modules
+.next
+.git
+.DS_Store
+dist
+coverage
+.vscode
+.idea
+*.log
+
+# Ignore local config files, use config.yaml.example during build
+apps/site/config.yaml
+.env*

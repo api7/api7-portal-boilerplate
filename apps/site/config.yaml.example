@@ -1,0 +1,45 @@
+# Application Configuration
+# Copy this file to config.yaml and customize for your environment
+#
+# Environment Variable Substitution:
+# - ${VAR_NAME} - Required variable (throws error if not set)
+# - ${VAR_NAME:default} - Optional variable with default value
+
+portal:
+  url: ${PORTAL_URL:http://provider-portal.api.local}       # Required, Portal API URL, can be overridden by PORTAL_URL env var
+  token: ${PORTAL_TOKEN:}                                   # Required, Portal API Token, can be set via PORTAL_TOKEN env var
+
+db:
+  url: ""                                                    # Required, no default
+  # pool:                                                    # db connection pooling
+    # max: 20
+    # min: 0
+    # idleTimeout: 30000
+    # connectionTimeout: 2000
+    # allowExitOnIdle: false
+  # ssl: false
+  # ssl: true                                                # Enable SSL without certificate verification
+  # ssl:                                                     # SSL with certificate verification
+  #   rejectUnauthorized: true
+  #   ca: ${DB_SSL_CA}
+  #   cert: ${DB_SSL_CERT}
+  #   key: ${DB_SSL_KEY}
+
+auth:
+  secret: ""                                                 # Required
+  # session:
+  #   expiresIn: 604800                                      # 7 days
+  #   updateAge: 86400                                       # 1 day
+  # emailAndPassword:
+  #   enabled: true
+  #   requireEmailVerification: false
+  # socialProviders:                                          # ref: https://www.better-auth.com/docs/reference/options#socialproviders
+  #   github:
+  #     clientId: ${GITHUB_CLIENT_ID:}                        # GitHub OAuth App Client ID
+  #     clientSecret: ${GITHUB_CLIENT_SECRET:}                # GitHub OAuth App Client Secret
+
+# app:
+  # name: "Developer Portal"
+  # baseURL: "http://localhost:3001"                          # Base URL for generating links (e.g., magic link emails), for SEO (canonical URLs, sitemap, etc.)
+  # trustedOrigins:
+  #  - ""

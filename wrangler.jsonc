@@ -1,0 +1,8 @@
+{
+  "name": "api7ee-developer-portal",
+  "compatibility_date": "2024-09-25",
+  "main": "worker-advanced.js",
+  "assets": {
+    "directory": "./dist/public"
+  }
+}

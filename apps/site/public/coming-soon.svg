@@ -1,0 +1,23 @@
+<svg width="204" height="77" viewBox="0 0 204 77" fill="none" xmlns="http://www.w3.org/2000/svg">
+<path fill-rule="evenodd" clip-rule="evenodd" d="M66 13C66 9.13401 69.134 6 73 6H155C158.866 6 162 9.13401 162 13C162 16.866 158.866 20 155 20H197C200.866 20 204 23.134 204 27C204 30.866 200.866 34 197 34H187.608C189.64 35.2249 191 37.4537 191 40C191 43.866 187.866 47 184 47C180.134 47 177 43.866 177 40C177 37.4537 178.36 35.2249 180.392 34H170.608C172.64 35.2249 174 37.4537 174 40C174 43.866 170.866 47 167 47H154C150.134 47 147 50.134 147 54C147 57.866 150.134 61 154 61H188C191.866 61 195 64.134 195 68C195 71.866 191.866 75 188 75H39C35.134 75 32 71.866 32 68C32 64.134 35.134 61 39 61H6.99999C3.134 61 0 57.866 0 54C0 50.134 3.13401 47 7 47H55H60C63.866 47 67 43.866 67 40C67 36.134 63.866 33 60 33H44.3924C42.3596 31.7751 41 29.5463 41 27C41 23.134 44.134 20 48 20H56H73C69.134 20 66 16.866 66 13ZM56 20C52.134 20 49 16.866 49 13C49 9.13401 52.134 6 56 6C59.866 6 63 9.13401 63 13C63 16.866 59.866 20 56 20Z" fill="#F3F7FF"/>
+<path d="M169.176 28H152M176.176 28H173.955" stroke="#C5D9FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M162.852 40H154.676" stroke="#C5D9FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M40.2212 54H23.0454M17.2212 54H13" stroke="#C5D9FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M48.1758 68H40" stroke="#C5D9FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+<rect x="51.25" y="1.25" width="98.5" height="26.5" rx="1.75" stroke="#9FB9DB" stroke-width="1.5" stroke-linecap="round"/>
+<g clip-path="url(#clip0_4054_8866)">
+<path d="M142 3L161 3L149 26H130L142 3Z" fill="#FF9D43"/>
+<path d="M66 3L85 3L73 26H54L66 3Z" fill="#FF9D43"/>
+<path d="M79.5 14.5L73.5 26.5H64.5" stroke="#C4D9FF" stroke-width="0.5"/>
+<path d="M97 15L103.5 3" stroke="#C4D9FF" stroke-width="0.5"/>
+<path d="M132 21L136 13.5" stroke="#C4D9FF" stroke-width="0.5"/>
+<path d="M104 3L123 3L111 26H92L104 3Z" fill="#FF9D43"/>
+</g>
+<path fill-rule="evenodd" clip-rule="evenodd" d="M75 27V77H76L76 27H75ZM125 27L125 77H126L126 27H125Z" fill="#9FB9DB"/>
+<line x1="52" y1="76.5" x2="149" y2="76.5" stroke="#9FB9DB"/>
+<defs>
+<clipPath id="clip0_4054_8866">
+<rect width="97" height="25" fill="white" transform="translate(52 2)"/>
+</clipPath>
+</defs>
+</svg>
