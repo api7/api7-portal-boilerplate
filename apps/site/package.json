@@ -1,6 +1,6 @@
 {
   "name": "@api7ee/site",
-  "version": "0.5.0",
+  "version": "0.5.6",
   "private": true,
   "scripts": {
     "dev": "next dev",

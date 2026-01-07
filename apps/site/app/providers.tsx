@@ -23,7 +23,6 @@ function AuthUIProviderWrapper({ children }: { children: ReactNode }) {
       navigate={router.push}
       replace={router.replace}
       onSessionChange={() => router.refresh()}
-      nameRequired={false}
       Link={Link as never}
       organization
       account
