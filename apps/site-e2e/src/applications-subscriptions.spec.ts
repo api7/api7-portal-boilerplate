@@ -161,7 +161,7 @@ test.describe('Test Application Subscriptions', () => {
 
       // Verify subscribe button is visible
       await expect(
-        page.getByRole('button', { name: 'Subscribe New API Product' })
+        page.getByRole('button', { name: 'Subscribe to New API Product' })
       ).toBeVisible();
 
       // Verify search placeholder

@@ -79,9 +79,9 @@ export const uiSubscribeProductProduct = async (
 ) => {
   const { productName } = params;
   // Subscribe to auto approval product
-  await page.getByRole('button', { name: 'Subscribe New API Product' }).click();
+  await page.getByRole('button', { name: 'Subscribe to New API Product' }).click();
   const modal = page.getByRole('dialog', {
-    name: 'Subscribe API Product to Application',
+    name: 'Subscribe to New API Product',
   });
   await expect(modal.getByText('Search')).toBeVisible();
   await page.waitForTimeout(1000);
@@ -93,11 +93,11 @@ export const uiSubscribeProductProduct = async (
   await expect(productOption).toBeVisible();
   await productOption.click({ force: true, position: { x: 20, y: 0 } });
   // click dialog title to close the dropdown
-  await modal.getByText('Subscribe API Product to Application').click();
+  await modal.getByText('Subscribe to New API Product').click();
   await modal.getByRole('button', { name: 'Subscribe', exact: true }).click();
   await expect(modal).toBeHidden();
   await uiVerifyToast(page, {
-    hasText: 'Subscribe API Product to Application Successfully',
+    hasText: 'Subscribed to API Product Successfully',
   });
 };
 
@@ -106,7 +106,7 @@ type UISubscribeProductApplicationParams = {
 };
 export const uiSubscribeProductApplication = async (page: Page, params: UISubscribeProductApplicationParams) => {
   const { applicationName } = params;
-  const dialog = page.getByRole('dialog', { name: 'Subscribe API Product to Application' });
+  const dialog = page.getByRole('dialog', { name: 'Subscribe Application to API Product' });
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText('Search and select applications')).toBeVisible();
   await page.waitForTimeout(1000);
@@ -118,9 +118,9 @@ export const uiSubscribeProductApplication = async (page: Page, params: UISubscr
   await expect(option).toBeVisible();
   await option.click({ force: true, position: { x: 20, y: 0 } });
   // close dropdown
-  await dialog.getByText('Subscribe API Product to').click();
+  await dialog.getByText('Subscribe Application to API Product').click();
   await dialog.getByRole('button', { name: 'Subscribe', exact: true }).click();
-  await uiVerifyToast(page, { hasText: 'Subscribe API Product to Application Successfully' });
+  await uiVerifyToast(page, { hasText: 'Subscribe Application to API Product Successfully' });
 };
 
 type UISubscribeProductParams = {

@@ -152,7 +152,7 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
     await expect(subscribeBtn).toBeVisible();
     await subscribeBtn.click();
     const dialog = page.getByRole('dialog', {
-      name: 'Subscribe API Product to Application',
+      name: 'Subscribe Application to API Product',
     });
     await expect(dialog).toBeVisible();
     await expect(
@@ -176,7 +176,7 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
     ]);
     await newPage.waitForLoadState();
     await expect(newPage.getByText(application)).toBeVisible();
-    await expect(newPage.getByText('Subscribe New API Product')).toBeVisible();
+    await expect(newPage.getByText('Subscribe to New API Product')).toBeVisible();
     await expect(newPage.getByText('Authentication Type')).toBeVisible();
   });
 

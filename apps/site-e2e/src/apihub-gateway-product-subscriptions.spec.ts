@@ -125,7 +125,7 @@ test.describe('subscription status should be updated when product is subscribed 
       await subscribeBtn.click();
       await page.waitForTimeout(1000);
       const dialog = page.getByRole('dialog', {
-        name: 'Subscribe API Product to Application',
+        name: 'Subscribe Application to API Product',
       });
       await expect(dialog).toBeVisible();
       // input should be cleared
@@ -145,7 +145,7 @@ test.describe('subscription status should be updated when product is subscribed 
       await expect(page.getByText('Pending Approval')).toBeVisible();
       await option.click({ force: true, position: { x: 20, y: 0 } });
       // close dropdown
-      await dialog.getByText('Subscribe API Product to').click();
+      await dialog.getByText('Subscribe Application to API Product').click();
       await page.waitForTimeout(1000);
       // the application should not be selected
       await expect(dialog.getByText(applicationName)).toBeHidden();
@@ -153,7 +153,7 @@ test.describe('subscription status should be updated when product is subscribed 
         .getByRole('button', { name: 'Subscribe', exact: true })
         .click({ force: true });
       await expect(
-        page.getByText('Subscribe API Product to Application Successfully')
+        page.getByText('Subscribe Application to API Product Successfully')
       ).toBeHidden();
       // dialog should not be closed
       await expect(dialog).toBeVisible();

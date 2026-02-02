@@ -125,11 +125,11 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
 
     await test.step('subscribe to wait approval product', async () => {
       await page
-        .getByRole('button', { name: 'Subscribe New API Product' })
+        .getByRole('button', { name: 'Subscribe to New API Product' })
         .click();
 
       const dialog = page.getByRole('dialog', {
-        name: 'Subscribe API Product to Application',
+        name: 'Subscribe to New API Product',
       });
       await expect(dialog).toBeVisible();
 
@@ -149,7 +149,7 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
       await waitOption.click();
 
       // Close dropdown
-      await dialog.getByText('Subscribe API Product to Application').click();
+      await dialog.getByText('Subscribe to New API Product').click();
       await page.waitForTimeout(500);
 
       // Submit subscription
@@ -159,7 +159,7 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
 
       await expect(dialog).toBeHidden();
       await uiVerifyToast(page, {
-        hasText: 'Subscribe API Product to Application Successfully',
+        hasText: 'Subscribed to API Product Successfully',
       });
     });
 
@@ -175,11 +175,11 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
 
     await test.step('open modal again and verify product status is updated to pending approval', async () => {
       await page
-        .getByRole('button', { name: 'Subscribe New API Product' })
+        .getByRole('button', { name: 'Subscribe to New API Product' })
         .click();
 
       const dialog = page.getByRole('dialog', {
-        name: 'Subscribe API Product to Application',
+        name: 'Subscribe to New API Product',
       });
       await expect(dialog).toBeVisible();
 

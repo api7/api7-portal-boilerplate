@@ -1,6 +1,6 @@
 {
   "name": "@api7ee/site",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -12,7 +12,8 @@
     "db:migrate": "drizzle-kit migrate",
     "preflight": "tsx scripts/preflight.ts",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "db:generate-schema": "pnpm dlx @better-auth/cli generate --config ./src/lib/auth/server.ts --output ./src/lib/db/schema.ts"
   },
   "dependencies": {
     "@ant-design/cssinjs": "1.21.1",

@@ -69,7 +69,7 @@ const SubscribeAPIProductModal = (props: SubscribeAPIProductModalProps) => {
         applications: [applicationId],
       })
       .then(() => {
-        toast.success('Subscribe API Product to Application Successfully');
+        toast.success('Subscribed to API Product Successfully');
         onSuccess?.();
         onClose?.();
       })
@@ -95,7 +95,7 @@ const SubscribeAPIProductModal = (props: SubscribeAPIProductModalProps) => {
 
   return (
     <A7Modal
-      title="Subscribe API Product to Application"
+      title="Subscribe to New API Product"
       open={open}
       onCancel={onClose}
       onOk={handleSubscribe}

@@ -37,7 +37,7 @@ const SubscribeNewAPIProductBtn = ({
         icon={<IconImage type="add" alt="add" />}
         onClick={subscribeDisclosure.setOpen}
       >
-        Subscribe New API Product
+        Subscribe to New API Product
       </Button>
       <SubscribeAPIProductModal
         {...subscribeDisclosure}
