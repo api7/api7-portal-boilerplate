@@ -7,3 +7,4 @@ export const PATH_LANDING = `${PATH_AUTH}/landing` as const;
 export const PATH_APPLICATIONS = '/applications';
 export const PATH_USER_PROFILE = '/user-profile';
 export const PATH_ORGANIZATION = '/organization';
+export const PATH_DASHBOARD_ORGANIZATIONS = '/dashboard/organizations';

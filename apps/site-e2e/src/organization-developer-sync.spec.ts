@@ -54,8 +54,9 @@ test.describe('Organization and Developer Sync', () => {
 
       await page.getByRole('button', { name: 'Organization' }).click();
       await page.getByRole('menuitem', { name: 'Create Organization' }).click();
-      await page.getByRole('textbox', { name: 'Name' }).fill(orgName);
-      await page.getByRole('textbox', { name: 'Slug URL' }).fill(orgSlug);
+      const dialog = page.getByRole('dialog');
+      await dialog.getByRole('textbox', { name: 'Name' }).fill(orgName);
+      await dialog.locator('input[name="slug"]').fill(orgSlug);
       const [orgId] = await Promise.all([
         interceptOrgCreation(page),
         page.getByRole('button', { name: 'Create Organization' }).click(),
@@ -95,8 +96,9 @@ test.describe('Organization and Developer Sync', () => {
 
       await page.getByRole('button', { name: 'Organization' }).click();
       await page.getByRole('menuitem', { name: 'Create Organization' }).click();
-      await page.getByRole('textbox', { name: 'Name' }).fill(orgName);
-      await page.getByRole('textbox', { name: 'Slug URL' }).fill(orgSlug);
+      const dialog = page.getByRole('dialog');
+      await dialog.getByRole('textbox', { name: 'Name' }).fill(orgName);
+      await dialog.locator('input[name="slug"]').fill(orgSlug);
       const [orgId] = await Promise.all([
         interceptOrgCreation(page),
         page.getByRole('button', { name: 'Create Organization' }).click(),

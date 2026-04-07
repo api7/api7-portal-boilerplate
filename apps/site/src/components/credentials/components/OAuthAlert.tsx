@@ -6,6 +6,8 @@ import { Alert as AntdAlert, Input, Space, Button } from 'antd';
 type OAuthAlertProps = {
   clientID: string;
   clientSecret: string;
+  title?: string;
+  description?: string;
 };
 
 export const OAuthAlert = (props: OAuthAlertProps) => {
@@ -14,9 +16,11 @@ export const OAuthAlert = (props: OAuthAlertProps) => {
   return (
     <div className="pt-35px">
       <AntdAlert
-        message="OAuth Client Created"
-        description="Please copy and save it immediately, you will not be able to view Client Secret
-            again."
+        message={props.title ?? 'OAuth Client Created'}
+        description={
+          props.description ??
+          'Please copy and save it immediately, you will not be able to view Client Secret again.'
+        }
         type="info"
         showIcon
       />

@@ -65,16 +65,19 @@ test.describe(
       const link = page.getByRole('link', { name: productName }).first();
       await link.click();
 
-      await page.waitForTimeout(500)
       const title = page.getByTestId('meta-name').getByText(productName);
       await expect(title).toBeVisible();
-      await page.waitForSelector('.scalar-app', { state: 'attached' });
+      const getOperationLink = page
+        .locator('.scalar-app')
+        .getByRole('button', { name: /\/get\b.*\bGET\b/i })
+        .first();
+      await expect(getOperationLink).toBeVisible({ timeout: 15000 });
       // detail page render well
       await expect(page.getByText('ID:')).toBeVisible();
-      await expect(page.getByRole('link', { name: '/get' })).toBeVisible();
+      await expect(getOperationLink).toBeVisible();
       // Subscriptions tab should be hidden for guests
       await expect(page.getByRole('tab', { name: 'Subscriptions' })).toBeHidden();
-      await page.getByRole('link', { name: '/get' }).click();
+      await getOperationLink.click();
 
       // click Test Request
       await page.getByRole('button', { name: 'Test Request' }).first().click();

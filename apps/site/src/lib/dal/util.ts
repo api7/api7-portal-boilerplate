@@ -69,3 +69,17 @@ export const verifyOrganization = cache(async () => {
 
   return orgs;
 });
+
+/**
+ * Verify current user can access organization specified by slug.
+ * Returns matched organization when accessible, otherwise null.
+ */
+export const verifyOrganizationAccessBySlug = cache(async (slug: string) => {
+  const session = await verifySession({ redirect: false });
+  if (!session?.user) {
+    return null;
+  }
+
+  const orgs = await getOrganizations();
+  return orgs.find((org) => org.slug === slug) ?? null;
+});

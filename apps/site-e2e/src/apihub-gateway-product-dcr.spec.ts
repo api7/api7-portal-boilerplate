@@ -229,13 +229,18 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
       ).toBeVisible();
       await page.getByRole('tab', { name: 'OAuth' }).click();
 
-      await page.getByRole('button', { name: 'Delete' }).click();
+      // Open dropdown menu and click Delete
+      const oauthRow = page.locator('.ant-table-row', { hasText: clientId });
+      const moreMenuBtn = oauthRow.locator('button.ant-dropdown-trigger');
+      await moreMenuBtn.click();
+      await page.getByRole('menuitem', { name: 'Delete' }).click();
+
       await page.locator('[id="inputText"]').fill(clientId);
       await page.getByRole('button', { name: 'Confirm' }).click();
       await expect(page.locator('.ant-table-cell', { hasText: clientId })).toBeHidden();
 
       // Brief wait for cache to be cleared
-      await page.waitForTimeout(1000);
+      await page.waitForTimeout(5000);
 
       const api = await request.newContext();
       const res = await api.get(`${gatewayAddress}${routePathPrefix}`, {

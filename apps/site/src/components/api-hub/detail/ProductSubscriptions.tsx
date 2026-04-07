@@ -18,7 +18,9 @@ import IconImage from '@/components/ui/icon-image';
 import { MoreMenu } from '@/components/ui/more-menu';
 import A7Table from '@/components/ui/table';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
+import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import type { SubscriptionItem } from '@/types/portal-sdk';
 import Link from 'next/link';
@@ -26,9 +28,11 @@ import Link from 'next/link';
 const SubscribeToApplicationBtn = ({
   productId,
   onSuccess,
+  disabled,
 }: {
   productId: string;
   onSuccess?: () => void;
+  disabled?: boolean;
 }) => {
   const subscribeDisclosure = useDisclosure();
 
@@ -38,6 +42,7 @@ const SubscribeToApplicationBtn = ({
         key="add"
         variant="filled"
         type="primary"
+        disabled={disabled}
         icon={<IconImage type="add" />}
         onClick={subscribeDisclosure.setOpen}
       >
@@ -55,6 +60,8 @@ const SubscribeToApplicationBtn = ({
 const ProductSubscriptions = () => {
   const searchParams = useSearchParams();
   const productId = searchParams.get('id') || '';
+  const orgSlug = useOrganizationSlug();
+  const { canManageApplications } = useCanManageApplications();
 
   const req = useSubscriptionList({
     api_product_id: productId,
@@ -75,17 +82,16 @@ const ProductSubscriptions = () => {
         title: 'Application',
         dataIndex: 'application_name',
         key: 'application_name',
-        render: (name, record) => (
-          <Link
-            href={{
-              pathname: `${PATH_APPLICATIONS}/detail`,
-              query: { id: record.application_id },
-            }}
-            target="_blank"
-          >
-            <Typography.Link>{name}</Typography.Link>
-          </Link>
-        ),
+        render: (name, record) => {
+          const href = orgSlug
+            ? `/${orgSlug}${PATH_APPLICATIONS}/detail?id=${record.application_id}`
+            : `${PATH_APPLICATIONS}/detail?id=${record.application_id}`;
+          return (
+            <Link href={href} target="_blank">
+              <Typography.Link>{name}</Typography.Link>
+            </Link>
+          );
+        },
       },
       statusCol,
       {
@@ -108,17 +114,19 @@ const ProductSubscriptions = () => {
                 key: 'unsubscribe',
                 label: 'Unsubscribe',
                 className: 'text-red-500',
+                disabled: !canManageApplications,
                 onClick: () => {
                   setCurSubscription(record);
                   unsubscribeDisclosure.setOpen();
                 },
               },
             ]}
+            menuButtonProps={{ disabled: !canManageApplications }}
           />
         ),
       },
     ],
-    [statusCol]
+    [statusCol, orgSlug, canManageApplications]
   );
 
   const handleUnsubscribe = () => {
@@ -149,6 +157,7 @@ const ProductSubscriptions = () => {
             key="add"
             productId={productId}
             onSuccess={req.refetch}
+            disabled={!canManageApplications}
           />,
         ]}
         savePage={false}

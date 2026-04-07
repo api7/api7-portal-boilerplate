@@ -8,6 +8,7 @@ import IconImage from '@/components/ui/icon-image';
 import A7Modal from '@/components/ui/modal';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useApplicationList from '@/lib/query/useApplicationList';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import { portalClient } from '@/lib/portal-sdk/client';
@@ -77,6 +78,7 @@ type Props = UseDisclosureReturn & {
 
 const SubscribeAPIProductModalApplication = (props: Props) => {
   const { open, onClose, productId, onSuccess } = props;
+  const orgSlug = useOrganizationSlug();
   const [selected, setSelected] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -142,7 +144,10 @@ const SubscribeAPIProductModalApplication = (props: Props) => {
 
   // Handle navigation to product detail
   const handleNavigateToApplication = useMemoizedFn((applicationId: string) => {
-    window.open(`${PATH_APPLICATIONS}/detail?id=${applicationId}`, '_blank');
+    const href = orgSlug
+      ? `/${orgSlug}${PATH_APPLICATIONS}/detail?id=${applicationId}`
+      : `${PATH_APPLICATIONS}/detail?id=${applicationId}`;
+    window.open(href, '_blank');
   });
 
   // Prepare options for Select component

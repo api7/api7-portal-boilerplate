@@ -27,12 +27,17 @@ db:
 
 auth:
   secret: ""                                                 # Required
+  # adminUserIds:
+  #   - "user_id_1"
+  #   - "user_id_2"
   # session:
   #   expiresIn: 604800                                      # 7 days
   #   updateAge: 86400                                       # 1 day
   # emailAndPassword:
   #   enabled: true
   #   requireEmailVerification: false
+  # twoFactor:
+  #   enabled: false                                          # Enable two-factor auth (TOTP only)
   # socialProviders:                                          # ref: https://www.better-auth.com/docs/reference/options#socialproviders
   #   github:
   #     clientId: ${GITHUB_CLIENT_ID:}                        # GitHub OAuth App Client ID
@@ -43,3 +48,13 @@ auth:
   # baseURL: "http://localhost:3001"                          # Base URL for generating links (e.g., magic link emails), for SEO (canonical URLs, sitemap, etc.)
   # trustedOrigins:
   #  - ""
+  # applicationDetail:
+  #  subscriptions: false                                      # Show Subscriptions tab (default: true)
+  #  usage: false                                              # Show Usage tab (default: true)
+  #  credentialsTabs:
+  #    keyAuth: false                                           # Show Key Authentication tab (default: true)
+  #    basicAuth: false                                         # Show Basic Authentication tab (default: true)
+  #    oauth: false                                             # Show OAuth tab (default: true)
+  # beforeSignUpButtonHtml: >-
+  #   <p>By continuing, you acknowledge Example's <a href="https://example.com/terms" target="_blank" rel="noopener noreferrer">Terms of use</a> and the <a href="https://example.com/privacy" target="_blank" rel="noopener noreferrer">Privacy policy</a>.</p>
+  # IMPORTANT: This value is injected as raw HTML. Only use trusted static content.

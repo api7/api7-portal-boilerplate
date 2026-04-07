@@ -1,5 +1,6 @@
 import Header from '@/components/layouts/Header';
 import Footer from '@/components/layouts/Footer';
+import ImpersonationBanner from '@/components/layouts/ImpersonationBanner';
 
 export default function MainLayout({
   children,
@@ -8,6 +9,7 @@ export default function MainLayout({
 }) {
   return (
     <>
+      <ImpersonationBanner />
       <Header />
       <main
         className="min-h-screen p-4"

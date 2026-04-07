@@ -1,7 +1,14 @@
 import { APIRequest, expect, request } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { E2E_TARGET_URL } from '../constant';
-import { API_APPLICATIONS, AUTH_BASE_PATH } from '@site/constants/api-prefix';
+import {
+  API_APPLICATIONS,
+  AUTH_BASE_PATH,
+} from '@site/constants/api-prefix';
+import { PATH_LANDING, PATH_ORGANIZATION } from '@site/constants/path-prefix';
 import { BetterAuthLogin } from './type';
+
+const ORG_SET_ACTIVE = `${AUTH_BASE_PATH}/organization/set-active`;
 
 export const genCtx = async (
   options?: Parameters<APIRequest['newContext']>[0]
@@ -22,55 +29,142 @@ export type Ctx = Awaited<ReturnType<typeof genCtx>>;
 export const getSession = async (ctx: Ctx) =>
   ctx.get(`${AUTH_BASE_PATH}/get-session`, { failOnStatusCode: false });
 
-/**
- * Login using better-auth API (new Developer Portal)
- */
-export const login = async (ctx: Ctx, auth: BetterAuthLogin) => {
-  // Try to sign in first
-  const signInRes = await ctx.post(`${AUTH_BASE_PATH}/sign-in/email`, {
-    data: {
-      email: auth.email,
-      password: auth.password,
-      name: auth.name,
-    },
-    failOnStatusCode: false,
-  });
+const sleep = (ms: number) =>
+  new Promise((resolve) => setTimeout(resolve, ms));
 
-  if (signInRes.status() === 200) {
-    return;
-  }
+const maxRequestRetries = 5;
 
-  // If sign in fails, try to sign up
-  const signUpRes = await ctx.post(`${AUTH_BASE_PATH}/sign-up/email`, {
-    data: {
-      email: auth.email,
-      password: auth.password,
-      name: auth.name,
-    },
-    failOnStatusCode: false,
-  });
-
-  if (signUpRes.status() === 200) {
-    return;
-  }
-
-  // If both fail, throw error
-  const signInBody = await signInRes.text();
-  const signUpBody = await signUpRes.text();
-  throw new Error(
-    `Login failed. Sign-in: ${signInRes.status()} ${signInBody}, Sign-up: ${signUpRes.status()} ${signUpBody}`
+const isTransientNetworkError = (err: unknown) => {
+  const msg = (err instanceof Error ? err.message : String(err)).toLowerCase();
+  return (
+    msg.includes('socket hang up') ||
+    msg.includes('econnreset') ||
+    msg.includes('etimedout') ||
+    msg.includes('econnrefused')
   );
 };
 
+const isRetryableStatus = (status: number) => status === 429 || status >= 500;
+
 /**
- * Register a new user using better-auth API
+ * Login using better-auth API (new Developer Portal).
+ * Retries on 429 (rate limit) responses and on socket/network errors.
+ */
+export const login = async (ctx: Ctx, auth: BetterAuthLogin) => {
+  const maxRetries = 5;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const signInRes = await ctx.post(`${AUTH_BASE_PATH}/sign-in/email`, {
+        data: {
+          email: auth.email,
+          password: auth.password,
+          name: auth.name,
+        },
+        failOnStatusCode: false,
+        timeout: 30000,
+      });
+
+      if (signInRes.status() === 200) return;
+
+      if (signInRes.status() === 429) {
+        await sleep(2000 * (attempt + 1));
+        continue;
+      }
+
+      const signUpRes = await ctx.post(`${AUTH_BASE_PATH}/sign-up/email`, {
+        data: {
+          email: auth.email,
+          password: auth.password,
+          name: auth.name,
+        },
+        failOnStatusCode: false,
+        timeout: 30000,
+      });
+
+      if (signUpRes.status() === 200) return;
+
+      const signUpBody = await signUpRes.text();
+
+      if (signUpRes.status() === 429) {
+        await sleep(2000 * (attempt + 1));
+        continue;
+      }
+
+      const signInBody = await signInRes.text();
+      throw new Error(
+        `Login failed. Sign-in: ${signInRes.status()} ${signInBody}, Sign-up: ${signUpRes.status()} ${signUpBody}`
+      );
+    } catch (err) {
+      lastError = err instanceof Error ? err : new Error(String(err));
+      if (isTransientNetworkError(lastError)) {
+        await sleep(2000 * (attempt + 1));
+        continue;
+      }
+      throw lastError;
+    }
+  }
+
+  try {
+    const signInRes = await ctx.post(`${AUTH_BASE_PATH}/sign-in/email`, {
+      data: {
+        email: auth.email,
+        password: auth.password,
+        name: auth.name,
+      },
+      failOnStatusCode: false,
+      timeout: 30000,
+    });
+    if (signInRes.status() === 200) return;
+    const signInBody = await signInRes.text();
+    throw new Error(
+      `Login failed after ${maxRetries} retries. Sign-in: ${signInRes.status()} ${signInBody}`
+    );
+  } catch (err) {
+    throw lastError ?? err;
+  }
+};
+
+/**
+ * Register a new user using better-auth API.
+ * Retries on 429 (rate limit) and network errors.
  */
 export const register = async (
   ctx: Ctx,
   auth: { email: string; password: string; name: string }
 ) => {
+  const maxRetries = 5;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const res = await ctx.post(`${AUTH_BASE_PATH}/sign-up/email`, {
+        data: auth,
+        failOnStatusCode: false,
+        timeout: 30000,
+      });
+
+      if (res.status() === 200) return res.json();
+
+      const body = await res.text();
+      if (res.status() === 429) {
+        await sleep(2000 * (attempt + 1));
+        continue;
+      }
+      throw new Error(`Register failed: ${res.status()} ${body}`);
+    } catch (err) {
+      if (isTransientNetworkError(err)) {
+        await sleep(2000 * (attempt + 1));
+        continue;
+      }
+      throw err;
+    }
+  }
+
   const res = await ctx.post(`${AUTH_BASE_PATH}/sign-up/email`, {
     data: auth,
+    failOnStatusCode: false,
+    timeout: 30000,
   });
   expect(res.status()).toBe(200);
   return res.json();
@@ -103,13 +197,50 @@ export const deleteAllOrganizations = async (ctx: Ctx) => {
   }
 };
 export const getDefaultApplicationId = async (ctx: Ctx): Promise<string> => {
-  const res = await ctx.get(API_APPLICATIONS);
-  expect(res.status()).toBe(200);
-  const data = await res.json();
-  const defaultApp = data.list?.find(
-    (app: { name: string }) => app.name === 'default'
-  );
-  return defaultApp.id;
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRequestRetries; attempt++) {
+    try {
+      const res = await ctx.get(API_APPLICATIONS, {
+        failOnStatusCode: false,
+        timeout: 30000,
+      });
+      const status = res.status();
+
+      if (status !== 200) {
+        const body = await res.text();
+        const error = new Error(
+          `Get default application failed: ${status} ${body}`
+        );
+        if (isRetryableStatus(status)) {
+          lastError = error;
+          await sleep(2000 * (attempt + 1));
+          continue;
+        }
+        throw error;
+      }
+
+      const data = await res.json();
+      const defaultApp = data.list?.find(
+        (app: { name: string }) => app.name === 'default'
+      );
+
+      if (!defaultApp?.id) {
+        throw new Error('Default application not found');
+      }
+
+      return defaultApp.id;
+    } catch (err) {
+      if (isTransientNetworkError(err)) {
+        lastError = err instanceof Error ? err : new Error(String(err));
+        await sleep(2000 * (attempt + 1));
+        continue;
+      }
+      throw err;
+    }
+  }
+
+  throw lastError ?? new Error('Get default application failed after retries');
 };
 
 export const createApplication = async (
@@ -146,4 +277,181 @@ export const createOrganization = async (ctx: Ctx, name: string) => {
   expect(sessionBody.session.activeOrganizationId).toBe(body.id);
   await createApplication(ctx, { name: 'default' });
   return body;
+};
+
+/**
+ * Invite a member via UI: organization members page -> Invite Member -> fill email -> (optional) select role -> Send Invitation.
+ * @param role - 'member' (default) or 'admin'
+ */
+export const inviteMemberViaUI = async (
+  ownerPage: Page,
+  memberEmail: string,
+  role: 'member' | 'admin' = 'member'
+) => {
+  await ownerPage.goto(`${PATH_ORGANIZATION}/members`);
+  await ownerPage.getByRole('button', { name: 'Invite Member' }).click();
+  const dialog = ownerPage.getByRole('dialog', { name: 'Invite Member' });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('textbox', { name: 'Email' }).fill(memberEmail);
+  if (role === 'admin') {
+    await dialog.getByRole('combobox', { name: 'Role' }).click();
+    // Radix Select renders options in a portal outside the dialog
+    await ownerPage.getByRole('option', { name: 'Admin' }).click();
+  }
+  await dialog.getByRole('button', { name: 'Send Invitation' }).click();
+  await expect(dialog).toBeHidden();
+};
+
+/**
+ * Accept an organization invitation via UI: member goes to landing page -> clicks Accept on invitation row.
+ * Uses aria-haspopup="menu" to target the dropdown trigger (not the "Add" button from Add Organization card).
+ */
+export const acceptInvitationViaUI = async (
+  memberPage: Page,
+  memberEmail: string
+) => {
+  await memberPage.goto(PATH_LANDING);
+  const row = memberPage
+    .locator('div')
+    .filter({
+      hasText: memberEmail,
+      has: memberPage.locator('button[aria-haspopup="menu"]'),
+    })
+    .first();
+  await expect(row).toBeVisible();
+  await row.locator('button[aria-haspopup="menu"]').click();
+  await memberPage.getByRole('menuitem', { name: 'Accept' }).click();
+};
+
+/**
+ * Get active organization ID from session.
+ */
+export const getActiveOrganizationId = async (ctx: Ctx): Promise<string> => {
+  const res = await getSession(ctx);
+  const body = await res.json();
+  const orgId = body?.session?.activeOrganizationId;
+  expect(orgId).toBeTruthy();
+  return orgId;
+};
+
+/**
+ * Setup member user via invitation flow:
+ * Owner invites via UI (organization members page) -> member registers -> member accepts via UI (landing page) -> set active org.
+ */
+export const setupMemberUser = async (
+  ownerPage: Page,
+  memberAuth: { email: string; password: string; name: string },
+  organizationId: string,
+  storageStatePath: string
+): Promise<string> => {
+  await inviteMemberViaUI(ownerPage, memberAuth.email);
+
+  const memberCtx = await genCtx();
+  await register(memberCtx, memberAuth);
+  await login(memberCtx, memberAuth);
+
+  const tmpPath = `${storageStatePath}.tmp`;
+  await memberCtx.storageState({ path: tmpPath });
+
+  const browser = ownerPage.context().browser();
+  if (!browser) throw new Error('Browser not available');
+  const memberContext = await browser.newContext({
+    baseURL: E2E_TARGET_URL,
+    storageState: tmpPath,
+  });
+  const memberPage = await memberContext.newPage();
+
+  await acceptInvitationViaUI(memberPage, memberAuth.email);
+
+  const setActiveResponse = await memberPage.request.post(ORG_SET_ACTIVE, {
+    data: { organizationId },
+    headers: { origin: E2E_TARGET_URL },
+    failOnStatusCode: false,
+  });
+  await memberContext.storageState({ path: storageStatePath });
+  await memberContext.close();
+  await memberCtx.dispose();
+
+  return storageStatePath;
+};
+
+/**
+ * Setup admin user via invitation flow:
+ * Owner invites as admin via UI -> admin registers -> admin accepts via UI -> set active org.
+ */
+export const setupAdminUser = async (
+  ownerPage: Page,
+  adminAuth: { email: string; password: string; name: string },
+  organizationId: string,
+  storageStatePath: string
+): Promise<string> => {
+  await inviteMemberViaUI(ownerPage, adminAuth.email, 'admin');
+
+  const adminCtx = await genCtx();
+  await register(adminCtx, adminAuth);
+  await login(adminCtx, adminAuth);
+
+  const tmpPath = `${storageStatePath}.tmp`;
+  await adminCtx.storageState({ path: tmpPath });
+
+  const browser = ownerPage.context().browser();
+  if (!browser) throw new Error('Browser not available');
+  const adminContext = await browser.newContext({
+    baseURL: E2E_TARGET_URL,
+    storageState: tmpPath,
+  });
+  const adminPage = await adminContext.newPage();
+
+  await acceptInvitationViaUI(adminPage, adminAuth.email);
+
+  await adminPage.request.post(ORG_SET_ACTIVE, {
+    data: { organizationId },
+    headers: { origin: E2E_TARGET_URL },
+    failOnStatusCode: false,
+  });
+
+  await adminContext.storageState({ path: storageStatePath });
+  await adminContext.close();
+  await adminCtx.dispose();
+
+  return storageStatePath;
+};
+
+/**
+ * Assert API returns 403 for member write operations.
+ */
+export const expectMemberWriteForbidden = async (
+  memberCtx: Ctx,
+  method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
+  url: string,
+  data?: unknown
+) => {
+  let res;
+  switch (method) {
+    case 'POST':
+      res = await memberCtx.post(url, { data, failOnStatusCode: false });
+      break;
+    case 'PUT':
+      res = await memberCtx.put(url, { data, failOnStatusCode: false });
+      break;
+    case 'PATCH':
+      res = await memberCtx.patch(url, { data, failOnStatusCode: false });
+      break;
+    case 'DELETE':
+      res = await memberCtx.delete(url, { failOnStatusCode: false });
+      break;
+    default:
+      throw new Error(`Unsupported method: ${method}`);
+  }
+  expect(res.status()).toBe(403);
+  const body = await res.json().catch(() => ({}));
+  const errText = (
+    body?.message ||
+    body?.code ||
+    (typeof body === 'object' ? JSON.stringify(body) : String(body)) ||
+    ''
+  ).toLowerCase();
+  expect(
+    errText.includes('forbidden') || errText.includes('not allowed')
+  ).toBe(true);
 };

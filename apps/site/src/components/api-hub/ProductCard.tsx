@@ -15,6 +15,7 @@ import {
 import { BareIconImage } from '@/components/ui/icon-image';
 import { MetaAvatar } from '@/components/ui/meta';
 import { Skeleton } from '@/components/ui/skeleton';
+import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import { cn } from '@/lib/utils';
 import type {
   ApiProductListItem,
@@ -66,13 +67,14 @@ const SubsStatusTag = (props: {
 
 const ProductCard = (props: ApiProductListItem) => {
   const { name, id, desc = '', subscription_status = 'unsubscribed' } = props;
+  const apiHubBasePath = useApiHubBasePath();
   const finalTags =
     props.type === 'external'
       ? props?.tags
       : map(props?.labels, (v, k) => `${k}:${v}`);
 
   return (
-    <Link className="h-full flex flex-col" href={`/api-hub/detail?id=${id}`}>
+    <Link className="h-full flex flex-col" href={`${apiHubBasePath}/detail?id=${id}`}>
       <CardHeader className="pt-6 pb-4 px-6">
         <CardTitle className="gap-2 flex">
           <MetaAvatar

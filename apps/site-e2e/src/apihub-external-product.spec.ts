@@ -49,28 +49,30 @@ test.describe('Test API Hub with External Product', () => {
     });
 
     await test.step('Search exist api', async () => {
+      const productsResPromise = page.waitForResponse(
+        (response) =>
+          response.url().includes(`${API_PRODUCTS}?page=1`) &&
+          response.request().method() === 'GET' &&
+          response.status() === 200
+      );
+
       // search to get a exist api
       await search.click();
       await search.clear();
       await search.fill(productName);
       await search.press('Enter');
 
-      // check api return
-      await page.route(`**${API_PRODUCTS}?page=1**`, async (route) => {
-        const res = await route.fetch();
-        const data = (await res.json()) as ProductListRes;
-        expect(data.total).toBe(1);
-        const httpbinInfo = data.list[0] as ProductExternal;
-        expect(httpbinInfo.name).toBe(productName);
+      const productsRes = await productsResPromise;
+      const data = (await productsRes.json()) as ProductListRes;
+      expect(data.total).toBe(1);
+      const httpbinInfo = data.list[0] as ProductExternal;
+      expect(httpbinInfo.name).toBe(productName);
 
-        const link = page.getByRole('link', { name: productName }).first();
-        await expect(link).toBeVisible();
-        await expect(page.getByText('No Data')).toBeHidden();
-        await expect(page.getByText('API Count')).toBeVisible();
-        await expect(
-          page.getByText(String(httpbinInfo.api_count))
-        ).toBeVisible();
-      });
+      const link = page.getByRole('link', { name: productName }).first();
+      await expect(link).toBeVisible();
+      await expect(page.getByText('No Data')).toBeHidden();
+      await expect(page.getByText('API Count')).toBeVisible();
+      await expect(page.getByText(String(httpbinInfo.api_count))).toBeVisible();
     });
 
     await test.step('Check exist api detail page', async () => {
@@ -84,13 +86,17 @@ test.describe('Test API Hub with External Product', () => {
 
       const title = page.getByTestId('meta-name').getByText(productName);
       await expect(title).toBeVisible();
-      await page.waitForSelector('.scalar-app', { state: 'attached' });
+      const getOperationLink = page
+        .locator('.scalar-app')
+        .getByRole('button', { name: /\/get\b.*\bGET\b/i })
+        .first();
+      await expect(getOperationLink).toBeVisible({ timeout: 15000 });
       // detail page render well
       await expect(page.getByText('ID:')).toBeVisible();
-      await expect(page.getByRole('link', { name: '/get' })).toBeVisible();
+      await expect(getOperationLink).toBeVisible();
       // Subscriptions tab should NOT be visible for external products (they cannot be subscribed)
       await expect(page.getByRole('tab', { name: 'Subscriptions' })).not.toBeVisible();
-      await page.getByRole('link', { name: '/get' }).click();
+      await getOperationLink.click();
       await expect(
         page
           .locator('li')
@@ -127,12 +133,12 @@ test.describe('Test API Hub with External Product', () => {
       await expect(password).toBeVisible();
 
       const testText = '   test space    ';
-      await page.getByLabel('Cookie Key').getByRole('textbox').fill(testText);
-
+      await page.getByLabel('Cookies').getByRole('textbox').filter({ hasText: 'Key' }).fill(testText);
       const cookieInput = page
-        .getByLabel('Cookie Key')
-        .getByRole('textbox')
+        .getByLabel('Cookies')
+        .getByRole('textbox').filter({ hasText: 'test space' })
         .first();
+
       await cookieInput.press('ControlOrMeta+a');
       await cookieInput.press('ControlOrMeta+c');
       await cookieInput.press('ControlOrMeta+v');

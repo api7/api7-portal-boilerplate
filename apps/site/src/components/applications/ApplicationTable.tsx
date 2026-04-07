@@ -16,32 +16,39 @@ import IconImage from '@/components/ui/icon-image';
 import { MoreMenu } from '@/components/ui/more-menu';
 import A7Table from '@/components/ui/table';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
+import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useApplicationList from '@/lib/query/useApplicationList';
 import useLabelList from '@/lib/query/useLabelList';
 import type { DeveloperApplication } from '@api7/portal-sdk/unstable-types';
 import Link from 'next/link';
 
-const AddApplicationBtn = memo(({ refetch }: { refetch: () => void }) => {
-  const addDisclosure = useDisclosure({ onClose: refetch });
-  return (
-    <>
-      <Button
-        variant="filled"
-        type="primary"
-        icon={<IconImage type="add" alt="add" className="brightness-0 invert" />}
-        onClick={addDisclosure.setOpen}
-      >
-        Add Application
-      </Button>
-      <ApplicationAddDrawer {...addDisclosure} />
-    </>
-  );
-});
+const AddApplicationBtn = memo(
+  ({ refetch, disabled }: { refetch: () => void; disabled?: boolean }) => {
+    const addDisclosure = useDisclosure({ onClose: refetch });
+    return (
+      <>
+        <Button
+          variant="filled"
+          type="primary"
+          disabled={disabled}
+          icon={<IconImage type="add" alt="add" className="brightness-0 invert" />}
+          onClick={addDisclosure.setOpen}
+        >
+          Add Application
+        </Button>
+        <ApplicationAddDrawer {...addDisclosure} />
+      </>
+    );
+  }
+);
 
 AddApplicationBtn.displayName = 'AddApplicationBtn';
 
 const ApplicationTable: React.FC = () => {
+  const orgSlug = useOrganizationSlug();
+  const { canManageApplications } = useCanManageApplications();
   const req = useApplicationList({ savePage: true });
   const labelReq = useLabelList({ resourceType: 'developer_application' });
   const refetch = () => {
@@ -56,17 +63,17 @@ const ApplicationTable: React.FC = () => {
       {
         title: 'Name',
         dataIndex: 'name',
-        render: (name, detail) => (
-          <Link
-            passHref
-            href={{
-              pathname: `${PATH_APPLICATIONS}/detail`,
-              query: { id: detail.id },
-            }}
-          >
-            <Typography.Link>{name}</Typography.Link>
-          </Link>
-        ),
+        render: (name, detail) => {
+          const href = orgSlug
+            ? `/${orgSlug}${PATH_APPLICATIONS}/detail?id=${detail.id}`
+            : `${PATH_APPLICATIONS}/detail?id=${detail.id}`;
+
+          return (
+            <Link passHref href={href}>
+              <Typography.Link>{name}</Typography.Link>
+            </Link>
+          );
+        },
       },
       tableColDesc<DeveloperApplication>({
         title: 'Description',
@@ -95,6 +102,7 @@ const ApplicationTable: React.FC = () => {
                 key: 'edit',
                 label: 'Edit Basics',
                 'data-testid': 'application-edit-basics',
+                disabled: !canManageApplications,
                 onClick: () => {
                   setCurData(data);
                   editDisclosure.setOpen();
@@ -105,17 +113,19 @@ const ApplicationTable: React.FC = () => {
                 label: 'Delete',
                 className: 'text-red-500',
                 'data-testid': 'application-delete',
+                disabled: !canManageApplications,
                 onClick: () => {
                   setCurData(data);
                   deleteDisclosure.setOpen();
                 },
               },
             ]}
+            menuButtonProps={{ disabled: !canManageApplications }}
           />
         ),
       },
     ],
-    [req, labelReq]
+    [req, labelReq, orgSlug, canManageApplications]
   );
 
   return (
@@ -126,7 +136,13 @@ const ApplicationTable: React.FC = () => {
         {...req}
         nameSearch
         text={{ searchPlaceholder: 'Search name, description, label' }}
-        toolBar={[<AddApplicationBtn key="add" refetch={refetch} />]}
+        toolBar={[
+          <AddApplicationBtn
+            key="add"
+            refetch={refetch}
+            disabled={!canManageApplications}
+          />,
+        ]}
       />
       <ApplicationDeleteModal
         {...deleteDisclosure}

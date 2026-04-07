@@ -174,11 +174,15 @@ test.describe('Test API Hub with Gateway Product', { tag: ['@gateway'] }, () => 
 
       const title = page.getByTestId('meta-name').getByText(product.name);
       await expect(title).toBeVisible();
-      await page.waitForSelector('.scalar-app', { state: 'attached' });
+      const getOperationLink = page
+        .locator('.scalar-app')
+        .getByRole('button', { name: /\/get\b.*\bGET\b/i })
+        .first();
+      await expect(getOperationLink).toBeVisible({ timeout: 15000 });
       // detail page render well
       await expect(page.getByText('ID:')).toBeVisible();
-      await expect(page.getByRole('link', { name: '/get' })).toBeVisible();
-      await page.getByRole('link', { name: '/get' }).click();
+      await expect(getOperationLink).toBeVisible();
+      await getOperationLink.click();
       await expect(
         page
           .locator('li')
@@ -219,12 +223,12 @@ test.describe('Test API Hub with Gateway Product', { tag: ['@gateway'] }, () => 
     test.setTimeout(30_000); // Increase timeout for debugging
     await test.step('test request modal should trim paste text', async () => {
       const testText = '   test space    ';
-      await page.getByLabel('Cookie Key').getByRole('textbox').fill(testText);
-
+      await page.getByLabel('Cookies').getByRole('textbox').filter({ hasText: 'Key' }).fill(testText);
       const cookieInput = page
-        .getByLabel('Cookie Key')
-        .getByRole('textbox')
+        .getByLabel('Cookies')
+        .getByRole('textbox').filter({ hasText: 'test space' })
         .first();
+
       await cookieInput.press('ControlOrMeta+a');
       await cookieInput.press('ControlOrMeta+c');
       await cookieInput.press('ControlOrMeta+v');

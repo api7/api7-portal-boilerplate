@@ -1,5 +1,4 @@
 import { verifySessionAndOrganization } from '@/lib/dal';
-import MainLayout from '@/components/layouts/MainLayout';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,5 +9,5 @@ export default async function AuthLayout({
 }) {
   await verifySessionAndOrganization();
 
-  return <MainLayout>{children}</MainLayout>;
+  return children;
 }

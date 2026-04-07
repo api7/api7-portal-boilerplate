@@ -12,6 +12,10 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# lock files (use pnpm-lock.yaml only)
+package-lock.json
+yarn.lock
+
 # environment variables
 .env
 .env.production
@@ -21,6 +25,9 @@ pnpm-debug.log*
 
 # jetbrains setting folder
 .idea/
+
+# Cursor project skills (personal only)
+.cursor/skills/
 .eslintcache
 .vercel
 **/test-results/
@@ -42,3 +49,4 @@ node_modules
 api7ee3-dev.tgz
 /apps/site/config.yaml
 apps/site/migrate.js
+**/playwright-report/

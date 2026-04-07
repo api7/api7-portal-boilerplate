@@ -10,11 +10,14 @@ import OAuthAddDrawer from './OAuthAddDrawer';
 import { OAuthAlert } from './OAuthAlert';
 import OAuthDeleteModal from './OAuthDeleteModal';
 import OAuthEditDrawer from './OAuthEditDrawer';
+import OAuthRotateModal from './OAuthRotateModal';
+import Menu from '@/components/slices/menu';
 import { tableColDesc } from '@/components/slices/table-col/desc';
 import TimeFormat from '@/components/slices/time-format';
 import IconImage from '@/components/ui/icon-image';
 import A7Table from '@/components/ui/table';
 import { DEFAULT_LIST_PARAMS } from '@/constants/common';
+import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import useCredentialList, {
   type CredentialParams,
@@ -25,12 +28,18 @@ import type {
   OAuthCredentialBasics,
 } from '@/types/portal-sdk';
 
+const isHttpBridgeOAuthCredential = (credential: ApplicationCredential) =>
+  credential.type === 'oauth' &&
+  credential.oauth?.dcr_provider?.provider_type === 'http_bridge';
+
 const AddOAuthBtn = memo(function AddOAuthBtn({
   refetch,
   setAlertData,
+  disabled,
 }: {
   refetch: () => void;
   setAlertData: (data: OAuthCredentialBasics['oauth']) => void;
+  disabled?: boolean;
 }) {
   const addDisclosure = useDisclosure({ onClose: refetch });
   return (
@@ -38,6 +47,7 @@ const AddOAuthBtn = memo(function AddOAuthBtn({
       <Button
         variant="filled"
         type="primary"
+        disabled={disabled}
         icon={<IconImage type="add" />}
         onClick={addDisclosure.setOpen}
       >
@@ -51,6 +61,7 @@ const AddOAuthBtn = memo(function AddOAuthBtn({
 const OAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
   application_id,
 }) => {
+  const { canManageApplications } = useCanManageApplications();
   const req = useCredentialList({
     savePage: false,
     initParams: {
@@ -61,12 +72,16 @@ const OAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
   });
   const editDisclosure = useDisclosure({ onClose: req.refetch });
   const [alertData, setAlertData] = useState<OAuthCredentialBasics['oauth']>();
+  const [alertVariant, setAlertVariant] = useState<'created' | 'rotated'>(
+    'created'
+  );
   const deleteDisclosure = useDisclosure({
     onClose: () => {
       req.refetch();
       setAlertData(undefined);
     },
   });
+  const rotateDisclosure = useDisclosure({ onClose: req.refetch });
   const [curData, setCurData] = useState<ApplicationCredential | undefined>();
 
   const columns = useCreation<ColumnsType<ApplicationCredential>>(
@@ -93,33 +108,56 @@ const OAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
         title: 'Actions',
         dataIndex: 'id',
         fixed: 'right',
-        render: (id, data) => (
-          <Button.Group>
-            <Button
-              type="link"
-              className="px-0 mr-4"
-              onClick={() => {
-                setCurData(data);
-                editDisclosure.setOpen();
-              }}
-            >
-              Edit
-            </Button>
-            <Button
-              type="link"
-              className="px-0 text-red-500"
-              onClick={() => {
-                setCurData(data);
-                deleteDisclosure.setOpen();
-              }}
-            >
-              Delete
-            </Button>
-          </Button.Group>
-        ),
+        render: (_, data) => {
+          const canRegenerate = isHttpBridgeOAuthCredential(data);
+
+          return (
+            <div className="inline-flex items-center">
+              <Button
+                type="link"
+                className="px-0 mr-4"
+                disabled={!canManageApplications}
+                onClick={() => {
+                  setCurData(data);
+                  editDisclosure.setOpen();
+                }}
+              >
+                Edit
+              </Button>
+              <Menu
+                items={[
+                  ...(canRegenerate
+                    ? [
+                        {
+                          key: 'regenerate',
+                          label: 'Regenerate Secret',
+                          disabled: !canManageApplications,
+                          onClick: () => {
+                            setCurData(data);
+                            rotateDisclosure.setOpen();
+                          },
+                        },
+                      ]
+                    : []),
+                  {
+                    key: 'delete',
+                    label: 'Delete',
+                    labelProps: { className: 'text-red-500' },
+                    disabled: !canManageApplications,
+                    onClick: () => {
+                      setCurData(data);
+                      deleteDisclosure.setOpen();
+                    },
+                  },
+                ]}
+                disabled={!canManageApplications}
+              />
+            </div>
+          );
+        },
       },
     ],
-    [req]
+    [req, canManageApplications]
   );
 
   return (
@@ -128,6 +166,11 @@ const OAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
         <OAuthAlert
           clientID={alertData?.client_id ?? ''}
           clientSecret={alertData?.client_secret ?? ''}
+          {...(alertVariant === 'rotated' && {
+            title: 'OAuth Client Secret Regenerated',
+            description:
+              'Please copy and save the new Client Secret immediately, the old Client Secret has been invalidated.',
+          })}
         />
       )}
       <OAuthEditDrawer
@@ -139,8 +182,16 @@ const OAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
         {...deleteDisclosure}
         oldData={curData as OAuthCredential}
       />
+      <OAuthRotateModal
+        {...rotateDisclosure}
+        oldData={curData as OAuthCredential}
+        setAlertData={(data) => {
+          setAlertVariant('rotated');
+          setAlertData(data);
+        }}
+      />
       <A7Table
-        data-cy="key-auth-table"
+        data-cy="oauth-table"
         columns={columns}
         {...req}
         nameSearch
@@ -149,7 +200,11 @@ const OAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
           <AddOAuthBtn
             key="add"
             refetch={req.refetch}
-            setAlertData={setAlertData}
+            setAlertData={(data) => {
+              setAlertVariant('created');
+              setAlertData(data);
+            }}
+            disabled={!canManageApplications}
           />,
         ]}
         savePage={false}

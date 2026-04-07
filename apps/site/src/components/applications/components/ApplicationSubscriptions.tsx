@@ -13,7 +13,8 @@ import TimeFormat from '@/components/slices/time-format';
 import IconImage from '@/components/ui/icon-image';
 import { MoreMenu } from '@/components/ui/more-menu';
 import A7Table from '@/components/ui/table';
-import { PATH_API_HUB } from '@/constants/path-prefix';
+import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
+import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import type { SubscriptionItem } from '@/types/portal-sdk';
@@ -22,9 +23,11 @@ import Link from 'next/link';
 const SubscribeNewAPIProductBtn = ({
   applicationId,
   onSuccess,
+  disabled,
 }: {
   applicationId?: string;
   onSuccess?: () => void;
+  disabled?: boolean;
 }) => {
   const subscribeDisclosure = useDisclosure();
 
@@ -34,6 +37,7 @@ const SubscribeNewAPIProductBtn = ({
         key="add"
         variant="filled"
         type="primary"
+        disabled={disabled}
         icon={<IconImage type="add" alt="add" />}
         onClick={subscribeDisclosure.setOpen}
       >
@@ -53,6 +57,8 @@ type ApplicationSubscriptionsProps = {
 };
 
 const ApplicationSubscriptions = ({ id }: ApplicationSubscriptionsProps) => {
+  const apiHubBasePath = useApiHubBasePath();
+  const { canManageApplications } = useCanManageApplications();
   const req = useSubscriptionList({
     application_id: id,
   });
@@ -74,10 +80,7 @@ const ApplicationSubscriptions = ({ id }: ApplicationSubscriptionsProps) => {
         key: 'api_product_name',
         render: (name, record) => (
           <Link
-            href={{
-              pathname: `${PATH_API_HUB}/detail`,
-              query: { id: record.api_product_id },
-            }}
+            href={`${apiHubBasePath}/detail?id=${record.api_product_id}`}
             target="_blank"
           >
             <Typography.Link>{name}</Typography.Link>
@@ -105,17 +108,19 @@ const ApplicationSubscriptions = ({ id }: ApplicationSubscriptionsProps) => {
                 key: 'unsubscribe',
                 label: 'Unsubscribe',
                 className: 'text-red-500',
+                disabled: !canManageApplications,
                 onClick: () => {
                   setCurSubscription(record);
                   unsubscribeDisclosure.setOpen();
                 },
               },
             ]}
+            menuButtonProps={{ disabled: !canManageApplications }}
           />
         ),
       },
     ],
-    [statusCol]
+    [statusCol, apiHubBasePath, canManageApplications]
   );
 
   return (
@@ -134,6 +139,7 @@ const ApplicationSubscriptions = ({ id }: ApplicationSubscriptionsProps) => {
             key="add"
             applicationId={id}
             onSuccess={req.refetch}
+            disabled={!canManageApplications}
           />,
         ]}
         savePage={false}

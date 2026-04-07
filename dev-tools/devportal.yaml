@@ -16,6 +16,8 @@ data:
       baseURL: "http://localhost:3001"
       trustedOrigins:
         - "*"
+      beforeSignUpButtonHtml: >-
+        <p>By continuing, you acknowledge Example's <a href="https://example.com/terms" target="_blank" rel="noopener noreferrer">Terms of use</a> and the <a href="https://example.com/privacy" target="_blank" rel="noopener noreferrer">Privacy policy</a>.</p>
 ---
 apiVersion: v1
 kind: Service

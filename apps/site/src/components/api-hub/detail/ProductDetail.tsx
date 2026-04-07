@@ -10,7 +10,7 @@ import Back from '@/components/ui/back';
 import Meta, { type MetaProps } from '@/components/ui/meta';
 import { Skeleton } from '@/components/ui/skeleton';
 import A7Tabs from '@/components/ui/tabs';
-import { PATH_API_HUB } from '@/constants/path-prefix';
+import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import useProductDetail, {
   type UseProductDetailReturn,
 } from '@/lib/query/useProductDetail';
@@ -106,6 +106,7 @@ const MainPart = ({ req }: Props) => {
 
 const AuthProductDetail = ({ id }: { id: string }) => {
   const router = useRouter();
+  const apiHubBasePath = useApiHubBasePath();
   const req = useProductDetail(id);
   const session = authClient.useSession();
   const isAuthorized = !!session.data?.user;
@@ -121,7 +122,7 @@ const AuthProductDetail = ({ id }: { id: string }) => {
       isAuthorized={canViewPage}
       loading={req.status === 'pending'}
     >
-      <Back onClick={() => router.push(PATH_API_HUB)} />
+      <Back onClick={() => router.push(apiHubBasePath)} />
       <MainPart req={req} />
     </AuthOrPageNotFound>
   );

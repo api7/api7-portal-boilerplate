@@ -1,6 +1,7 @@
 import { expect, request } from '@playwright/test';
 import { diff } from 'just-diff';
 import * as net from 'net';
+import { parse, stringify } from 'yaml';
 
 export const randomId = (prefix = '') => {
   const seed = (+Date.now()).toString();
@@ -45,6 +46,43 @@ export const diffPatch = <T extends object>(
   newData: T,
   pathPrefix = ''
 ) => diff(oldData, newData, (arr: string[]) => [pathPrefix, ...arr].join('/'));
+
+/**
+ * Parse ConfigMap YAML payload into a typed object.
+ */
+export function parseYaml<T>(yaml: string): T {
+  try {
+    const parsed = parse(yaml);
+
+    if (!parsed || typeof parsed !== 'object') {
+      throw new Error('Invalid YAML: expected an object');
+    }
+
+    return parsed as T;
+  } catch (e) {
+    throw new Error(
+      `Failed to parse YAML: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+}
+
+/**
+ * Serialize an object to stable YAML for ConfigMap updates.
+ */
+export function stringifyYaml(obj: unknown): string {
+  try {
+    return stringify(obj, {
+      indent: 2,
+      lineWidth: 0,
+      doubleQuotedAsJSON: false,
+      defaultStringType: 'QUOTE_DOUBLE',
+    });
+  } catch (e) {
+    throw new Error(
+      `Failed to serialize YAML: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+}
 
 
 export interface TokenRequestParams {

@@ -128,6 +128,8 @@ type UISubscribeProductParams = {
 } & UISubscribeProductApplicationParams;
 export const uiSubscribeProductInAPIHub = async (page: Page, params: UISubscribeProductParams) => {
   const { applicationName, productId } = params;
+
+  await page.waitForTimeout(1000);
   await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
   await page.getByRole('tab', { name: 'Subscriptions' }).click();
   const subscribeBtn = page.getByRole('button', {
@@ -198,14 +200,33 @@ export const uiAPIHubSearchProduct = async (
   await search.press('Enter');
 };
 
+const uiOpenDefaultApplicationDetail = async (page: Page) => {
+  await uiGoToApplications(page);
+  const defaultApp = page.getByRole('cell', {
+    name: 'default',
+    exact: true,
+  });
+  await expect(defaultApp).toBeVisible();
+  await defaultApp.locator('a').click();
+  await page.waitForURL(new RegExp(`${PATH_APPLICATIONS}/detail\\?id=.*`));
+};
+
 /**
  * Go to Authentication Type page
  * @param page - Playwright page
  * @param applicationId - Application ID (optional, will find 'default' app if not provided)
  */
 export const uiGoToAPICredentials = async (page: Page, applicationId?: string) => {
-  const appId = applicationId || (await getDefaultApplicationId(page.request));
-  await page.goto(`${PATH_APPLICATIONS}/detail?id=${appId}`);
+  if (applicationId) {
+    await page.goto(`${PATH_APPLICATIONS}/detail?id=${applicationId}`);
+  } else {
+    try {
+      const appId = await getDefaultApplicationId(page.request);
+      await page.goto(`${PATH_APPLICATIONS}/detail?id=${appId}`);
+    } catch {
+      await uiOpenDefaultApplicationDetail(page);
+    }
+  }
   await page.getByRole('tab', { name: 'Authentication Type' }).click();
 };
 export const uiAddAPIKeyCredential = async (page: Page, name = 'default-key-auth') => {

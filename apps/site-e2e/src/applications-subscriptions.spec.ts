@@ -46,13 +46,16 @@ test.describe('Test Application Subscriptions', () => {
   };
 
   let serviceId: string;
+  let serviceId2: string;
   let routeId: string;
+  let routeId2: string;
   let autoApprovalProductId: string;
   let manualApprovalProductId: string;
   let externalProductId: string;
 
   test.beforeAll(async ({ a7Ctx }) => {
     // Create services and products for testing
+    // Each gateway product needs its own service (a service can only be linked to one product)
     const service = await a7PostPublishedService(a7Ctx, gatewayGroupId, {
       name: `subscription-test-service-${baseSeed}`,
       upstream: {
@@ -64,16 +67,35 @@ test.describe('Test Application Subscriptions', () => {
     });
     serviceId = service.value.id;
 
-    // Create route
+    const service2 = await a7PostPublishedService(a7Ctx, gatewayGroupId, {
+      name: `subscription-test-service2-${baseSeed}`,
+      upstream: {
+        name: 'default',
+        scheme: 'http',
+        type: 'roundrobin',
+        nodes: [{ host: '127.0.0.1', port: 1234, weight: 100 }],
+      },
+    });
+    serviceId2 = service2.value.id;
+
+    // Create routes
     const route = await a7PostPublishedRoute(a7Ctx, gatewayGroupId, {
-      name: 'test-route',
+      name: `test-route-${baseSeed}`,
       service_id: serviceId,
       paths: ['/test'],
     });
     routeId = route.value.id;
 
-    // Add OpenAPI spec
+    const route2 = await a7PostPublishedRoute(a7Ctx, gatewayGroupId, {
+      name: `test-route2-${baseSeed}`,
+      service_id: serviceId2,
+      paths: ['/test2'],
+    });
+    routeId2 = route2.value.id;
+
+    // Add OpenAPI specs
     await a7PutServiceOAS(a7Ctx, gatewayGroupId, serviceId, httpbinRawOAS);
+    await a7PutServiceOAS(a7Ctx, gatewayGroupId, serviceId2, httpbinRawOAS);
 
     // Create auto approval product
     const autoProduct = await a7PostGatewayProduct(a7Ctx, {
@@ -88,13 +110,13 @@ test.describe('Test Application Subscriptions', () => {
     });
     autoApprovalProductId = autoProduct.value.id;
 
-    // Create manual approval product
+    // Create manual approval product (uses its own service)
     const manualProduct = await a7PostGatewayProduct(a7Ctx, {
       ...manualApprovalProduct,
       linked_gateway_services: [
         {
           gateway_group_id: gatewayGroupId,
-          service_id: serviceId,
+          service_id: serviceId2,
         },
       ],
       auth: { 'key-auth': {} },
@@ -113,7 +135,9 @@ test.describe('Test Application Subscriptions', () => {
       externalProductId,
     ]);
     await a7DeletePublishedRoute(a7Ctx, routeId, gatewayGroupId);
+    await a7DeletePublishedRoute(a7Ctx, routeId2, gatewayGroupId);
     await a7DeleteService(a7Ctx, serviceId, gatewayGroupId);
+    await a7DeleteService(a7Ctx, serviceId2, gatewayGroupId);
   });
 
   test.beforeEach(async ({ page }) => {

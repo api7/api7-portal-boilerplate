@@ -3,6 +3,19 @@ import Image from 'next/image';
 import { getConfig } from '@/lib/config';
 
 const { app } = getConfig();
+const beforeSignUpButtonHtml = app.beforeSignUpButtonHtml?.trim();
+const authViewSlots = beforeSignUpButtonHtml
+  ? {
+      beforeSignUpButton: (
+        <div
+          data-testid="before-sign-up-html"
+          className="text-xs text-muted-foreground leading-relaxed [&_a]:underline [&_a]:underline-offset-2"
+          // Configured HTML is injected directly; only allow trusted static content.
+          dangerouslySetInnerHTML={{ __html: beforeSignUpButtonHtml }}
+        />
+      ),
+    }
+  : undefined;
 
 export default async function AuthPage({
   params,
@@ -23,7 +36,7 @@ export default async function AuthPage({
         />
         <span className="text-xl font-semibold">{app.name}</span>
       </div>
-      <AuthView path={path} />
+      <AuthView path={path} slots={authViewSlots} />
     </div>
   );
 }

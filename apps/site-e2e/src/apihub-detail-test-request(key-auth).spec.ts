@@ -63,7 +63,7 @@ test.describe('auth type auto fill in detail page', () => {
     await a7DeleteService(a7Ctx, serviceId, gateway_group_id);
   });
 
-  test('auth type should auto selected', async ({ page }) => {
+  test('auth type should auto selected', async ({ page, ctx }) => {
     await test.step('add application', async () => {
       await uiGoToApplications(page);
       await uiAddApplication(page, { name: applicationName });
@@ -81,14 +81,11 @@ test.describe('auth type auto fill in detail page', () => {
     const pet = page.getByRole('link', { name: productName }).first();
     await pet.click();
 
-    let authHeader: string;
-    await page.route(`**${API_PRODUCTS}/${productId}`, async (route) => {
-      const response = await route.fetch();
-      const responseBody = await response.json();
-      authHeader = responseBody.auth['key-auth'].header;
-
-      await route.continue();
-    });
+    const productDetailRes = await ctx.get(`${API_PRODUCTS}/${productId}`);
+    expect(productDetailRes.status()).toBe(200);
+    const productDetail = await productDetailRes.json();
+    const authHeader = productDetail?.auth?.['key-auth']?.header;
+    expect(authHeader, 'expected key-auth header in product detail').toBeTruthy();
 
     const title = page.getByTestId('meta-name').getByText(productName);
     await expect(title).toBeVisible();
@@ -96,7 +93,7 @@ test.describe('auth type auto fill in detail page', () => {
     await page.getByRole('button', { name: 'Test Request' }).first().click();
 
     const authType = page.locator(
-      '#headlessui-popover-button-scalar-client-15:has-text("Key Authentication")'
+      '[id^="headlessui-popover-button-scalar-client"]:has-text("Key Authentication")'
     );
     await expect(authType).toBeVisible();
 
@@ -150,10 +147,11 @@ test.describe('auth type auto fill in detail page', () => {
     const token = page.getByText(clipboardText);
     await expect(token).toBeVisible();
 
-    const authHeaderElement = page.locator(
-      `#scalar-client-17:has-text("${authHeader}")`
-    );
-    await expect(authHeaderElement).toBeVisible();
+    const authHeaderElement = page
+      .getByLabel('API Client')
+      .getByRole('textbox')
+      .first();
+    await expect(authHeaderElement).toContainText(authHeader);
 
     // close modal
     await closeButton.click();

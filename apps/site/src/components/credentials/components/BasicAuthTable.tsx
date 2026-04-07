@@ -18,6 +18,7 @@ import TimeFormat from '@/components/slices/time-format';
 import IconImage from '@/components/ui/icon-image';
 import A7Table from '@/components/ui/table';
 import { DEFAULT_LIST_PARAMS } from '@/constants/common';
+import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import useCredentialList, {
   type CredentialParams,
@@ -29,13 +30,20 @@ import type {
   PluginCredential,
 } from '@/types/portal-sdk';
 
-const AddBasicAuthBtn = ({ refetch }: { refetch: () => void }) => {
+const AddBasicAuthBtn = ({
+  refetch,
+  disabled,
+}: {
+  refetch: () => void;
+  disabled?: boolean;
+}) => {
   const addDisclosure = useDisclosure({ onClose: refetch });
   return (
     <>
       <Button
         variant="filled"
         type="primary"
+        disabled={disabled}
         icon={<IconImage type="add" />}
         onClick={addDisclosure.setOpen}
       >
@@ -49,6 +57,7 @@ const AddBasicAuthBtn = ({ refetch }: { refetch: () => void }) => {
 const BasicAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
   application_id,
 }) => {
+  const { canManageApplications } = useCanManageApplications();
   const req = useCredentialList({
     savePage: false,
     initParams: {
@@ -109,6 +118,7 @@ const BasicAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
             <Button
               type="link"
               className="px-0 mr-4"
+              disabled={!canManageApplications}
               onClick={() => {
                 setCurData(data);
                 rotateDisclosure.setOpen();
@@ -121,6 +131,7 @@ const BasicAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
                 {
                   key: 'edit',
                   label: 'Edit Basics',
+                  disabled: !canManageApplications,
                   onClick: () => {
                     setCurData(data);
                     editDisclosure.setOpen();
@@ -130,18 +141,20 @@ const BasicAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
                   key: 'delete',
                   label: 'Delete',
                   labelProps: { className: 'text-red-500' },
+                  disabled: !canManageApplications,
                   onClick: () => {
                     setCurData(data);
                     deleteDisclosure.setOpen();
                   },
                 },
               ]}
+            disabled={!canManageApplications}
             />
           </Button.Group>
         ),
       },
     ],
-    [req, labelReq]
+    [req, labelReq, canManageApplications]
   );
 
   return (
@@ -160,7 +173,13 @@ const BasicAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
         {...req}
         nameSearch
         text={{ searchPlaceholder: 'Search name, description, label' }}
-        toolBar={[<AddBasicAuthBtn key="add" refetch={refetch} />]}
+        toolBar={[
+          <AddBasicAuthBtn
+            key="add"
+            refetch={refetch}
+            disabled={!canManageApplications}
+          />,
+        ]}
         savePage={false}
       />
     </>

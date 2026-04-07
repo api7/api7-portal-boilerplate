@@ -53,6 +53,18 @@ export const k8PortForward = async (
   await waitForPort(parseInt(localPort), 30000);
 };
 
+export const restartDevPortal = async (
+  deploymentName = 'developer-portal',
+  serviceName = 'developer-portal',
+  portForward: `${string}:${string}` = '3001:3001',
+  ns = k8NS
+) => {
+  await x(`kubectl rollout restart deployment/${deploymentName} -n ${ns}`);
+  await k8WaitReady(`app=${deploymentName}`, ns, 300);
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+  await k8PortForward(`svc/${serviceName}`, portForward, ns);
+};
+
 export const k8KeyCloakPort = 8080;
 export const k8DeployKeyCloak = async (port = k8KeyCloakPort) => {
   await x(

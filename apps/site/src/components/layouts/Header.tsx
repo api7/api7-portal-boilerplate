@@ -1,4 +1,7 @@
 import Image from 'next/image';
+import { verifySession } from '@/lib/dal/util';
+import { isImpersonatingSession } from '@/lib/auth/admin';
+import { isPlatformAdmin } from '@/lib/auth/admin.server';
 import HeaderNavbar from './HeaderNavbar';
 import UserMenu from './UserMenu';
 
@@ -6,7 +9,13 @@ type HeaderProps = {
   title?: string;
 };
 
-const Header = ({ title = 'Developer Portal' }: HeaderProps) => {
+const Header = async ({ title = 'Developer Portal' }: HeaderProps) => {
+  const session = await verifySession({ redirect: false });
+  const canAccessDashboard =
+    !!session?.user &&
+    isPlatformAdmin(session.user.id) &&
+    !isImpersonatingSession(session.session.impersonatedBy);
+
   return (
     <>
       <nav className="navbar flex sticky top-0 h-16 font-medium align-middle bg-white shadow-sm z-50">
@@ -20,7 +29,7 @@ const Header = ({ title = 'Developer Portal' }: HeaderProps) => {
             loading="eager"
             priority
           />
-          <HeaderNavbar title={title} />
+          <HeaderNavbar title={title} canAccessDashboard={canAccessDashboard} />
         </div>
 
         <div className="flex mr-5 items-center-safe">

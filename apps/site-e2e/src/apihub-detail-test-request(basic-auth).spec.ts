@@ -86,7 +86,7 @@ test.describe('auth type auto fill in detail page', () => {
     await page.getByRole('button', { name: 'Test Request' }).first().click();
 
     const authType = page.locator(
-      '#headlessui-popover-button-scalar-client-15:has-text("Basic Authentication")'
+      '[id^="headlessui-popover-button-scalar-client"]:has-text("Basic Authentication")'
     );
     await expect(authType).toBeVisible();
 

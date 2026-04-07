@@ -1,12 +1,21 @@
 CLUSTER_NAME ?= api7ee-e2e
 export KUBECONFIG = /tmp/${CLUSTER_NAME}.kubeconfig
 
+LINUX_ARCH := amd64 arm64
 NS = api7
 IMAGE_TAG ?= dev
 IMAGE_E2E ?= api7-ee-developer-portal-e2e
 DASHBOARD_IMAGE_TAG ?= dev
 PARALLEL ?= 5
 PORT ?= 3001
+
+ARCH ?= amd64
+ifeq ($(shell uname -m),arm64)
+ARCH = arm64
+endif
+ifeq ($(shell uname -m),aarch64)
+ARCH = arm64
+endif
 
 IMAGES = \
 	api7/keycloak:21.1.1-debian-11-r8 \
@@ -30,22 +39,30 @@ build:
 	cd apps/site && pnpm build
 .PHONY: build
 
-# build and push production image with testing features disabled
-build-and-push-release-image:
-	docker buildx build --push -f Dockerfile \
-		-t ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG} \
-		-t ${PRIVATE_REGISTRY}/${PRIVATE_REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG} \
-		--platform linux/amd64,linux/arm64 . \
+# build and push single-arch release image with testing features disabled
+push-release-image:
+	docker build -f Dockerfile \
+		-t ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-${ARCH} . \
 		--build-arg PORT=${PORT} --build-arg NEXT_PUBLIC_TESTING=false
-.PHONY: build-and-push-release-image
+	docker push ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-${ARCH}
+.PHONY: push-release-image
 
-# build and push dev image with testing features enabled
-build-and-push-dev-image:
-	docker buildx build --push -f Dockerfile \
-		-t ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG} \
-		--platform linux/amd64,linux/arm64 . \
+# build and push single-arch dev image with testing features enabled
+push-dev-image:
+	docker build -f Dockerfile \
+		-t ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-${ARCH} . \
 		--build-arg PORT=${PORT}
-.PHONY: build-and-push-dev-image
+	docker push ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-${ARCH}
+.PHONY: push-dev-image
+
+# create and push multi-arch manifest
+docker-manifest:
+	for arch in $(LINUX_ARCH); do \
+	    docker manifest create --amend ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG} ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-$${arch}; \
+	    docker manifest annotate ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG} ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-$${arch} --arch $${arch}; \
+	done
+	docker manifest push ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}
+.PHONY: docker-manifest
 
 sign-image-oidc:
 	./dev-tools/sign-image-oidc.sh

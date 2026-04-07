@@ -10,7 +10,10 @@ import {
   magicLink,
   genericOAuth,
   GenericOAuthConfig,
+  twoFactor,
+  admin,
 } from 'better-auth/plugins';
+import { ac, roles } from './permissions';
 
 const config = getConfig();
 
@@ -60,6 +63,14 @@ const getTestingConfig = () => {
   ] as const;
 };
 
+const getTwoFactorConfig = () => {
+  const twoFactorEnabled = config.auth.twoFactor.enabled;
+  if (!twoFactorEnabled) return [];
+  // TOTP-only 2FA. OTP (email/SMS code) is intentionally not configured.
+  // Ref: https://www.better-auth.com/docs/plugins/2fa
+  return [twoFactor()] as const;
+};
+
 export const auth = betterAuth({
   appName: config.app.name,
   baseURL: config.app.baseURL,
@@ -75,5 +86,18 @@ export const auth = betterAuth({
   },
   secret: config.auth.secret,
   socialProviders: config.auth.socialProviders,
-  plugins: [nextCookies(), organization(), openAPI(), ...getTestingConfig()],
+  plugins: [
+    nextCookies(),
+    openAPI(),
+    admin({
+      adminUserIds: config.auth.adminUserIds,
+      impersonationSessionDuration: 60 * 60,
+    }),
+    ...getTwoFactorConfig(),
+    organization({
+      ac,
+      roles,
+    }),
+    ...getTestingConfig(),
+  ],
 });

@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { portal } from '@/lib/portal-sdk/server';
+import { auth } from '@/lib/auth/server';
+import { isOwnerOrAdminRole } from '@/lib/auth/role';
 import { API_PREFIX } from '@/constants/api-prefix';
 import { isAxiosError } from 'axios';
 import { ReqError } from '@/types/portal-sdk';
+import { headers } from 'next/headers';
+
+const MEMBER_READONLY_PREFIXES = new Set([
+  'applications',
+  'credentials',
+  'subscriptions',
+]);
+const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 async function proxyRequest(
   request: NextRequest,
@@ -12,6 +22,27 @@ async function proxyRequest(
     const { proxy } = await context.params;
     const path = `${API_PREFIX}/${proxy.join('/')}`;
     const { searchParams } = request.nextUrl;
+    const topLevelResource = proxy[0];
+
+    if (
+      topLevelResource &&
+      MEMBER_READONLY_PREFIXES.has(topLevelResource) &&
+      WRITE_METHODS.has(request.method)
+    ) {
+      const activeMember = await auth.api.getActiveMemberRole({
+        headers: await headers(),
+      });
+
+      if (!isOwnerOrAdminRole(activeMember?.role)) {
+        return NextResponse.json(
+          {
+            message:
+              `Forbidden. Member role is read-only for ${topLevelResource} in current organization.`,
+          },
+          { status: 403 }
+        );
+      }
+    }
 
     const config: {
       params: Record<string, string>;

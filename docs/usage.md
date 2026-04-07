@@ -125,6 +125,22 @@ auth:
     requireEmailVerification: false
 ```
 
+### Two-Factor Authentication (TOTP)
+
+```yaml
+# file: apps/site/config.yaml
+auth:
+  twoFactor:
+    enabled: true
+```
+
+When enabling this for the first time, run DB migration to add 2FA tables/columns:
+
+```bash
+cd apps/site
+pnpm db:migrate
+```
+
 ### Social Providers (SSO)
 
 ```yaml
@@ -198,6 +214,17 @@ app:
   desc: "Your portal description"
   baseURL: "https://your-portal.example.com"
 ```
+
+### Sign-up Notice HTML (Optional)
+
+```yaml
+# file: apps/site/config.yaml
+app:
+  beforeSignUpButtonHtml: >-
+    <p>By continuing, you acknowledge Example's <a href="https://example.com/terms" target="_blank" rel="noopener noreferrer">Terms of use</a> and the <a href="https://example.com/privacy" target="_blank" rel="noopener noreferrer">Privacy policy</a>.</p>
+```
+
+> **Security note:** This field is rendered as raw HTML before the **Sign Up** button. Only use trusted static content.
 
 ### Theme
 

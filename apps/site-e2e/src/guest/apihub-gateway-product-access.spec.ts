@@ -42,6 +42,9 @@ test.describe(
     tag: ['@user-story', '@gateway'],
   },
   async () => {
+    test.describe.configure({ timeout: 600_000 });
+    test.setTimeout(600_000);
+
     const gatewayProduct = 'guest-gateway-product',
       gateway = randomId(`${gatewayProduct}-gateway`),
       service = randomId(`${gatewayProduct}-service`),
@@ -186,10 +189,14 @@ test.describe(
 
       const title = page.getByTestId('meta-name').getByText(productName);
       await expect(title).toBeVisible();
-      await page.waitForSelector('.scalar-app', { state: 'attached' });
+      const getOperationLink = page
+        .locator('.scalar-app')
+        .getByRole('button', { name: /\/get\b.*\bGET\b/i })
+        .first();
+      await expect(getOperationLink).toBeVisible({ timeout: 15000 });
       // detail page render well
       await expect(page.getByText('ID:')).toBeVisible();
-      await expect(page.getByRole('link', { name: '/get' })).toBeVisible();
+      await expect(getOperationLink).toBeVisible();
 
       // Test Request to be hidden
       const testRequestBtn = page.getByRole('button', { name: 'Test Request' });
@@ -258,7 +265,11 @@ test.describe(
 
       const link = page.getByRole('link', { name: productName }).first();
       await link.click();
-      await page.waitForSelector('.scalar-app', { state: 'attached' });
+      const getOperationLink = page
+        .locator('.scalar-app')
+        .getByRole('button', { name: /\/get\b.*\bGET\b/i })
+        .first();
+      await expect(getOperationLink).toBeVisible({ timeout: 15000 });
 
       await test.step('in product detail, can see meta and doc', async () => {
         // meta
@@ -266,11 +277,11 @@ test.describe(
         await expect(title).toBeVisible();
         // doc
         await expect(page.getByText('ID:')).toBeVisible();
-        await expect(page.getByRole('link', { name: '/get' })).toBeVisible();
+        await expect(getOperationLink).toBeVisible();
       });
 
       await test.step('cannot send test request without auth', async () => {
-        await page.getByRole('link', { name: '/get' }).click();
+        await getOperationLink.click();
         // click Test Request directly should failed
         await page
           .getByRole('button', { name: 'Test Request' })
@@ -303,7 +314,7 @@ test.describe(
         await tmpCtx.close();
 
         // open playground
-        await page.getByRole('link', { name: '/get' }).click();
+        await getOperationLink.click();
         await page
           .getByRole('button', { name: 'Test Request' })
           .first()

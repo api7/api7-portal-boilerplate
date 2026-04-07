@@ -5,6 +5,7 @@ export type HeaderNav = {
   href: string;
   meta?: {
     requireAuth?: boolean;
+    skipOrgPrefix?: boolean;
   };
 };
 

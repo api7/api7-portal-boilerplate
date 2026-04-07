@@ -38,6 +38,7 @@ export const configSchema = z.object({
   }),
   auth: z.object({
     secret: z.string().min(1, 'Auth secret is required'),
+    adminUserIds: z.array(z.string().min(1)).default([]),
     session: z
       .object({
         expiresIn: z.number().int().positive(),
@@ -57,6 +58,11 @@ export const configSchema = z.object({
         enabled: true,
         requireEmailVerification: false,
       }),
+    twoFactor: z
+      .object({
+        enabled: z.boolean().default(false),
+      })
+      .prefault({}),
     socialProviders: z.record(z.string(), z.object(z.any())).optional(),
   }),
   app: z
@@ -69,9 +75,33 @@ export const configSchema = z.object({
         .default(
           'Explore and integrate with our APIs. Access documentation, manage applications, and discover products.'
         ),
+      applicationDetail: z
+        .object({
+          subscriptions: z.boolean().default(true),
+          usage: z.boolean().default(true),
+          credentialsTabs: z
+            .object({
+              keyAuth: z.boolean().default(true),
+              basicAuth: z.boolean().default(true),
+              oauth: z.boolean().default(true),
+            })
+            .prefault({}),
+        })
+        .prefault({}),
+      beforeSignUpButtonHtml: z
+        .string()
+        .optional()
+        .describe(
+          'Optional HTML rendered before the Sign Up button. Only use trusted static content.'
+        ),
     })
     .partial()
     .prefault({}),
 });
 
 export type AppConfig = z.infer<typeof configSchema>;
+
+export type ConfigMapData = Pick<
+  AppConfig,
+  'app' | 'db' | 'portal' | 'auth'
+>;

@@ -8,7 +8,7 @@ import { toast } from 'sonner';
 
 import IconImage from '@/components/ui/icon-image';
 import A7Modal from '@/components/ui/modal';
-import { PATH_API_HUB } from '@/constants/path-prefix';
+import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import useProductList from '@/lib/query/useProductList';
 import { portalClient } from '@/lib/portal-sdk/client';
@@ -20,6 +20,7 @@ type SubscribeAPIProductModalProps = UseDisclosureReturn & {
 
 const SubscribeAPIProductModal = (props: SubscribeAPIProductModalProps) => {
   const { open, onClose, applicationId, onSuccess } = props;
+  const apiHubBasePath = useApiHubBasePath();
   const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -80,7 +81,7 @@ const SubscribeAPIProductModal = (props: SubscribeAPIProductModalProps) => {
 
   // Handle navigation to product detail
   const handleNavigateToProduct = useMemoizedFn((productId: string) => {
-    window.open(`${PATH_API_HUB}/detail?id=${productId}`, '_blank');
+    window.open(`${apiHubBasePath}/detail?id=${productId}`, '_blank');
   });
 
   // Prepare options for Select component

@@ -37,6 +37,37 @@ export const verifySessionAndOrganization = cache(
     // User is logged in, check for organization
     const orgs = await verifyOrganization();
 
+    // Ensure activeOrganizationId is set in the session.
+    // After re-login (e.g. visiting /auth/sign-in while already logged in),
+    // better-auth creates a fresh session without activeOrganizationId.
+    // Without this, the client-side role query (enabled: !!activeOrgId)
+    // stays disabled and all role-gated buttons appear disabled.
+    if (!session.session.activeOrganizationId && orgs.length > 0) {
+      try {
+        // For multi-org users this may pick the wrong org because the
+        // previous activeOrganizationId is already null in the new session.
+        // The client-side fix (prevOrgIdRef in providers.tsx) is the
+        // authoritative restore path; this is a best-effort SSR fallback.
+        await auth.api.setActiveOrganization({
+          body: { organizationId: orgs[0].id },
+          headers: await headers(),
+        });
+
+        // Re-fetch session so SSR renders with the updated activeOrganizationId.
+        // Without this, the stale session object (activeOrganizationId: null)
+        // would be used for SSR, causing client hydration mismatch.
+        const updatedSession = await auth.api.getSession({
+          headers: await headers(),
+        });
+        if (updatedSession) {
+          return { session: updatedSession, orgs };
+        }
+      } catch {
+        // Best-effort recovery — fall through to return the original session
+        // so the page still renders (client-side fix will handle org restoration)
+      }
+    }
+
     return { session, orgs };
   }
 );
@@ -47,40 +78,43 @@ export const verifySessionAndOrganization = cache(
  * If no active organization is set, automatically sets the first one
  * @returns Developer ID (organization ID) if found, null otherwise
  */
-export const getDeveloperIdFromSession = cache(async (): Promise<string | null> => {
-  try {
-    const sessionData = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    let orgId = sessionData?.session?.activeOrganizationId;
-
-    // If no active organization, get the first one and set it as active
-    if (!orgId) {
-      const organizations = await auth.api.listOrganizations({
+export const getDeveloperIdFromSession = cache(
+  async (): Promise<string | null> => {
+    try {
+      const sessionData = await auth.api.getSession({
         headers: await headers(),
       });
 
-      if (!organizations || organizations.length === 0) {
-        console.warn('No organizations found for user');
-        return null;
+      let orgId = sessionData?.session?.activeOrganizationId;
+
+      // If no active organization, get the first one and set it as active
+      if (!orgId) {
+        const organizations = await auth.api.listOrganizations({
+          headers: await headers(),
+        });
+
+        if (!organizations || organizations.length === 0) {
+          console.warn('No organizations found for user');
+          return null;
+        }
+
+        orgId = organizations[0].id;
+
+        // Set active organization using auth API
+        await auth.api.setActiveOrganization({
+          body: {
+            organizationId: orgId,
+          },
+          headers: await headers(),
+        });
       }
 
-      orgId = organizations[0].id;
-
-      // Set active organization using auth API
-      await auth.api.setActiveOrganization({
-        body: {
-          organizationId: orgId,
-        },
-        headers: await headers(),
-      });
+      // Organization ID is directly used as developer ID
+      return orgId;
+    } catch (error) {
+      // This is expected when user is not logged in or session is invalid
+      // No need to log as it creates noise in production logs
+      return null;
     }
-
-    // Organization ID is directly used as developer ID
-    return orgId;
-  } catch (error) {
-    console.info('No developer ID in session:', error);
-    return null;
   }
-});
+);
