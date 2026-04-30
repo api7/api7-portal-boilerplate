@@ -1,3 +1,4 @@
+import path from 'path';
 import { test } from '../fixture';
 import { expect } from '@playwright/test';
 import { PATH_LOGIN } from '@site/constants/path-prefix';
@@ -104,5 +105,14 @@ test.describe('Owner re-sign-in role restoration', () => {
       ?.activeOrganizationId;
     expect(orgIdAfter).toBeTruthy();
     expect(orgIdAfter).toBe(orgIdBefore);
+
+    // Save the page's updated storage state back to the worker state file.
+    // After re-signin, the page has new session cookies; subsequent tests'
+    // `ctx` fixture (created from this file) must use the current session.
+    const stateFile = path.resolve(
+      test.info().project.outputDir,
+      `.auth/worker${test.info().parallelIndex}.json`
+    );
+    await page.context().storageState({ path: stateFile });
   });
 });

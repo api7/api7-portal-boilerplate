@@ -14,7 +14,13 @@ export const uiVerifyToast = async (
 ) => {
   const toast = page.locator('li').filter(...params);
   await expect(toast).toBeVisible();
-  await toast.getByLabel('Close toast').click();
+  // Try to close the toast; if pointer-events blocks it or toast auto-dismisses, just wait it out
+  await toast
+    .getByLabel('Close toast')
+    .click({ force: true, timeout: 3000 })
+    .catch(() => {});
+  // Wait for toast to disappear (auto-dismiss fallback ~5s)
+  await expect(toast).toBeHidden({ timeout: 10000 });
 };
 export const uiLogin = async (
   page: Page,
@@ -231,6 +237,11 @@ export const uiGoToAPICredentials = async (page: Page, applicationId?: string) =
 };
 export const uiAddAPIKeyCredential = async (page: Page, name = 'default-key-auth') => {
   await uiGoToAPICredentials(page);
+  // Skip creation if credential already exists (e.g. from a previous retry)
+  const existingCell = page.getByRole('cell', { name }).first();
+  if (await existingCell.isVisible().catch(() => false)) {
+    return;
+  }
   const button = page.locator(
     'button:has-text("Add Key Authentication Credential")'
   );
@@ -243,7 +254,7 @@ export const uiAddAPIKeyCredential = async (page: Page, name = 'default-key-auth
   await page.waitForTimeout(1000);
   await uiGoToAPICredentials(page);
   // should exist the key auth
-  const nameCell = page.getByRole('cell', { name });
+  const nameCell = page.getByRole('cell', { name }).first();
   await expect(nameCell).toBeVisible();
 };
 
@@ -252,8 +263,8 @@ export const uiGetCredentialKeyAuth = async (
   name = 'default-key-auth'
 ) => {
   await uiGoToAPICredentials(page);
-  // should exist default key auth
-  const nameCell = page.getByRole('cell', { name });
+  // should exist default key auth (use .first() to handle duplicate rows from retries)
+  const nameCell = page.getByRole('cell', { name }).first();
   await expect(nameCell).toBeVisible();
   // click name will show credential detail
   await nameCell.locator('a').click();

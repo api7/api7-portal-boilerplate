@@ -13,6 +13,12 @@ const MEMBER_READONLY_PREFIXES = new Set([
   'subscriptions',
 ]);
 const WRITE_METHODS = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
+const getErrorLog = (error: unknown) => {
+  if (error instanceof Error) {
+    return error.stack || error.message;
+  }
+  return String(error);
+};
 
 async function proxyRequest(
   request: NextRequest,
@@ -23,6 +29,22 @@ async function proxyRequest(
     const path = `${API_PREFIX}/${proxy.join('/')}`;
     const { searchParams } = request.nextUrl;
     const topLevelResource = proxy[0];
+    const reqHeaders = await headers();
+
+    if (topLevelResource === 'developers') {
+      const session = await auth.api.getSession({
+        headers: reqHeaders,
+      });
+
+      if (!session?.user) {
+        return NextResponse.json(
+          {
+            message: 'Unauthorized. Sign in is required for developer APIs.',
+          },
+          { status: 401 }
+        );
+      }
+    }
 
     if (
       topLevelResource &&
@@ -30,7 +52,7 @@ async function proxyRequest(
       WRITE_METHODS.has(request.method)
     ) {
       const activeMember = await auth.api.getActiveMemberRole({
-        headers: await headers(),
+        headers: reqHeaders,
       });
 
       if (!isOwnerOrAdminRole(activeMember?.role)) {
@@ -76,7 +98,7 @@ async function proxyRequest(
       const err = error.response?.data as ReqError;
       return NextResponse.json(err, { status: err.status || 500 });
     }
-    console.error('Proxy request error:', error);
+    console.error('Proxy request error:', getErrorLog(error));
     return NextResponse.json(
       { message: 'Internal server error' },
       { status: 500 }

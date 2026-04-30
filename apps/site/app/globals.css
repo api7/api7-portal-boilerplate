@@ -116,6 +116,10 @@
   --sidebar-ring: oklch(0.708 0 0);
   /* To prevent scalar from polluting sonner's offset */
   --offset: 32px;
+  /* App Header height — single source of truth consumed by the sticky
+     Header and by embedded components (e.g. Scalar) that need to offset
+     their own sticky elements below it. Keep in sync with Header height. */
+  --app-header-height: 4rem;
 }
 
 .dark {

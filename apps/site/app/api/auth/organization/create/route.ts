@@ -2,19 +2,47 @@ import { auth } from '@/lib/auth/server';
 import { errToNextResJson } from '@/lib/auth/util';
 import { portal } from '@/lib/portal-sdk/server';
 import { APIError } from 'better-auth';
+import { nanoid } from 'nanoid';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
+
+const MAX_SLUG_RETRIES = 2;
 
 export const POST = async (req: Request) => {
   try {
     const body = await req.json();
     const allHeaders = await headers();
 
-    // Create organization
-    const res = await auth.api.createOrganization({
-      body,
-      headers: allHeaders,
-    });
+    // Track whether slug was auto-generated (only retry on conflict for auto-generated slugs)
+    const slugWasProvided = Boolean(body.slug);
+    if (!slugWasProvided) {
+      body.slug = nanoid(8);
+    }
+
+    let res: Awaited<ReturnType<typeof auth.api.createOrganization>> | null =
+      null;
+
+    for (let attempt = 0; attempt <= MAX_SLUG_RETRIES; attempt++) {
+      try {
+        res = await auth.api.createOrganization({
+          body,
+          headers: allHeaders,
+        });
+        break;
+      } catch (error) {
+        const isSlugConflict =
+          error instanceof APIError &&
+          error.statusCode === 422 &&
+          /slug|unique|already exists/i.test(error.message ?? '');
+
+        // Only retry with a new slug if it was auto-generated
+        if (!slugWasProvided && isSlugConflict && attempt < MAX_SLUG_RETRIES) {
+          body.slug = nanoid(8);
+          continue;
+        }
+        throw error;
+      }
+    }
 
     if (!res?.id) {
       return errToNextResJson(

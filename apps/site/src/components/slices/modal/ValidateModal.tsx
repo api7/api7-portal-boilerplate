@@ -1,6 +1,8 @@
+import { CheckOutlined, CopyOutlined } from '@ant-design/icons';
 import { ProFormText } from '@ant-design/pro-components';
+import { useClipboard } from '@chakra-ui/react';
 import { useBoolean } from 'ahooks';
-import { Typography } from 'antd';
+import { Tooltip, Typography } from 'antd';
 
 import Form from '../form/Form';
 import { type AlertProps } from '@/components/ui/alert';
@@ -21,6 +23,7 @@ type FormType = {
 const ValidateModal = (props: Props) => {
   const { confirmText, targetText, alertProps, ...rest } = props;
   const [okDisabled, okDisabledOp] = useBoolean(true);
+  const clipboard = useClipboard(confirmText);
   return (
     <A7Modal
       width={576}
@@ -42,7 +45,31 @@ const ValidateModal = (props: Props) => {
       }}
     >
       <Typography.Paragraph className="!mb-2 text-base text-gray-800">
-        Enter {targetText} <strong className="!font-bold">{confirmText}</strong>{' '}
+        Enter {targetText}{' '}
+        <span className="inline-flex max-w-full min-w-0 items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5">
+          <strong className="min-w-0 break-all !font-bold">
+            {confirmText}
+          </strong>
+          <Tooltip
+            title={clipboard.hasCopied ? 'Copied' : 'Copy to clipboard'}
+            trigger={['hover', 'focus']}
+          >
+            <button
+              type="button"
+              onClick={() => clipboard.onCopy()}
+              className="inline-flex shrink-0 cursor-pointer items-center border-0 bg-transparent p-0 text-gray-400 hover:text-gray-600"
+              aria-label={
+                clipboard.hasCopied ? 'Copied' : 'Copy to clipboard'
+              }
+            >
+              {clipboard.hasCopied ? (
+                <CheckOutlined className="text-green-500" />
+              ) : (
+                <CopyOutlined />
+              )}
+            </button>
+          </Tooltip>
+        </span>{' '}
         to confirm.
       </Typography.Paragraph>
       <Form<FormType>

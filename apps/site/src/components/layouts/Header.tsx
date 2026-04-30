@@ -18,7 +18,7 @@ const Header = async ({ title = 'Developer Portal' }: HeaderProps) => {
 
   return (
     <>
-      <nav className="navbar flex sticky top-0 h-16 font-medium align-middle bg-white shadow-sm z-50">
+      <nav className="navbar flex sticky top-0 h-[var(--app-header-height)] font-medium align-middle bg-white shadow-sm z-50">
         <div className="flex-1 flex items-center gap-1 pl-2">
           <Image
             src="/favicon.ico"

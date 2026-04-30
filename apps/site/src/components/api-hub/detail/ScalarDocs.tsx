@@ -1,4 +1,4 @@
-import { useRef, type FC } from 'react';
+import { useRef, type CSSProperties, type FC } from 'react';
 import '@scalar/api-reference-react/style.css';
 
 import {
@@ -141,7 +141,21 @@ const ScalarDocs: FC<{ configuration: AnyApiReferenceConfiguration }> = ({
       true
     );
   });
-  return <ApiReferenceReact configuration={configuration} />;
+  // Offset Scalar's sticky elements (e.g. the left sidebar) by the app
+  // Header height so the sidebar doesn't get covered by the sticky Header.
+  // Scalar honors `--scalar-custom-header-height` when computing its
+  // internal sticky top offsets. We read the shared `--app-header-height`
+  // defined in globals.css so Header height stays in one place.
+  // See https://github.com/api7/api7ee-developer-portal/issues/349
+  const scalarHeaderOffsetStyle = {
+    '--scalar-custom-header-height': 'var(--app-header-height, 4rem)',
+  } as CSSProperties;
+
+  return (
+    <div style={scalarHeaderOffsetStyle} className="contents">
+      <ApiReferenceReact configuration={configuration} />
+    </div>
+  );
 };
 
 export default ScalarDocs;

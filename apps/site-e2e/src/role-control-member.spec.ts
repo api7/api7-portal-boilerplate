@@ -20,6 +20,10 @@ import {
   AUTH_BASE_PATH,
 } from '@site/constants/api-prefix';
 import {
+  a7DefaultPortalID,
+  a7DeveloperExists,
+} from '../req/dashboard/common';
+import {
   getActiveOrganizationId,
   setupMemberUser,
   setupAdminUser,
@@ -559,7 +563,8 @@ test.describe('Role Control - Admin', () => {
     await adminContext.close();
   });
 
-  test('admin: API POST organization delete returns 403', async ({
+  test('admin: API POST organization delete returns 403 without deleting developer', async ({
+    a7Ctx,
     ctx,
     page,
     browser,
@@ -582,6 +587,9 @@ test.describe('Role Control - Admin', () => {
 
     await setupAdminUser(page, adminAuth, orgId, adminStatePath);
 
+    const portalId = await a7DefaultPortalID(a7Ctx);
+    await expect(a7DeveloperExists(a7Ctx, portalId, orgId)).resolves.toBe(true);
+
     const adminCtx = await genCtx({
       storageState: adminStatePath,
       extraHTTPHeaders: {
@@ -595,6 +603,7 @@ test.describe('Role Control - Admin', () => {
       `${AUTH_BASE_PATH}/organization/delete`,
       { organizationId: orgId }
     );
+    await expect(a7DeveloperExists(a7Ctx, portalId, orgId)).resolves.toBe(true);
 
     await adminCtx.dispose();
   });

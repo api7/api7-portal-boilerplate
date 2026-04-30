@@ -9,6 +9,7 @@ import {
   NON_ORG_PREFIX_ROUTE_SEGMENTS,
   useOrganizationSlug,
 } from '@/lib/hooks/useOrganizationSlug';
+import { CreateOrganizationModal } from '@/components/organization/CreateOrganizationModal';
 
 const UserMenu = () => {
   const router = useRouter();
@@ -59,7 +60,14 @@ const UserMenu = () => {
   return (
     <div className="flex items-center gap-2">
       {req.data?.user.id && (
-        <OrganizationSwitcher variant="secondary" size="icon" hidePersonal />
+        <OrganizationSwitcher
+          variant="secondary"
+          size="icon"
+          hidePersonal
+          createOrganizationDialog={({ open, onOpenChange }) => (
+            <CreateOrganizationModal open={open} onOpenChange={onOpenChange} />
+          )}
+        />
       )}
       <UserButton size="icon" />
     </div>

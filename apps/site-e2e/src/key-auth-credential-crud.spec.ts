@@ -18,7 +18,7 @@ test.describe('Test Credential CRUD', () => {
   test('can RUD default key auth', async ({ page }) => {
     await uiGoToAPICredentials(page);
     await uiAddAPIKeyCredential(page);
-    const nameCell = page.getByRole('cell', { name: defaultKeyAuth });
+    const nameCell = page.getByRole('cell', { name: defaultKeyAuth }).first();
     const defaultRow = nameCell.locator('xpath=..');
 
     await test.step('check detail drawer and rotate key', async () => {

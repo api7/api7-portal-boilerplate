@@ -126,3 +126,24 @@ export const a7DefaultPortalID = async (ctx: A7Ctx) => {
   });
   return (await res.json()).value.id;
 };
+
+export const a7DeveloperExists = async (
+  ctx: A7Ctx,
+  portalId: string,
+  developerId: string
+) => {
+  const res = await ctx.get(API_DEVELOPERS, {
+    failOnStatusCode: false,
+    params: {
+      portal_id: portalId,
+    },
+  });
+  expect(res.status()).toBe(200);
+  const data = await res.json();
+  const developers = data.list || [];
+
+  return developers.some(
+    (developer: { developer_id: string }) =>
+      developer.developer_id === developerId
+  );
+};
