@@ -129,7 +129,6 @@ Generate a strong secret before first startup:
 
 ```bash
 openssl rand -base64 32
-<<<<<<< codex/split-361-bootstrap-docs
 ```
 
 ### First Admin User
@@ -141,8 +140,6 @@ Platform admin access is configured by user id, not email address:
 auth:
   adminUserIds:
     - "better-auth-user-id"
-=======
->>>>>>> main
 ```
 
 For a new deployment, register the first user, read that user's id from the database or `/api/auth/get-session`, add it to `auth.adminUserIds`, then restart the app.
@@ -226,65 +223,6 @@ app:
 ```
 
 Set `app.baseURL` to the primary public URL for the portal. `app.trustedOrigins` must include every browser-facing origin (scheme, host, and port) that can access the portal.
-
----
-
-## Docker Build Modes
-
-Production Docker builds disable testing-only auth providers by default:
-
-```bash
-docker build -t api7-ee-developer-portal-fe:prod .
-```
-
-Enable testing features only for e2e/dev images:
-
-```bash
-docker build --build-arg NEXT_PUBLIC_TESTING=true -t api7-ee-developer-portal-fe:e2e .
-```
-
-### Run the Docker Image
-
-Prepare `apps/site/config.yaml` first. The file must contain a reachable Portal API URL/token, a reachable PostgreSQL URL, and an `auth.secret` with at least 32 characters.
-
-```yaml
-# file: apps/site/config.yaml
-portal:
-  url: "http://provider-portal.example.com"
-  token: ${PORTAL_TOKEN}
-
-db:
-  url: "postgresql://user:password@postgres.example.com:5432/devportal"
-
-auth:
-  secret: "your-secret-key-at-least-32-characters"
-
-app:
-  baseURL: "http://localhost:3001"
-  trustedOrigins:
-    - "http://localhost:3001"
-```
-
-Run the image with the config file mounted at the path used by the bundled server:
-
-```bash
-docker run --rm -p 3001:3001 \
-  -e PORTAL_TOKEN="your-portal-token" \
-  -v "$(pwd)/apps/site/config.yaml:/app/apps/site/config.yaml:ro" \
-  api7-ee-developer-portal-fe:prod
-```
-
-Expected startup sequence:
-
-```text
-Running preflight checks...
-Portal connection successful
-Database connection successful
-Migrations completed!
-Starting Next.js server...
-```
-
-If any preflight step fails, the container exits before the web server starts.
 
 ---
 
