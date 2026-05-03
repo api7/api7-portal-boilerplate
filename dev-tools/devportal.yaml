@@ -1,4 +1,13 @@
 apiVersion: v1
+kind: Secret
+metadata:
+  name: developer-portal-token
+  namespace: api7
+type: Opaque
+stringData:
+  token: ${PORTAL_TOKEN}
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: developer-portal-config
@@ -8,14 +17,14 @@ data:
     db:
       url: postgres://api7ee:changeme@api7-postgresql:5432/api7ee
     auth:
-      secret: "e2e-auth-secret-key-for-testing"
+      secret: "e2e-auth-secret-key-for-testing-min-32-chars"
     portal:
       url: "http://api7ee-e2e-developer-portal:4321"
-      token: ${PORTAL_TOKEN}
+      token: ${DEV_PORTAL_TOKEN}
     app:
       baseURL: "http://localhost:3001"
       trustedOrigins:
-        - "*"
+        - "http://localhost:3001"
       beforeSignUpButtonHtml: >-
         <p>By continuing, you acknowledge Example's <a href="https://example.com/terms" target="_blank" rel="noopener noreferrer">Terms of use</a> and the <a href="https://example.com/privacy" target="_blank" rel="noopener noreferrer">Privacy policy</a>.</p>
 ---
@@ -60,6 +69,12 @@ spec:
           ports:
             - containerPort: 3001
               name: http
+          env:
+            - name: DEV_PORTAL_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: developer-portal-token
+                  key: token
           volumeMounts:
             - name: config
               mountPath: /app/apps/site/config.yaml

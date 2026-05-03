@@ -12,11 +12,19 @@ The project includes reference configurations for Docker and Kubernetes deployme
 | File | Description |
 |------|-------------|
 | `Dockerfile` | Multi-stage build using Node.js 22 Alpine |
-| `apps/site/docker-entrypoint.sh` | Entrypoint script (runs DB migrations on startup) |
-| `dev-tools/devportal.yaml` | Example K8s manifests (ConfigMap, Service, Deployment) |
+| `apps/site/docker-entrypoint.sh` | Entrypoint script used by Docker image startup and preflight |
+| `dev-tools/devportal.yaml` | Example K8s manifests (Secret, ConfigMap, Service, Deployment) |
 | `Makefile` | Make targets for Kind cluster operations |
 
 > **Note:** These configurations contain testing-related settings. Review and modify them for production use.
+
+The Kubernetes sample is intended to be deployed through the Make target so the Portal token is substituted into the generated Secret:
+
+```bash
+make kind-deploy-devportal PORTAL_TOKEN="a7prt-xxx"
+```
+
+If you apply `dev-tools/devportal.yaml` manually, create your own `developer-portal-token` Secret or render the manifest with `envsubst '$PORTAL_TOKEN'` first. Applying the file directly leaves `${PORTAL_TOKEN}` as a literal placeholder and the pod will fail Portal preflight.
 
 ---
 
@@ -99,7 +107,9 @@ pnpm db:migrate    # Apply migrations
 pnpm db:generate   # Generate new migrations
 ```
 
-> **Tip:** See `apps/site/docker-entrypoint.sh` for auto-migration logic that runs when the Docker container or K8s pod starts.
+For local non-Docker runs, run migrations explicitly before starting the app. The Docker image entrypoint runs preflight before starting Next.js, including Portal connectivity, DB connectivity, and Drizzle migrations.
+
+For multi-replica production deployments, prefer running migrations as a single Job before rolling out the web deployment, or otherwise ensure that only one startup path applies migrations.
 
 ---
 
@@ -112,8 +122,30 @@ The portal uses [Better Auth](https://www.better-auth.com/) for authentication.
 ```yaml
 # file: apps/site/config.yaml
 auth:
-  secret: "your-secret-key"  # Required
+  secret: "your-secret-key-at-least-32-characters"  # Required
 ```
+
+Generate a strong secret before first startup:
+
+```bash
+openssl rand -base64 32
+<<<<<<< codex/split-361-bootstrap-docs
+```
+
+### First Admin User
+
+Platform admin access is configured by user id, not email address:
+
+```yaml
+# file: apps/site/config.yaml
+auth:
+  adminUserIds:
+    - "better-auth-user-id"
+=======
+>>>>>>> main
+```
+
+For a new deployment, register the first user, read that user's id from the database or `/api/auth/get-session`, add it to `auth.adminUserIds`, then restart the app.
 
 ### Email & Password
 
@@ -157,7 +189,7 @@ auth:
 
 For detailed configuration of social providers, magic links, sessions, and other auth features, see the [Better Auth Documentation](https://www.better-auth.com/docs).
 
-> **Note:** Some features (e.g., magic links, custom email providers) require code changes and rebuilding the image. check `lib/auth/server.ts` or `lib/auth/client.ts`
+> **Note:** Some features (e.g., magic links, custom email providers) require code changes and rebuilding the image. Check `apps/site/src/lib/auth/server.ts` or `apps/site/src/lib/auth/client.ts`.
 
 ---
 
@@ -186,12 +218,132 @@ portal:
 app:
   baseURL: "https://your-portal.example.com"
   # Used to handle CORS requirements for better auth and generate SEO related information.
-  # refs: 
+  # refs:
   # - https://www.better-auth.com/docs/reference/security#trusted-origins
   # - https://nextjs.org/docs/app/getting-started/metadata-and-og-images
   trustedOrigins:
     - "https://your-portal.example.com"
 ```
+
+Set `app.baseURL` to the primary public URL for the portal. `app.trustedOrigins` must include every browser-facing origin (scheme, host, and port) that can access the portal.
+
+---
+
+## Docker Build Modes
+
+Production Docker builds disable testing-only auth providers by default:
+
+```bash
+docker build -t api7-ee-developer-portal-fe:prod .
+```
+
+Enable testing features only for e2e/dev images:
+
+```bash
+docker build --build-arg NEXT_PUBLIC_TESTING=true -t api7-ee-developer-portal-fe:e2e .
+```
+
+### Run the Docker Image
+
+Prepare `apps/site/config.yaml` first. The file must contain a reachable Portal API URL/token, a reachable PostgreSQL URL, and an `auth.secret` with at least 32 characters.
+
+```yaml
+# file: apps/site/config.yaml
+portal:
+  url: "http://provider-portal.example.com"
+  token: ${PORTAL_TOKEN}
+
+db:
+  url: "postgresql://user:password@postgres.example.com:5432/devportal"
+
+auth:
+  secret: "your-secret-key-at-least-32-characters"
+
+app:
+  baseURL: "http://localhost:3001"
+  trustedOrigins:
+    - "http://localhost:3001"
+```
+
+Run the image with the config file mounted at the path used by the bundled server:
+
+```bash
+docker run --rm -p 3001:3001 \
+  -e PORTAL_TOKEN="your-portal-token" \
+  -v "$(pwd)/apps/site/config.yaml:/app/apps/site/config.yaml:ro" \
+  api7-ee-developer-portal-fe:prod
+```
+
+Expected startup sequence:
+
+```text
+Running preflight checks...
+Portal connection successful
+Database connection successful
+Migrations completed!
+Starting Next.js server...
+```
+
+If any preflight step fails, the container exits before the web server starts.
+
+---
+
+## Docker Build Modes
+
+Production Docker builds disable testing-only auth providers by default:
+
+```bash
+docker build -t api7-ee-developer-portal-fe:prod .
+```
+
+Enable testing features only for e2e/dev images:
+
+```bash
+docker build --build-arg NEXT_PUBLIC_TESTING=true -t api7-ee-developer-portal-fe:e2e .
+```
+
+### Run the Docker Image
+
+Prepare `apps/site/config.yaml` first. The file must contain a reachable Portal API URL/token, a reachable PostgreSQL URL, and an `auth.secret` with at least 32 characters.
+
+```yaml
+# file: apps/site/config.yaml
+portal:
+  url: "http://provider-portal.example.com"
+  token: ${PORTAL_TOKEN}
+
+db:
+  url: "postgresql://user:password@postgres.example.com:5432/devportal"
+
+auth:
+  secret: "your-secret-key-at-least-32-characters"
+
+app:
+  baseURL: "http://localhost:3001"
+  trustedOrigins:
+    - "http://localhost:3001"
+```
+
+Run the image with the config file mounted at the path used by the bundled server:
+
+```bash
+docker run --rm -p 3001:3001 \
+  -e PORTAL_TOKEN="your-portal-token" \
+  -v "$(pwd)/apps/site/config.yaml:/app/apps/site/config.yaml:ro" \
+  api7-ee-developer-portal-fe:prod
+```
+
+Expected startup sequence:
+
+```text
+Running preflight checks...
+Portal connection successful
+Database connection successful
+Migrations completed!
+Starting Next.js server...
+```
+
+If any preflight step fails, the container exits before the web server starts.
 
 ---
 
@@ -238,9 +390,11 @@ Edit CSS variables in `apps/site/app/globals.css` for colors and styling.
 2. [ ] Configure database connection (`db.url`)
 3. [ ] Set authentication secret (`auth.secret`)
 4. [ ] Configure Portal API (`portal.url`, `portal.token`)
-5. [ ] Run database migrations (You can refer to file `apps/site/docker-entrypoint.sh` to run DB migrations on pod or container startup)
-6. [ ] (Optional) Configure SSO providers
-7. [ ] (Optional) Customize branding
+5. [ ] Configure `app.baseURL` and `app.trustedOrigins` for the browser-facing URL
+6. [ ] Ensure database migrations are applied (`pnpm db:migrate` for local non-Docker runs, Docker preflight, or a one-off migration job)
+7. [ ] Register the first user and configure `auth.adminUserIds` if platform admin access is required
+8. [ ] (Optional) Configure SSO providers
+9. [ ] (Optional) Customize branding
 
 ---
 

@@ -1,3 +1,5 @@
 packages:
   - 'apps/*'
 
+onlyBuiltDependencies:
+  - '@daveyplate/better-auth-ui'

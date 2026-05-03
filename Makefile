@@ -42,8 +42,7 @@ build:
 # build and push single-arch release image with testing features disabled
 push-release-image:
 	docker build -f Dockerfile \
-		-t ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-${ARCH} . \
-		--build-arg PORT=${PORT} --build-arg NEXT_PUBLIC_TESTING=false
+		-t ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-${ARCH} .
 	docker push ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-${ARCH}
 .PHONY: push-release-image
 
@@ -51,7 +50,7 @@ push-release-image:
 push-dev-image:
 	docker build -f Dockerfile \
 		-t ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-${ARCH} . \
-		--build-arg PORT=${PORT}
+		--build-arg NEXT_PUBLIC_TESTING=true
 	docker push ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-${ARCH}
 .PHONY: push-dev-image
 
@@ -115,7 +114,7 @@ kind-port-forward-devportal-api:
 .PHONY: kind-port-forward-devportal-api
 
 kind-build-devportal:
-	docker buildx build --no-cache -t ${IMAGE_E2E}:${IMAGE_TAG} . --build-arg PORT=${PORT}
+	docker buildx build --no-cache -t ${IMAGE_E2E}:${IMAGE_TAG} . --build-arg NEXT_PUBLIC_TESTING=true
 .PHONY: kind-build-devportal
 
 kind-deploy-devportal:

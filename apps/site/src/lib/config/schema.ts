@@ -37,7 +37,9 @@ export const configSchema = z.object({
       .default(false),
   }),
   auth: z.object({
-    secret: z.string().min(1, 'Auth secret is required'),
+    secret: z
+      .string()
+      .min(32, 'Auth secret must be at least 32 characters long'),
     adminUserIds: z.array(z.string().min(1)).default([]),
     session: z
       .object({

@@ -21,24 +21,18 @@ COPY apps/site ./apps/site
 
 # Create config.yaml from example for build time
 # This is required because Next.js analyzes API routes during build
-RUN cd apps/site && \
-    if [ ! -f config.yaml ]; then \
-      cp config.yaml.example config.yaml && \
-      sed -i 's|url: ""|url: "postgres://placeholder:placeholder@localhost:5432/placeholder"|' config.yaml && \
-      sed -i 's|secret: ""|secret: "build-time-placeholder-secret-key-min-32-chars-long"|' config.yaml && \
-      sed -i 's|token: \${PORTAL_TOKEN:}|token: \${PORTAL_TOKEN:build-time-placeholder}|' config.yaml; \
-    fi
+RUN node apps/site/scripts/prepare-build-config.mjs
 
-# NEXT_PUBLIC_TESTING enables testing features (default: true for e2e tests)
-# For production builds, pass --build-arg NEXT_PUBLIC_TESTING=false
-ARG NEXT_PUBLIC_TESTING=true
+# NEXT_PUBLIC_TESTING enables testing-only auth providers such as the e2e
+# Keycloak and smtp4dev integrations. Enable it explicitly for e2e builds.
+ARG NEXT_PUBLIC_TESTING=false
 ENV NEXT_PUBLIC_TESTING=${NEXT_PUBLIC_TESTING}
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN --mount=type=cache,id=nextjs-cache,target=/app/apps/site/.next/cache \
     corepack enable pnpm && \
     cd apps/site && \
     pnpm run build && \
-    pnpm dlx esbuild scripts/preflight.ts --bundle --platform=node --outfile=dist/preflight.js
+    pnpm dlx esbuild ./scripts/preflight.ts --bundle --platform=node --outfile=dist/preflight.js
 
 FROM base AS runner
 WORKDIR /app

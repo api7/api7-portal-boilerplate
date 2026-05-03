@@ -26,7 +26,7 @@ db:
   #   key: ${DB_SSL_KEY}
 
 auth:
-  secret: ""                                                 # Required
+  secret: ""                                                 # Required, at least 32 characters. Generate with: openssl rand -base64 32
   # adminUserIds:
   #   - "user_id_1"
   #   - "user_id_2"
@@ -45,9 +45,9 @@ auth:
 
 # app:
   # name: "Developer Portal"
-  # baseURL: "http://localhost:3001"                          # Base URL for generating links (e.g., magic link emails), for SEO (canonical URLs, sitemap, etc.)
-  # trustedOrigins:
-  #  - ""
+  # baseURL: "http://localhost:3001"                          # Public base URL for links, SEO, and auth callbacks
+  # trustedOrigins:                                           # Include every browser origin that can access this app
+  #  - "http://localhost:3001"
   # applicationDetail:
   #  subscriptions: false                                      # Show Subscriptions tab (default: true)
   #  usage: false                                              # Show Usage tab (default: true)
