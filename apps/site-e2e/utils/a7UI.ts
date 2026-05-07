@@ -210,8 +210,10 @@ export const a7UICreateGatewayProduct = async (
     name: 'gatewayGroupId',
     target: gatewayGroupName,
   });
-  await drawer.locator('.lazy-load-select input').fill(service);
-  await a7UIPage.getByText(`${service} (No Version)`, { exact: true }).click();
+  const lazySelect = drawer.locator('.lazy-load-select');
+  await lazySelect.locator('input').click();
+  await lazySelect.locator('input').fill(service);
+  await lazySelect.getByText(service, { exact: true }).click();
   if (host) {
     await a7UIPage.locator('[data-cy="linked_hosts"]').click();
     await a7UIPage.locator(`[data-cy="select-option-${host}"]`).click();

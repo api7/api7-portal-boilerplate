@@ -41,6 +41,8 @@ overrides:
   axios@>=1.0.0 <1.15.0: '>=1.15.0'
   unhead@<2.1.13: '>=2.1.13 <3.0.0'
   read-yaml-file: 2.1.0
+  ip-address@<=10.1.0: '>=10.1.1'
+  uuid@>=11.0.0 <11.1.1: '>=11.1.1 <12'
 
 importers:
 
@@ -308,8 +310,8 @@ importers:
         specifier: ^1.9.2
         version: 1.9.2(@playwright/test@1.57.0)
       '@keycloak/keycloak-admin-client':
-        specifier: ^26.0.7
-        version: 26.0.7
+        specifier: ^26.6.1
+        version: 26.6.1
       '@playwright/test':
         specifier: ^1.51.1
         version: 1.57.0
@@ -1940,8 +1942,8 @@ packages:
     peerDependencies:
       jsep: ^0.4.0||^1.0.0
 
-  '@keycloak/keycloak-admin-client@26.0.7':
-    resolution: {integrity: sha512-2vdx04sxnTQavnE7zuztyfmf1l5opG1Bi76hh3Wj02m6vR+aSiHFxlTXJFHVZtE9Emko+qgU7a5kEFC+Il+EwQ==}
+  '@keycloak/keycloak-admin-client@26.6.1':
+    resolution: {integrity: sha512-IWzXCyUFhLkk2LkryCunEAGbRVB7ttC7WNmjXlFT83WlBrmxRCDKo52LzmIRgtWcy0VU1qe3Poj5BGyIkE1AnQ==}
     engines: {node: '>=18'}
 
   '@kubernetes/client-node@1.4.0':
@@ -1991,6 +1993,24 @@ packages:
     peerDependencies:
       react: ^17.0.2 || ^18.0.0 || ^19.0
       react-dom: ^17.0.2 || ^18.0.0 || ^19.0
+
+  '@microsoft/kiota-abstractions@1.0.0-preview.100':
+    resolution: {integrity: sha512-3s2WYKQ6WLB/0pyDmmv9bigH/3LZ0Mm4ldHskNLBj0U8DYjFzfG729snnEij+hZN0l2XHr37pGBr1MZK8vM7zQ==}
+
+  '@microsoft/kiota-http-fetchlibrary@1.0.0-preview.100':
+    resolution: {integrity: sha512-uS2rhKKjbYiT8JWG8GGVOALB+s4HdDc9hg5tTZMVf3qY5b/us1OKLQ6WgW6USq/kZAuKKWkIq/BQgPCWbHtFTQ==}
+
+  '@microsoft/kiota-serialization-form@1.0.0-preview.100':
+    resolution: {integrity: sha512-SR/yWBtvKYhN2ARR4wVMFb91XgN32DBmLLQmtemdKgL1YWBxVCNAUP/qHbZhrTX7q4kh7jl/S9yrr1S8ySS7AA==}
+
+  '@microsoft/kiota-serialization-json@1.0.0-preview.100':
+    resolution: {integrity: sha512-4qatf5j0Aeaakdw24jMuIX7W6mf/W2rU9UyAjkIrSjaB7W5n8gsUvhoTcRpPTAFN7pvzQkCbO7Z0paRfdYzhIw==}
+
+  '@microsoft/kiota-serialization-multipart@1.0.0-preview.100':
+    resolution: {integrity: sha512-zwWoLZH6+KsAl05Ijd8HpbU+mct5wb0//ZCGdCkQ/UqsAaoe2xYSoKicxQbVGv9VvSTq0as7iVLwqDeqEI9rDw==}
+
+  '@microsoft/kiota-serialization-text@1.0.0-preview.100':
+    resolution: {integrity: sha512-x2Epz0StHLBkVJKeEmwrXSh6SJuxZ72VVBNO53uHUNZ/Y7X8tZuSQR7X74EO69mEi4zAF21X2jbkF9/dhlARog==}
 
   '@nanostores/persistent@1.2.0':
     resolution: {integrity: sha512-kf5WOLpVI9Pk+AwXHIax4in3pesNe8299BEGQ2H8kgI05SZw7KKWCDv7bt2FOlND8E5y7rO5PRW34q0UCAl/DA==}
@@ -3394,6 +3414,9 @@ packages:
 
   '@standard-schema/utils@0.3.0':
     resolution: {integrity: sha512-e7Mew686owMaPJVNNLs55PUvgz371nKgwsc4vxE49zsODpJEnxgxRo2y/OKrqueavXgZNMDVj3DdHFlaSAeU8g==}
+
+  '@std-uritemplate/std-uritemplate@2.0.8':
+    resolution: {integrity: sha512-8oj7jKksoTRxjdPkWKX9FyOKDS8ORBm+ZfTSHm0f3eYha8cI0O1d57gyduOIAX7Y2uUukNDNlxlvGb+FFkE7yQ==}
 
   '@swc-node/core@1.13.3':
     resolution: {integrity: sha512-OGsvXIid2Go21kiNqeTIn79jcaX4l0G93X2rAnas4LFoDyA9wAwVK7xZdm+QsKoMn5Mus2yFLCc4OtX2dD/PWA==}
@@ -5472,8 +5495,8 @@ packages:
   invariant@2.2.4:
     resolution: {integrity: sha512-phJfQVBuaJM5raOpJjSfkiD6BpbCE4Ns//LaXl6wGYtUBY83nWS6Rf9tXm2e8VaK60JEjYldbPif/A2B1C2gNA==}
 
-  ip-address@10.1.0:
-    resolution: {integrity: sha512-XXADHxXmvT9+CRxhXg56LJovE+bmWnEWB78LB83VZTprKTmaC5QfruXocxzTZ2Kl0DNwKuBdlIhjL8LeY8Sf8Q==}
+  ip-address@10.2.0:
+    resolution: {integrity: sha512-/+S6j4E9AHvW9SWMSEY9Xfy66O5PWvVEJ08O0y5JGyEKQpojb0K0GKpz/v5HJ/G0vi3D2sjGK78119oXZeE0qA==}
     engines: {node: '>= 12'}
 
   is-absolute-url@4.0.1:
@@ -7078,6 +7101,9 @@ packages:
   tinycolor2@1.6.0:
     resolution: {integrity: sha512-XPaBkWQJdsf3pLKJV9p4qN/S+fm2Oj8AIPo1BTUhg5oxkvm9+SVEGFdhyOz7tTdUTfvxMiAs4sp6/eZO2Ew+pw==}
 
+  tinyduration@3.4.1:
+    resolution: {integrity: sha512-NemFoamVYn7TmtwZKZ3OiliM9fZkr6EWiTM+wKknco6POSy2gS689xx/pXip0JYp40HXpUw6k65CUYHWYUXdaA==}
+
   tinyexec@1.0.2:
     resolution: {integrity: sha512-W/KYk+NFhkmsYpuHq5JykngiOCnxeVL8v8dFnqxSD8qEEdRfXk1SDM6JzNqcERbcGYj9tMrDQBYV9cjgnunFIg==}
     engines: {node: '>=18'}
@@ -7262,10 +7288,6 @@ packages:
   uri-js@4.4.1:
     resolution: {integrity: sha512-7rKUyy33Q1yc98pQ1DAmLtwX109F7TIfWlW1Ydo8Wl1ii1SeHieeh0HHfPeL2fMXK6z0s8ecKs9frCuLJvndBg==}
 
-  url-join@5.0.0:
-    resolution: {integrity: sha512-n2huDr9h9yzd6exQVnH/jU5mr+Pfx08LRXXZhkLLetAMESRj+anQsTAh940iMrIetKAmry9coFuZQ2jY8/p3WA==}
-    engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
-
   url-template@3.1.1:
     resolution: {integrity: sha512-4oszoaEKE/mQOtAmdMWqIRHmkxWkUZMnXFnjQ5i01CuRSK3uluxcH1MRVVVWmhlnzT1SCDfKxxficm2G37qzCA==}
     engines: {node: ^12.20.0 || ^14.13.1 || >=16.0.0}
@@ -7329,8 +7351,8 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  uuid@11.1.0:
-    resolution: {integrity: sha512-0/A9rDy9P7cJ+8w1c9WD9V//9Wj15Ce2MPz8Ri6032usz+NfePxx5AcN3bN+r6ZL6jEo066/yNYB3tn4pQEx+A==}
+  uuid@11.1.1:
+    resolution: {integrity: sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ==}
     hasBin: true
 
   v8-compile-cache-lib@3.0.1:
@@ -9554,7 +9576,7 @@ snapshots:
     dependencies:
       '@instantdb/version': 0.22.73
       mutative: 1.3.0
-      uuid: 11.1.0
+      uuid: 11.1.1
 
   '@instantdb/react-common@0.22.73(react@18.3.1)':
     dependencies:
@@ -9627,10 +9649,15 @@ snapshots:
     dependencies:
       jsep: 1.4.0
 
-  '@keycloak/keycloak-admin-client@26.0.7':
+  '@keycloak/keycloak-admin-client@26.6.1':
     dependencies:
+      '@microsoft/kiota-abstractions': 1.0.0-preview.100
+      '@microsoft/kiota-http-fetchlibrary': 1.0.0-preview.100
+      '@microsoft/kiota-serialization-form': 1.0.0-preview.100
+      '@microsoft/kiota-serialization-json': 1.0.0-preview.100
+      '@microsoft/kiota-serialization-multipart': 1.0.0-preview.100
+      '@microsoft/kiota-serialization-text': 1.0.0-preview.100
       camelize-ts: 3.0.0
-      url-join: 5.0.0
       url-template: 3.1.1
 
   '@kubernetes/client-node@1.4.0':
@@ -9730,6 +9757,39 @@ snapshots:
     dependencies:
       react: 18.3.1
       react-dom: 18.3.1(react@18.3.1)
+
+  '@microsoft/kiota-abstractions@1.0.0-preview.100':
+    dependencies:
+      '@opentelemetry/api': 1.9.0
+      '@std-uritemplate/std-uritemplate': 2.0.8
+      tinyduration: 3.4.1
+      tslib: 2.8.1
+
+  '@microsoft/kiota-http-fetchlibrary@1.0.0-preview.100':
+    dependencies:
+      '@microsoft/kiota-abstractions': 1.0.0-preview.100
+      '@opentelemetry/api': 1.9.0
+      tslib: 2.8.1
+
+  '@microsoft/kiota-serialization-form@1.0.0-preview.100':
+    dependencies:
+      '@microsoft/kiota-abstractions': 1.0.0-preview.100
+      tslib: 2.8.1
+
+  '@microsoft/kiota-serialization-json@1.0.0-preview.100':
+    dependencies:
+      '@microsoft/kiota-abstractions': 1.0.0-preview.100
+      tslib: 2.8.1
+
+  '@microsoft/kiota-serialization-multipart@1.0.0-preview.100':
+    dependencies:
+      '@microsoft/kiota-abstractions': 1.0.0-preview.100
+      tslib: 2.8.1
+
+  '@microsoft/kiota-serialization-text@1.0.0-preview.100':
+    dependencies:
+      '@microsoft/kiota-abstractions': 1.0.0-preview.100
+      tslib: 2.8.1
 
   '@nanostores/persistent@1.2.0(nanostores@1.1.0)':
     dependencies:
@@ -11367,6 +11427,8 @@ snapshots:
   '@standard-schema/spec@1.1.0': {}
 
   '@standard-schema/utils@0.3.0': {}
+
+  '@std-uritemplate/std-uritemplate@2.0.8': {}
 
   '@swc-node/core@1.13.3(@swc/core@1.5.29(@swc/helpers@0.5.15))(@swc/types@0.1.12)':
     dependencies:
@@ -13603,7 +13665,7 @@ snapshots:
     dependencies:
       loose-envify: 1.4.0
 
-  ip-address@10.1.0: {}
+  ip-address@10.2.0: {}
 
   is-absolute-url@4.0.1: {}
 
@@ -15197,7 +15259,7 @@ snapshots:
 
   socks@2.8.7:
     dependencies:
-      ip-address: 10.1.0
+      ip-address: 10.2.0
       smart-buffer: 4.2.0
 
   sonner@1.7.4(react-dom@18.3.1(react@18.3.1))(react@18.3.1):
@@ -15427,6 +15489,8 @@ snapshots:
   tiny-invariant@1.3.3: {}
 
   tinycolor2@1.6.0: {}
+
+  tinyduration@3.4.1: {}
 
   tinyexec@1.0.2: {}
 
@@ -15663,8 +15727,6 @@ snapshots:
     dependencies:
       punycode: 2.3.1
 
-  url-join@5.0.0: {}
-
   url-template@3.1.1: {}
 
   use-callback-ref@1.3.2(@types/react@18.3.3)(react@18.3.1):
@@ -15711,7 +15773,7 @@ snapshots:
     dependencies:
       react: 18.3.1
 
-  uuid@11.1.0: {}
+  uuid@11.1.1: {}
 
   v8-compile-cache-lib@3.0.1: {}
 

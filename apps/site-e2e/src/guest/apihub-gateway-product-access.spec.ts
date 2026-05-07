@@ -22,7 +22,6 @@ import { a7PostGateway } from '../../req/dashboard/gateway';
 import { k8DeployA7Gateway, k8HelmUninstall, k8PortForward } from '../../utils/shell';
 import {
   a7DeleteService,
-  a7PatchPublishedService,
   a7PostPublishedService,
   a7PutServiceOAS,
 } from '../../req/dashboard/service';
@@ -63,7 +62,6 @@ test.describe(
       // Step 1: Create gateway group
       const res = await a7PostGateway(a7Ctx, {
         name: gateway,
-        enforce_service_publishing: false,
       });
       gatewayId = res.value.id;
 
@@ -74,6 +72,7 @@ test.describe(
       // Step 3: Create service, route
       const serviceRes = await a7PostPublishedService(a7Ctx, gatewayId, {
         name: service,
+        plugins: { cors: { allow_origins: '*' } },
         upstream: {
           name: 'default',
           scheme: 'http',
@@ -88,15 +87,6 @@ test.describe(
         },
       });
       serviceId = serviceRes.value.id;
-
-      // patch cors plugin
-      await a7PatchPublishedService(a7Ctx, serviceId, gatewayId, [
-        {
-          op: 'add',
-          path: '/plugins',
-          value: { cors: { allow_origins: '*' } },
-        },
-      ]);
 
       // post route
       const routeRes = await a7PostPublishedRoute(a7Ctx, gatewayId, {

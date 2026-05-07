@@ -46,7 +46,6 @@ test.describe('Test API Hub with Gateway Product', { tag: ['@gateway'] }, () => 
     // Step 1: Create gateway group
     const res = await a7PostGateway(a7Ctx, {
       name: `gateway-product-${seed}`,
-      enforce_service_publishing: false,
     });
     gatewayId = res.value.id;
 

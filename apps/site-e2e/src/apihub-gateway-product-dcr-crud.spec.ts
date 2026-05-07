@@ -38,7 +38,6 @@ test.describe('Test Gateway Product with DCR', () => {
 
     const res = await a7PostGateway(a7Ctx, {
       name: gatewayName,
-      enforce_service_publishing: false,
     });
     gatewayId = res.value.id;
 

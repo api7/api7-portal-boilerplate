@@ -9,7 +9,6 @@ import { CLUSTER_NAME } from '../../constant';
 type GatewayGroup = {
   type: 'api7_gateway';
   name: string;
-  enforce_service_publishing: boolean;
   description?: string;
   labels?: APIFormLabel;
 };

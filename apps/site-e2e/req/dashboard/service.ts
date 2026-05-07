@@ -57,20 +57,6 @@ export const a7PostPublishedService = async (
   return (await postService.json()) as ObjRes<Service>;
 };
 
-export const a7PatchPublishedService = async (
-  ctx: A7Ctx,
-  service_id: string,
-  gateway_group_id: string,
-  patch: object[]
-) => {
-  const patchService = await ctx.patch(
-    `${API_GATEWAY_GROUPS}/${gateway_group_id}/services/${service_id}/runtime_configuration`,
-    { data: patch }
-  );
-  expect(patchService.status()).toBe(200);
-  return (await patchService.json()) as ObjRes<Service>;
-};
-
 export const a7DeleteService = async (
   ctx: A7Ctx,
   service_id: string,

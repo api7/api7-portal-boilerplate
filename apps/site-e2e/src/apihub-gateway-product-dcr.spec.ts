@@ -52,7 +52,6 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
     // Step 1: Create gateway group
     const res = await a7PostGateway(a7Ctx, {
       name: gatewayName,
-      enforce_service_publishing: false,
     });
     gatewayId = res.value.id;
 
