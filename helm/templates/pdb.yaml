@@ -1,0 +1,17 @@
+{{- $pdbReplicas := .Values.replicaCount -}}
+{{- if .Values.autoscaling.enabled }}
+{{- $pdbReplicas = .Values.autoscaling.minReplicas -}}
+{{- end }}
+{{- if and .Values.podDisruptionBudget.enabled (gt (int $pdbReplicas) 1) }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "api7-developer-portal.fullname" . }}
+  labels:
+    {{- include "api7-developer-portal.labels" . | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.podDisruptionBudget.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "api7-developer-portal.selectorLabels" . | nindent 6 }}
+{{- end }}
