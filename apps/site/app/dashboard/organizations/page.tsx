@@ -3,7 +3,7 @@ import { redirect } from 'next/navigation';
 import { Building2, ChevronLeft, ChevronRight, Info, Search } from 'lucide-react';
 import MainLayout from '@/components/layouts/MainLayout';
 import ImpersonateOwnerButton from '@/components/dashboard/ImpersonateOwnerButton';
-import Header from '@/components/ui/header';
+import Header from '@/components/ui-legacy/header';
 import { Button } from '@/components/ui/button';
 import { isImpersonatingSession } from '@/lib/auth/admin';
 import { isPlatformAdmin } from '@/lib/auth/admin.server';

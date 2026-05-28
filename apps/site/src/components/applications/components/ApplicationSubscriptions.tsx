@@ -3,16 +3,16 @@
 import { useState } from 'react';
 
 import { useCreation } from 'ahooks';
-import { Button, Typography } from 'antd';
+import { Button } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import { PRODUCT_STATUS_CONFIG, useStatusCol } from './StatusFilter';
 import SubscribeAPIProductModal from './SubscribeAPIProductModal';
 import UnsubscribeModal from './UnsubscribeModal';
 import TimeFormat from '@/components/slices/time-format';
-import IconImage from '@/components/ui/icon-image';
-import { MoreMenu } from '@/components/ui/more-menu';
-import A7Table from '@/components/ui/table';
+import IconImage from '@/components/ui-legacy/icon-image';
+import { MoreMenu } from '@/components/ui-legacy/more-menu';
+import A7Table from '@/components/ui-legacy/table';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import useDisclosure from '@/lib/hooks/useDisclosure';
@@ -82,8 +82,9 @@ const ApplicationSubscriptions = ({ id }: ApplicationSubscriptionsProps) => {
           <Link
             href={`${apiHubBasePath}/detail?id=${record.api_product_id}`}
             target="_blank"
+            className="text-primary hover:text-primary/80"
           >
-            <Typography.Link>{name}</Typography.Link>
+            {name}
           </Link>
         ),
       },

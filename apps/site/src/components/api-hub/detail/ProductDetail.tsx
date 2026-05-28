@@ -6,10 +6,10 @@ import { map, pick } from 'lodash-es';
 import ProductExternalAPI from './ProductExternalAPI';
 import ProductGatewayAPI from './ProductGatewayAPI';
 import ProductSubscriptions from './ProductSubscriptions';
-import Back from '@/components/ui/back';
-import Meta, { type MetaProps } from '@/components/ui/meta';
+import Back from '@/components/ui-legacy/back';
+import Meta, { type MetaProps } from '@/components/ui-legacy/meta';
 import { Skeleton } from '@/components/ui/skeleton';
-import A7Tabs from '@/components/ui/tabs';
+import A7Tabs from '@/components/ui-legacy/tabs';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import useProductDetail, {
   type UseProductDetailReturn,

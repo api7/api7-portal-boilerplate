@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 
 import Form from '@/components/slices/form/Form';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
-import A7Drawer from '@/components/ui/drawer';
+import A7Drawer from '@/components/ui-legacy/drawer';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { pipeProduce } from '@/helper/utils/form-producer/common';
 import { produceToAPILabels } from '@/helper/utils/form-producer/labels';

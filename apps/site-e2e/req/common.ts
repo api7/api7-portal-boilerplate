@@ -1,17 +1,15 @@
 import { APIRequest, expect, request } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { E2E_TARGET_URL } from '../constant';
-import {
-  API_APPLICATIONS,
-  AUTH_BASE_PATH,
-} from '@site/constants/api-prefix';
+import { API_APPLICATIONS, AUTH_BASE_PATH } from '@site/constants/api-prefix';
 import { PATH_LANDING, PATH_ORGANIZATION } from '@site/constants/path-prefix';
+
+import { E2E_TARGET_URL } from '../constant';
 import { BetterAuthLogin } from './type';
 
 const ORG_SET_ACTIVE = `${AUTH_BASE_PATH}/organization/set-active`;
 
 export const genCtx = async (
-  options?: Parameters<APIRequest['newContext']>[0]
+  options?: Parameters<APIRequest['newContext']>[0],
 ) => {
   return await request.newContext({
     baseURL: E2E_TARGET_URL,
@@ -29,8 +27,7 @@ export type Ctx = Awaited<ReturnType<typeof genCtx>>;
 export const getSession = async (ctx: Ctx) =>
   ctx.get(`${AUTH_BASE_PATH}/get-session`, { failOnStatusCode: false });
 
-const sleep = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 const maxRequestRetries = 5;
 
@@ -94,7 +91,7 @@ export const login = async (ctx: Ctx, auth: BetterAuthLogin) => {
 
       const signInBody = await signInRes.text();
       throw new Error(
-        `Login failed. Sign-in: ${signInRes.status()} ${signInBody}, Sign-up: ${signUpRes.status()} ${signUpBody}`
+        `Login failed. Sign-in: ${signInRes.status()} ${signInBody}, Sign-up: ${signUpRes.status()} ${signUpBody}`,
       );
     } catch (err) {
       lastError = err instanceof Error ? err : new Error(String(err));
@@ -119,7 +116,7 @@ export const login = async (ctx: Ctx, auth: BetterAuthLogin) => {
     if (signInRes.status() === 200) return;
     const signInBody = await signInRes.text();
     throw new Error(
-      `Login failed after ${maxRetries} retries. Sign-in: ${signInRes.status()} ${signInBody}`
+      `Login failed after ${maxRetries} retries. Sign-in: ${signInRes.status()} ${signInBody}`,
     );
   } catch (err) {
     throw lastError ?? err;
@@ -132,7 +129,7 @@ export const login = async (ctx: Ctx, auth: BetterAuthLogin) => {
  */
 export const register = async (
   ctx: Ctx,
-  auth: { email: string; password: string; name: string }
+  auth: { email: string; password: string; name: string },
 ) => {
   const maxRetries = 5;
 
@@ -210,7 +207,7 @@ export const getDefaultApplicationId = async (ctx: Ctx): Promise<string> => {
       if (status !== 200) {
         const body = await res.text();
         const error = new Error(
-          `Get default application failed: ${status} ${body}`
+          `Get default application failed: ${status} ${body}`,
         );
         if (isRetryableStatus(status)) {
           lastError = error;
@@ -222,7 +219,7 @@ export const getDefaultApplicationId = async (ctx: Ctx): Promise<string> => {
 
       const data = await res.json();
       const defaultApp = data.list?.find(
-        (app: { name: string }) => app.name === 'default'
+        (app: { name: string }) => app.name === 'default',
       );
 
       if (!defaultApp?.id) {
@@ -245,7 +242,7 @@ export const getDefaultApplicationId = async (ctx: Ctx): Promise<string> => {
 
 export const createApplication = async (
   ctx: Ctx,
-  data: { name: string; desc?: string }
+  data: { name: string; desc?: string },
 ) => {
   const res = await ctx.post(API_APPLICATIONS, {
     data,
@@ -286,7 +283,7 @@ export const createOrganization = async (ctx: Ctx, name: string) => {
 export const inviteMemberViaUI = async (
   ownerPage: Page,
   memberEmail: string,
-  role: 'member' | 'admin' = 'member'
+  role: 'member' | 'admin' = 'member',
 ) => {
   await ownerPage.goto(`${PATH_ORGANIZATION}/members`);
   await ownerPage.getByRole('button', { name: 'Invite Member' }).click();
@@ -308,7 +305,7 @@ export const inviteMemberViaUI = async (
  */
 export const acceptInvitationViaUI = async (
   memberPage: Page,
-  memberEmail: string
+  memberEmail: string,
 ) => {
   await memberPage.goto(PATH_LANDING);
   const row = memberPage
@@ -325,6 +322,12 @@ export const acceptInvitationViaUI = async (
 
 /**
  * Get active organization ID from session.
+ *
+ * @deprecated Active organization is now managed client-side via URL slug.
+ * This helper reads session.activeOrganizationId which better-auth still
+ * populates internally during org creation. New e2e tests should extract
+ * the org slug from the response and use it in URL-prefixed API paths
+ * (e.g. `/api/{slug}/applications`).
  */
 export const getActiveOrganizationId = async (ctx: Ctx): Promise<string> => {
   const res = await getSession(ctx);
@@ -332,6 +335,19 @@ export const getActiveOrganizationId = async (ctx: Ctx): Promise<string> => {
   const orgId = body?.session?.activeOrganizationId;
   expect(orgId).toBeTruthy();
   return orgId;
+};
+
+export const getActiveOrganizationSlug = async (ctx: Ctx): Promise<string> => {
+  const res = await ctx.get(
+    `${AUTH_BASE_PATH}/organization/get-full-organization`,
+    {
+      failOnStatusCode: false,
+    },
+  );
+  expect(res.status()).toBe(200);
+  const body = await res.json();
+  expect(body?.slug).toBeTruthy();
+  return body.slug as string;
 };
 
 /**
@@ -342,35 +358,49 @@ export const setupMemberUser = async (
   ownerPage: Page,
   memberAuth: { email: string; password: string; name: string },
   organizationId: string,
-  storageStatePath: string
+  storageStatePath: string,
 ): Promise<string> => {
-  await inviteMemberViaUI(ownerPage, memberAuth.email);
-
   const memberCtx = await genCtx();
-  await register(memberCtx, memberAuth);
-  await login(memberCtx, memberAuth);
-
-  const tmpPath = `${storageStatePath}.tmp`;
-  await memberCtx.storageState({ path: tmpPath });
-
-  const browser = ownerPage.context().browser();
-  if (!browser) throw new Error('Browser not available');
-  const memberContext = await browser.newContext({
-    baseURL: E2E_TARGET_URL,
-    storageState: tmpPath,
+  const ownerCtx = await genCtx({
+    storageState: await ownerPage.context().storageState(),
   });
-  const memberPage = await memberContext.newPage();
+  try {
+    await login(memberCtx, memberAuth);
 
-  await acceptInvitationViaUI(memberPage, memberAuth.email);
+    const inviteRes = await ownerCtx.post(
+      `${AUTH_BASE_PATH}/organization/invite-member`,
+      {
+        data: {
+          email: memberAuth.email,
+          role: 'member',
+          organizationId,
+        },
+        failOnStatusCode: false,
+      },
+    );
+    expect(inviteRes.status()).toBe(200);
+    const invitation = await inviteRes.json();
 
-  const setActiveResponse = await memberPage.request.post(ORG_SET_ACTIVE, {
-    data: { organizationId },
-    headers: { origin: E2E_TARGET_URL },
-    failOnStatusCode: false,
-  });
-  await memberContext.storageState({ path: storageStatePath });
-  await memberContext.close();
-  await memberCtx.dispose();
+    const acceptRes = await memberCtx.post(
+      `${AUTH_BASE_PATH}/organization/accept-invitation`,
+      {
+        data: { invitationId: invitation.id },
+        failOnStatusCode: false,
+      },
+    );
+    expect(acceptRes.status()).toBe(200);
+
+    const setActiveResponse = await memberCtx.post(ORG_SET_ACTIVE, {
+      data: { organizationId },
+      failOnStatusCode: false,
+    });
+    expect(setActiveResponse.status()).toBe(200);
+
+    await memberCtx.storageState({ path: storageStatePath });
+  } finally {
+    await ownerCtx.dispose();
+    await memberCtx.dispose();
+  }
 
   return storageStatePath;
 };
@@ -383,36 +413,49 @@ export const setupAdminUser = async (
   ownerPage: Page,
   adminAuth: { email: string; password: string; name: string },
   organizationId: string,
-  storageStatePath: string
+  storageStatePath: string,
 ): Promise<string> => {
-  await inviteMemberViaUI(ownerPage, adminAuth.email, 'admin');
-
   const adminCtx = await genCtx();
-  await register(adminCtx, adminAuth);
-  await login(adminCtx, adminAuth);
-
-  const tmpPath = `${storageStatePath}.tmp`;
-  await adminCtx.storageState({ path: tmpPath });
-
-  const browser = ownerPage.context().browser();
-  if (!browser) throw new Error('Browser not available');
-  const adminContext = await browser.newContext({
-    baseURL: E2E_TARGET_URL,
-    storageState: tmpPath,
+  const ownerCtx = await genCtx({
+    storageState: await ownerPage.context().storageState(),
   });
-  const adminPage = await adminContext.newPage();
+  try {
+    await login(adminCtx, adminAuth);
 
-  await acceptInvitationViaUI(adminPage, adminAuth.email);
+    const inviteRes = await ownerCtx.post(
+      `${AUTH_BASE_PATH}/organization/invite-member`,
+      {
+        data: {
+          email: adminAuth.email,
+          role: 'admin',
+          organizationId,
+        },
+        failOnStatusCode: false,
+      },
+    );
+    expect(inviteRes.status()).toBe(200);
+    const invitation = await inviteRes.json();
 
-  await adminPage.request.post(ORG_SET_ACTIVE, {
-    data: { organizationId },
-    headers: { origin: E2E_TARGET_URL },
-    failOnStatusCode: false,
-  });
+    const acceptRes = await adminCtx.post(
+      `${AUTH_BASE_PATH}/organization/accept-invitation`,
+      {
+        data: { invitationId: invitation.id },
+        failOnStatusCode: false,
+      },
+    );
+    expect(acceptRes.status()).toBe(200);
 
-  await adminContext.storageState({ path: storageStatePath });
-  await adminContext.close();
-  await adminCtx.dispose();
+    const setActiveRes = await adminCtx.post(ORG_SET_ACTIVE, {
+      data: { organizationId },
+      failOnStatusCode: false,
+    });
+    expect(setActiveRes.status()).toBe(200);
+
+    await adminCtx.storageState({ path: storageStatePath });
+  } finally {
+    await ownerCtx.dispose();
+    await adminCtx.dispose();
+  }
 
   return storageStatePath;
 };
@@ -424,7 +467,7 @@ export const expectMemberWriteForbidden = async (
   memberCtx: Ctx,
   method: 'POST' | 'PUT' | 'PATCH' | 'DELETE',
   url: string,
-  data?: unknown
+  data?: unknown,
 ) => {
   let res;
   switch (method) {
@@ -451,7 +494,7 @@ export const expectMemberWriteForbidden = async (
     (typeof body === 'object' ? JSON.stringify(body) : String(body)) ||
     ''
   ).toLowerCase();
-  expect(
-    errText.includes('forbidden') || errText.includes('not allowed')
-  ).toBe(true);
+  expect(errText.includes('forbidden') || errText.includes('not allowed')).toBe(
+    true,
+  );
 };

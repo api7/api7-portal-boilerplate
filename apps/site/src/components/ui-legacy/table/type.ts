@@ -1,14 +1,15 @@
+import type { WithSavePage } from '@/types/utils';
 import type { TableProps as AntdTableProps } from 'antd';
 import type { AnyObject } from 'antd/es/_util/type';
 import type { ColumnsType } from 'antd/es/table/interface';
 
 import type { PaginationProps } from '../paginate';
-import type { WithSavePage } from '@/types/utils';
 
 export type TableProps<T extends AnyObject, P = object> = {
   columns: ColumnsType<T>;
   data?: readonly AnyObject[];
   isLoading: boolean;
+  isError?: boolean;
   isValidating?: boolean;
   extra?: React.ReactNode;
   toolBar?: React.ReactNode[];

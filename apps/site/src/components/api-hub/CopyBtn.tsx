@@ -1,7 +1,7 @@
 import { useClipboard } from '@chakra-ui/react';
 
 import { Button, ButtonProps } from 'antd';
-import { BareIconImage } from '@/components/ui/icon-image';
+import { BareIconImage } from '@/components/ui-legacy/icon-image';
 import { cn } from '@/lib/utils';
 type Props = {
   content: string;

@@ -1,4 +1,4 @@
-import { OrganizationView } from '@daveyplate/better-auth-ui';
+import { OrganizationView } from '@/components/organization/OrganizationView';
 import { organizationViewPaths } from '@daveyplate/better-auth-ui/server';
 
 export const dynamicParams = false;
@@ -10,13 +10,13 @@ export function generateStaticParams() {
 export default async function OrganizationPage({
   params,
 }: {
-  params: Promise<{ path: string }>;
+  params: Promise<{ path: string; slug: string }>;
 }) {
-  const { path } = await params;
+  const { path, slug } = await params;
 
   return (
     <main className="container p-4 md:p-6">
-      <OrganizationView path={path} />
+      <OrganizationView path={path} slug={slug} />
     </main>
   );
 }

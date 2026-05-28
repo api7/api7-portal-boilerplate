@@ -1,8 +1,10 @@
 'use client';
 
-import { authClient } from '@/lib/auth/client';
+import { useActiveOrganizationId } from './useActiveOrganizationId';
 
+/**
+ * Returns the slug of the currently active organization (from URL).
+ */
 export const useActiveOrganizationSlug = () => {
-  const { data: activeOrg } = authClient.useActiveOrganization();
-  return activeOrg?.slug ?? null;
+  return useActiveOrganizationId().slug;
 };

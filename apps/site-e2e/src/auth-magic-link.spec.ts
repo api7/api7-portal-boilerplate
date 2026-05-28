@@ -1,10 +1,11 @@
 import { test as baseTest, expect } from '@playwright/test';
+import { PATH_LOGIN } from '@site/constants/path-prefix';
+
 import {
   clearAllEmails,
-  getLastEmailTo,
   extractMagicLinkFromEmail,
+  getLastEmailTo,
 } from '../req/email';
-import { PATH_LOGIN } from '@site/constants/path-prefix';
 import { uiVerifyToast } from '../utils/ui';
 
 // Use unauthenticated storage state for magic-link tests
@@ -76,16 +77,27 @@ test.describe('Magic Link Authentication', () => {
     });
 
     await test.step('verify successful authentication', async () => {
-      // After clicking magic link, user should be logged in
-      // Wait for redirect to landing page
-      await page.waitForURL((url) => url.pathname.includes('/auth/landing'), {
-        timeout: 10000,
-      });
+      // Successful sign-in may land on /auth/landing (no org yet) or leave /auth/*.
+      await page.waitForURL(
+        (url) =>
+          url.pathname === '/auth/landing' ||
+          !url.pathname.startsWith('/auth/'),
+        {
+          timeout: 10000,
+        },
+      );
 
-      // Verify user is authenticated - Account button should be visible
-      await expect(page.getByRole('button', { name: 'Account' })).toBeVisible({
-        timeout: 10000,
-      });
+      if (new URL(page.url()).pathname === '/auth/landing') {
+        await expect(
+          page.getByRole('heading', { name: 'Organizations' }),
+        ).toBeVisible({ timeout: 10000 });
+      } else {
+        await expect(page.getByRole('button', { name: 'Account' })).toBeVisible(
+          {
+            timeout: 10000,
+          },
+        );
+      }
     });
   });
 

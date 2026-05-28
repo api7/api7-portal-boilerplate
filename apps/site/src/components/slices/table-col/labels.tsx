@@ -9,7 +9,7 @@ import LabelDropDown, {
   type LabelDropDownProps,
   type TreeOptionProps,
   type TreeOptionValArr,
-} from '@/components/ui/form-item-label/LabelDropDown';
+} from '@/components/ui-legacy/form-item-label/LabelDropDown';
 import type { UseLabelListReturn } from '@/lib/query/useLabelList';
 
 type FilterRelated = Pick<
@@ -44,8 +44,10 @@ export const tableColWithFilter = <T,>(
         alt="filter icon"
       />
     ),
-    onFilterDropdownOpenChange: (open) => {
-      if (!open) onParamsChange(requestParams);
+    filterDropdownProps: {
+      onOpenChange: (open) => {
+        if (!open) onParamsChange(requestParams);
+      },
     },
     filterDropdown: () => (
       <LabelDropDown

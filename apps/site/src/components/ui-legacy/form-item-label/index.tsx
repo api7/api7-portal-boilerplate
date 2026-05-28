@@ -89,7 +89,7 @@ const FormItemLabel = (props: FormItemLabelProps) => {
             rules={[
               { required: true, message: 'Please enter key' },
               {
-                validator: async (_, value) => {
+                validator: async (_rule: unknown, value?: string) => {
                   if (!value) return;
                   const curKeys = allSelectedKeys.filter(
                     (d: string, i: number) => i !== index

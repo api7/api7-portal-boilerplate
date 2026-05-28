@@ -1,6 +1,11 @@
-import { test } from '../fixture';
 import { expect } from '@playwright/test';
-import { uiDeleteCredential, uiGoToAPICredentials, uiVerifyToast } from '../utils/ui';
+
+import { test } from '../fixture';
+import {
+  uiDeleteCredential,
+  uiGoToAPICredentials,
+  uiVerifyToast,
+} from '../utils/ui';
 
 test.describe('Test Basic Auth Credential CRUD', () => {
   const defaultBasicAuth = 'default-basic-auth';
@@ -51,7 +56,7 @@ test.describe('Test Basic Auth Credential CRUD', () => {
       // click name will show credential detail
       await nameCell.locator('a').click();
       const detailTitle = page.getByText(
-        'Basic Authentication Credential Detail'
+        'Basic Authentication Credential Detail',
       );
       await expect(detailTitle).toBeVisible();
 
@@ -67,7 +72,7 @@ test.describe('Test Basic Auth Credential CRUD', () => {
       // click copy btn and check copied password
       await copyBtn.click();
       const oldCopiedPassword = await page.evaluate(() =>
-        navigator.clipboard.readText()
+        navigator.clipboard.readText(),
       );
       expect(oldCopiedPassword).toBe(defaultBasicAuthPass);
 
@@ -87,23 +92,19 @@ test.describe('Test Basic Auth Credential CRUD', () => {
       // rotate modal should show
       const rotateTitle = page.getByText(
         'Rotate Basic Authentication Credential',
-        { exact: true }
+        { exact: true },
       );
       await expect(rotateTitle).toBeVisible();
 
       // alert should show
       const rotateAlert = page.getByText(
-        'After rotation, the username and password will be'
+        'After rotation, the username and password will be',
       );
       await expect(rotateAlert).toBeVisible();
 
       // fill username and password
-      await page
-        .locator('input#basic-auth_username')
-        .fill('newusername');
-      await page
-        .locator('input#basic-auth_password')
-        .fill('newpassword');
+      await page.locator('input#basic-auth_username').fill('newusername');
+      await page.locator('input#basic-auth_password').fill('newpassword');
 
       // confirm rotation
       const confirmBtn = page.getByRole('button', { name: 'Confirm' });
@@ -123,7 +124,7 @@ test.describe('Test Basic Auth Credential CRUD', () => {
     const nameInput = page.locator('input#name');
     const editBasicsTitle = page.getByText(
       'Edit Basic Authentication Credential',
-      { exact: true }
+      { exact: true },
     );
 
     const openEditBasicsDrawer = async () => {
@@ -197,20 +198,12 @@ test.describe('Test Basic Auth Credential CRUD', () => {
       // username is required
       await expect(page.getByText('Please enter Username')).toBeVisible();
       // password is required
-      await expect(
-        page.getByText(
-          "Enter a custom password or click 'Generate' to create a random one."
-        )
-      ).toBeVisible();
+      await expect(page.getByText('Please enter Password')).toBeVisible();
 
       // fill form
       await page.locator('input#name').fill(data.name);
-      await page
-        .locator('input#basic-auth_username')
-        .fill(data.username);
-      await page
-        .locator('input#basic-auth_password')
-        .fill(data.password);
+      await page.locator('input#basic-auth_username').fill(data.username);
+      await page.locator('input#basic-auth_password').fill(data.password);
 
       // submit
       await addSubmit.click();

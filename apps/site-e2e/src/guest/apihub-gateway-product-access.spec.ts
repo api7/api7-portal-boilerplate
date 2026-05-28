@@ -1,36 +1,41 @@
+import { expect, request } from '@playwright/test';
+import { API_PRODUCTS, API_SUBSCRIPTIONS } from '@site/constants/api-prefix';
 import { PATH_API_HUB } from '@site/constants/path-prefix';
+import type { ProductListRes } from '@site/types/portal-sdk';
+
+import { E2E_TARGET_URL, HTTPBIN_URL } from '../../constant';
 import { test } from '../../fixture';
+import { a7PostGateway } from '../../req/dashboard/gateway';
 import {
   a7DeleteProductList,
   httpbinRawOAS,
 } from '../../req/dashboard/product';
-import { expect } from '@playwright/test';
 import {
-  a7UIChangeProductVisibility,
-  a7UICreateGatewayProduct,
-} from '../../utils/a7UI';
-import { API_PRODUCTS, API_SUBSCRIPTIONS } from '@site/constants/api-prefix';
-import type { ProductListRes } from '@site/types/portal-sdk';
-import {
-  uiAddAPIKeyCredential,
-  uiAPIHubSearchProduct,
-  uiGetCredentialKeyAuth,
-  uiShowNotFound,
-  uiSubscribeProductInAPIHub,
-} from '../../utils/ui';
-import { a7PostGateway } from '../../req/dashboard/gateway';
-import { k8DeployA7Gateway, k8HelmUninstall, k8PortForward } from '../../utils/shell';
+  a7DeletePublishedRoute,
+  a7PostPublishedRoute,
+} from '../../req/dashboard/route';
 import {
   a7DeleteService,
   a7PostPublishedService,
   a7PutServiceOAS,
 } from '../../req/dashboard/service';
+import {
+  a7UIChangeProductVisibility,
+  a7UICreateGatewayProduct,
+} from '../../utils/a7UI';
 import { randomId } from '../../utils/helper';
 import {
-  a7DeletePublishedRoute,
-  a7PostPublishedRoute,
-} from '../../req/dashboard/route';
-import { E2E_TARGET_URL, HTTPBIN_URL } from '../../constant';
+  k8DeployA7Gateway,
+  k8HelmUninstall,
+  k8PortForward,
+} from '../../utils/shell';
+import {
+  uiAPIHubSearchProduct,
+  uiAddAPIKeyCredential,
+  uiGetCredentialKeyAuth,
+  uiShowNotFound,
+  uiSubscribeProductInAPIHub,
+} from '../../utils/ui';
 
 // Reset storage state for this file to avoid being authenticated
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -41,8 +46,8 @@ test.describe(
     tag: ['@user-story', '@gateway'],
   },
   async () => {
-    test.describe.configure({ timeout: 600_000 });
-    test.setTimeout(600_000);
+    test.describe.configure({ timeout: 300_000 });
+    test.setTimeout(300_000);
 
     const gatewayProduct = 'guest-gateway-product',
       gateway = randomId(`${gatewayProduct}-gateway`),
@@ -54,7 +59,7 @@ test.describe(
       serviceId: string,
       routeId: string;
     test.beforeAll(async ({ a7UIPage, a7Ctx }) => {
-      test.setTimeout(600_000);
+      test.setTimeout(300_000);
       // clear env
       await a7DeleteProductList(a7Ctx);
       await k8HelmUninstall();
@@ -79,8 +84,8 @@ test.describe(
           type: 'roundrobin',
           nodes: [
             {
-              host: 'httpbin.default.svc',
-              port: 80,
+              host: 'httpbin',
+              port: 8080,
               weight: 100,
             },
           ],
@@ -101,27 +106,54 @@ test.describe(
         a7Ctx,
         gatewayId,
         serviceId,
-        httpbinRawOAS.replace(`- url: ${HTTPBIN_URL}`, `- url: ${server}`)
+        httpbinRawOAS.replace(`- url: ${HTTPBIN_URL}`, `- url: ${server}`),
       );
       console.log('service and route created');
 
+      // Warm up gateway route to avoid transient 502 right after deployment.
+      const probeCtx = await request.newContext({
+        ignoreHTTPSErrors: true,
+      });
+      await expect
+        .poll(
+          async () => {
+            try {
+              const res = await probeCtx.get(`${server}get`, {
+                failOnStatusCode: false,
+              });
+              return res.status();
+            } catch {
+              return 0;
+            }
+          },
+          {
+            timeout: 30000,
+          },
+        )
+        .toBe(200);
+      await probeCtx.dispose();
+
       // Step 4: Create gateway product with visibility logged_in
-      gatewayProductId = await a7UICreateGatewayProduct(
+      const createdGatewayProductId = await a7UICreateGatewayProduct(
         a7UIPage,
         gatewayProduct,
         gateway,
         service,
         'logged_in',
         false,
-        a7Ctx
+        a7Ctx,
       );
+      if (!createdGatewayProductId) {
+        throw new Error('Failed to create gateway product id');
+      }
+      gatewayProductId = createdGatewayProductId;
       // others status will be change in test, so we don't need to create them
       // create gateway product with visibility public, can_view_unsubscribed=true
       // create gateway product with visibility public, can_view_unsubscribed=false
     });
 
     test.afterAll(async ({ a7Ctx }) => {
-      test.setTimeout(600_000);
+      test.setTimeout(300_000);
       await k8HelmUninstall();
       await a7DeleteProductList(a7Ctx, [gatewayProductId]);
       await a7DeletePublishedRoute(a7Ctx, routeId, gatewayId);
@@ -160,7 +192,7 @@ test.describe(
         gatewayProductId,
         'public',
         false,
-        a7Ctx
+        a7Ctx,
       );
       // can see in product list
       const productName = gatewayProduct;
@@ -193,7 +225,7 @@ test.describe(
       await expect(testRequestBtn).toBeHidden();
       // Login Then Subscribe To Unlock should be visible
       await expect(
-        page.getByRole('button', { name: 'Login Then Subscribe To Unlock' })
+        page.getByRole('button', { name: 'Login Then Subscribe To Unlock' }),
       ).toBeVisible();
     });
 
@@ -208,7 +240,7 @@ test.describe(
         gatewayProductId,
         'public',
         false,
-        a7Ctx
+        a7Ctx,
       );
 
       // Track subscription API requests
@@ -233,14 +265,14 @@ test.describe(
       workerStorageState,
       a7Ctx,
     }) => {
-      test.slow();
+      test.setTimeout(180_000);
       // reuse the same product, change visibility to public
       await a7UIChangeProductVisibility(
         a7UIPage,
         gatewayProductId,
         'public',
         true,
-        a7Ctx
+        a7Ctx,
       );
       // can see in product list
       const productName = gatewayProduct;
@@ -301,6 +333,7 @@ test.describe(
         });
         await uiAddAPIKeyCredential(tmpPage);
         const keyAuth = await uiGetCredentialKeyAuth(tmpPage);
+        expect(keyAuth).toBeTruthy();
         await tmpCtx.close();
 
         // open playground
@@ -318,21 +351,47 @@ test.describe(
           name: 'Send get request to http://',
         });
         await expect(sendBtn).toBeVisible();
-        await sendBtn.click();
-        test.setTimeout(60000);
-        await page.waitForResponse(
-          (res) => res.url().includes(`${server}get`) && res.status() === 200,
-          { timeout: 60000 }
-        );
+        let got200 = false;
+        let lastStatus: number | null = null;
+        let lastUrl = '';
+        for (let attempt = 1; attempt <= 6; attempt++) {
+          // Attach response listener before click to avoid missing fast responses.
+          const response = await Promise.all([
+            page
+              .waitForResponse(
+                (res) =>
+                  res.request().method() === 'GET' &&
+                  res.url().includes('/get'),
+                { timeout: 15000 },
+              )
+              .catch(() => null),
+            sendBtn.click(),
+          ]).then(([res]) => res);
 
-        // check response status code
-        await expect(page.getByRole('link', { name: '200 OK' })).toBeVisible();
-        // check response body
-        const responseCode = page.locator(
-          '.body-raw-scroller'
-        );
-        await expect(responseCode).toContainText(`${server}get`);
+          if (response) {
+            lastStatus = response.status();
+            lastUrl = response.url();
+          }
+
+          if (lastStatus === 200) {
+            got200 = true;
+            break;
+          }
+
+          await page.waitForTimeout(3000);
+        }
+
+        expect(
+          got200,
+          `expected /get 200 after retries, lastStatus=${lastStatus}, lastUrl=${lastUrl || 'n/a'}`,
+        ).toBeTruthy();
+
+        // check response status and successful result rendering
+        await expect(page.getByText('Authorization Failed')).toBeHidden();
+        await expect(
+          page.getByRole('region', { name: /Status:\s*200/ }).first(),
+        ).toBeVisible();
       });
     });
-  }
+  },
 );

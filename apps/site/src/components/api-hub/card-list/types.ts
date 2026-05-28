@@ -1,6 +1,5 @@
+import type { PaginationProps } from '@/components/ui-legacy/paginate';
 import type { FC, ReactNode } from 'react';
-
-import type { PaginationProps } from '@/components/ui/paginate';
 
 export type CardItemProps<T> = {
   reload: () => void;

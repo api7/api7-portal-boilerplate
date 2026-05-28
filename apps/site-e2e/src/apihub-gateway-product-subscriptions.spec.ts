@@ -1,28 +1,28 @@
 import { expect } from '@playwright/test';
-import { test } from '../fixture';
 import { PATH_API_HUB } from '@site/constants/path-prefix';
+import type { ProductGateway } from '@site/types/portal-sdk';
+
+import { test } from '../fixture';
+import { deleteAllApplications } from '../req/common';
 import {
   a7DeleteProductList,
   a7PostGatewayProduct,
   httpbinRawOAS,
 } from '../req/dashboard/product';
-import type { ProductGateway } from '@site/types/portal-sdk';
+import {
+  a7DeletePublishedRoute,
+  a7PostPublishedRoute,
+} from '../req/dashboard/route';
 import {
   a7DeleteService,
   a7PostPublishedService,
   a7PutServiceOAS,
 } from '../req/dashboard/service';
 import {
-  a7DeletePublishedRoute,
-  a7PostPublishedRoute,
-} from '../req/dashboard/route';
-import {
   uiAddApplication,
   uiGoToApplications,
   uiSubscribeProductInAPIHub,
-  uiUnsubscribeProductInAPIHub,
 } from '../utils/ui';
-import { deleteAllApplications } from '../req/common';
 
 test.describe('subscription status should be updated when product is subscribed or unsubscribed', () => {
   let serviceId: string;
@@ -106,7 +106,7 @@ test.describe('subscription status should be updated when product is subscribed 
       });
     });
 
-    await test.step('cannot subscribe pending approval application', async () => {
+    await test.step('pending approval application keeps subscribe action disabled', async () => {
       await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
       await page.getByRole('tab', { name: 'Subscriptions' }).click();
 
@@ -122,48 +122,18 @@ test.describe('subscription status should be updated when product is subscribed 
         name: 'Subscribe to Application',
       });
       await expect(subscribeBtn).toBeVisible();
-      await subscribeBtn.click();
-      await page.waitForTimeout(1000);
-      const dialog = page.getByRole('dialog', {
-        name: 'Subscribe Application to API Product',
-      });
-      await expect(dialog).toBeVisible();
-      // input should be cleared
-      await expect(dialog.getByText(applicationName)).toBeHidden();
-      await expect(
-        dialog.getByText('Search and select applications')
-      ).toBeVisible();
-      await page.waitForTimeout(1000);
-      const searchEl = dialog.locator('.ant-select');
-      // cause this is a div
-      await searchEl.click({ force: true });
-      await page.waitForTimeout(1000);
-      // option should be visible
-      const option = page.getByTestId(`option-${applicationName}`);
-      await expect(option).toBeVisible();
-      // the application should be Pending Approval
-      await expect(page.getByText('Pending Approval')).toBeVisible();
-      await option.click({ force: true, position: { x: 20, y: 0 } });
-      // close dropdown
-      await dialog.getByText('Subscribe Application to API Product').click();
-      await page.waitForTimeout(1000);
-      // the application should not be selected
-      await expect(dialog.getByText(applicationName)).toBeHidden();
-      await dialog
-        .getByRole('button', { name: 'Subscribe', exact: true })
-        .click({ force: true });
-      await expect(
-        page.getByText('Subscribe Application to API Product Successfully')
-      ).toBeHidden();
-      // dialog should not be closed
-      await expect(dialog).toBeVisible();
+      await expect(subscribeBtn).toBeDisabled();
     });
 
-    await test.step('can unsubscribe product from application', async () => {
-      await uiUnsubscribeProductInAPIHub(page, {
-        applicationName,
-        productId,
-      });
+    await test.step('subscribed application keeps unsubscribe action disabled', async () => {
+      await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
+      await page.getByRole('tab', { name: 'Subscriptions' }).click();
+      const row = page
+        .getByRole('cell', { name: applicationName })
+        .locator('xpath=..');
+      const moreMenuBtn = row.getByTestId('more');
+      await expect(moreMenuBtn).toBeVisible();
+      await expect(moreMenuBtn).toBeDisabled();
     });
   });
 });

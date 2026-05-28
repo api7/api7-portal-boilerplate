@@ -3,7 +3,7 @@ import { type FC, type ReactNode } from 'react';
 import Time, { type TimeProps } from './time';
 import { ViewID, type ViewIDProps } from './view-id';
 import A7Label from '@/components/api7/api7-label';
-import { Skeleton } from '../skeleton';
+import { Skeleton } from '../../ui/skeleton';
 
 export type MetaProps = {
   name?: string;

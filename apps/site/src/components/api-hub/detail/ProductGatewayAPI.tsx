@@ -9,7 +9,7 @@ import { usePreventHashScroll } from './usePreventHashScroll';
 import ScalarDocs from './ScalarDocs';
 import { ApiProductGateway, useParsedProduct } from '../utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import A7Tabs from '@/components/ui/tabs';
+import A7Tabs from '@/components/ui-legacy/tabs';
 import { placeholderOpenAPI } from '@/constants/placeholder-openapi';
 import { authClient } from '@/lib/auth/client';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
@@ -23,6 +23,7 @@ type RealDocProps = {
 const ProductGatewayRealDoc = ({ data }: RealDocProps) => {
   const [idx, setIdx] = useState(0);
   const parsed = useParsedProduct(data);
+  const scalarDocsKey = `${idx}:${JSON.stringify(parsed.authentication)}`;
 
   return (
     <>
@@ -47,6 +48,7 @@ const ProductGatewayRealDoc = ({ data }: RealDocProps) => {
           <Skeleton className="w-full h-full absolute left-0 top-0 z-10" />
         ) : (
           <ScalarDocs
+            key={scalarDocsKey}
             configuration={{
               hideDarkModeToggle: true,
               darkMode: false,

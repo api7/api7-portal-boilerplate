@@ -80,7 +80,7 @@ const Filter = (props: FilterSectionProps) => {
   const { onParamsChange, defaultFilter } = props;
 
   return (
-    <aside className="card-container w-[425px]! shrink-0">
+    <aside className="card-container w-full shrink-0 lg:w-[425px]!">
       <Card className="border-0 shadow-none bg-white">
         <CardHeader className="border-b border-gray-100 pb-4">
           <CardTitle className="flex justify-between items-center text-lg font-semibold text-gray-800">
@@ -99,4 +99,3 @@ const Filter = (props: FilterSectionProps) => {
 };
 
 export default Filter;
-

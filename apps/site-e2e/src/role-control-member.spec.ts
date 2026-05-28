@@ -5,14 +5,10 @@
  *
  * Uses invitation flow: owner invites member by email -> member accepts.
  */
-import { test } from '../fixture';
-import { expect } from '@playwright/test';
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-  PATH_APPLICATIONS,
-  PATH_ORGANIZATION,
-} from '@site/constants/path-prefix';
+
+import { expect } from '@playwright/test';
 import {
   API_APPLICATIONS,
   API_CREDENTIALS,
@@ -20,22 +16,25 @@ import {
   AUTH_BASE_PATH,
 } from '@site/constants/api-prefix';
 import {
-  a7DefaultPortalID,
-  a7DeveloperExists,
-} from '../req/dashboard/common';
+  PATH_APPLICATIONS,
+  PATH_ORGANIZATION,
+} from '@site/constants/path-prefix';
+
+import { E2E_TARGET_URL } from '../constant';
+import { test } from '../fixture';
+import { genAuth } from '../fixture';
 import {
-  getActiveOrganizationId,
-  setupMemberUser,
-  setupAdminUser,
   expectMemberWriteForbidden,
   genCtx,
+  getActiveOrganizationId,
+  getActiveOrganizationSlug,
+  setupAdminUser,
+  setupMemberUser,
 } from '../req/common';
-import { genAuth } from '../fixture';
-import { E2E_TARGET_URL } from '../constant';
+import { a7DefaultPortalID, a7DeveloperExists } from '../req/dashboard/common';
 import { uiAddApplication } from '../utils/ui';
 
 test.describe('Role Control - Member Read-Only', () => {
-
   test('member: Add Application button is disabled', async ({
     ctx,
     page,
@@ -54,7 +53,7 @@ test.describe('Role Control - Member Read-Only', () => {
     const memberStatePath = path.resolve(
       outputDir,
       '.auth',
-      `member-${testId}.json`
+      `member-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
 
@@ -68,7 +67,7 @@ test.describe('Role Control - Member Read-Only', () => {
 
     await memberPage.goto(PATH_APPLICATIONS);
     await expect(
-      memberPage.getByRole('main').getByText('My Applications')
+      memberPage.getByRole('main').getByText('My Applications'),
     ).toBeVisible();
     await expect(memberPage.getByTestId('application-table')).toBeVisible();
 
@@ -102,7 +101,7 @@ test.describe('Role Control - Member Read-Only', () => {
     const memberStatePath = path.resolve(
       outputDir,
       '.auth',
-      `member-actions-${testId}.json`
+      `member-actions-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
 
@@ -117,7 +116,9 @@ test.describe('Role Control - Member Read-Only', () => {
     await memberPage.goto(PATH_APPLICATIONS);
     await expect(memberPage.getByRole('cell', { name: appName })).toBeVisible();
 
-    const row = memberPage.getByRole('cell', { name: appName }).locator('xpath=..');
+    const row = memberPage
+      .getByRole('cell', { name: appName })
+      .locator('xpath=..');
     const moreMenuBtn = row.getByTestId('more');
     await expect(moreMenuBtn).toBeVisible();
     await expect(moreMenuBtn).toBeDisabled();
@@ -147,7 +148,7 @@ test.describe('Role Control - Member Read-Only', () => {
     const memberStatePath = path.resolve(
       outputDir,
       '.auth',
-      `member-sub-${testId}.json`
+      `member-sub-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
 
@@ -187,11 +188,12 @@ test.describe('Role Control - Member Read-Only', () => {
     };
 
     const orgId = await getActiveOrganizationId(ctx);
+    const orgSlug = await getActiveOrganizationSlug(ctx);
     const outputDir = test.info().project.outputDir;
     const memberStatePath = path.resolve(
       outputDir,
       '.auth',
-      `member-invite-${testId}.json`
+      `member-invite-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
 
@@ -203,7 +205,7 @@ test.describe('Role Control - Member Read-Only', () => {
     });
     const memberPage = await memberContext.newPage();
 
-    await memberPage.goto(`${PATH_ORGANIZATION}/members`);
+    await memberPage.goto(`/${orgSlug}${PATH_ORGANIZATION}/members`);
     const inviteBtn = memberPage.getByRole('button', {
       name: 'Invite Member',
     });
@@ -226,11 +228,12 @@ test.describe('Role Control - Member Read-Only', () => {
     };
 
     const orgId = await getActiveOrganizationId(ctx);
+    const orgSlug = await getActiveOrganizationSlug(ctx);
     const outputDir = test.info().project.outputDir;
     const memberStatePath = path.resolve(
       outputDir,
       '.auth',
-      `member-settings-${testId}.json`
+      `member-settings-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
 
@@ -242,7 +245,7 @@ test.describe('Role Control - Member Read-Only', () => {
     });
     const memberPage = await memberContext.newPage();
 
-    await memberPage.goto(`${PATH_ORGANIZATION}/settings`);
+    await memberPage.goto(`/${orgSlug}${PATH_ORGANIZATION}/settings`);
     const saveBtn = memberPage.getByRole('button', { name: 'Save' }).first();
     await expect(saveBtn).toBeVisible();
     await expect(saveBtn).toBeDisabled();
@@ -259,7 +262,10 @@ test.describe('Role Control - Member Read-Only', () => {
     const appName = `AppCredMember${testId}`;
 
     await page.goto(PATH_APPLICATIONS);
-    await uiAddApplication(page, { name: appName, desc: 'For credential test' });
+    await uiAddApplication(page, {
+      name: appName,
+      desc: 'For credential test',
+    });
 
     const orgId = await getActiveOrganizationId(ctx);
     const memberAuth = {
@@ -272,7 +278,7 @@ test.describe('Role Control - Member Read-Only', () => {
     const memberStatePath = path.resolve(
       outputDir,
       '.auth',
-      `member-cred-${testId}.json`
+      `member-cred-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
 
@@ -314,7 +320,7 @@ test.describe('Role Control - Member Read-Only', () => {
     const memberStatePath = path.resolve(
       outputDir,
       '.auth',
-      `member-api-${testId}.json`
+      `member-api-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
 
@@ -347,7 +353,9 @@ test.describe('Role Control - Member Read-Only', () => {
     await uiAddApplication(page, { name: appName, desc: 'For delete test' });
     const appsRes = await ctx.get(API_APPLICATIONS);
     const appsData = await appsRes.json();
-    const app = appsData.list?.find((a: { name: string }) => a.name === appName);
+    const app = appsData.list?.find(
+      (a: { name: string }) => a.name === appName,
+    );
     expect(app?.id).toBeTruthy();
 
     const orgId = await getActiveOrganizationId(ctx);
@@ -361,7 +369,7 @@ test.describe('Role Control - Member Read-Only', () => {
     const memberStatePath = path.resolve(
       outputDir,
       '.auth',
-      `member-api-del-${testId}.json`
+      `member-api-del-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
 
@@ -377,7 +385,7 @@ test.describe('Role Control - Member Read-Only', () => {
     await expectMemberWriteForbidden(
       memberCtx,
       'DELETE',
-      `${API_APPLICATIONS}/${app.id}`
+      `${API_APPLICATIONS}/${app.id}`,
     );
 
     await memberCtx.dispose();
@@ -406,7 +414,7 @@ test.describe('Role Control - Member Read-Only', () => {
     const memberStatePath = path.resolve(
       outputDir,
       '.auth',
-      `member-api-cred-${testId}.json`
+      `member-api-cred-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
 
@@ -460,7 +468,7 @@ test.describe('Role Control - Member Read-Only', () => {
     const memberStatePath = path.resolve(
       outputDir,
       '.auth',
-      `member-api-sub-${testId}.json`
+      `member-api-sub-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
 
@@ -473,15 +481,10 @@ test.describe('Role Control - Member Read-Only', () => {
       },
     });
 
-    await expectMemberWriteForbidden(
-      memberCtx,
-      'POST',
-      API_SUBSCRIPTIONS,
-      {
-        api_products: [productId],
-        applications: [appId],
-      }
-    );
+    await expectMemberWriteForbidden(memberCtx, 'POST', API_SUBSCRIPTIONS, {
+      api_products: [productId],
+      applications: [appId],
+    });
 
     await memberCtx.dispose();
   });
@@ -503,7 +506,7 @@ test.describe('Role Control - Member Read-Only', () => {
     const memberStatePath = path.resolve(
       outputDir,
       '.auth',
-      `member-api-get-${testId}.json`
+      `member-api-get-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
 
@@ -543,7 +546,7 @@ test.describe('Role Control - Admin', () => {
     const adminStatePath = path.resolve(
       outputDir,
       '.auth',
-      `admin-del-ui-${testId}.json`
+      `admin-del-ui-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(adminStatePath), { recursive: true });
 
@@ -557,7 +560,7 @@ test.describe('Role Control - Admin', () => {
 
     await adminPage.goto(`${PATH_ORGANIZATION}/settings`);
     await expect(
-      adminPage.getByRole('button', { name: 'Delete Organization' })
+      adminPage.getByRole('button', { name: 'Delete Organization' }),
     ).toHaveCount(0);
 
     await adminContext.close();
@@ -581,7 +584,7 @@ test.describe('Role Control - Admin', () => {
     const adminStatePath = path.resolve(
       outputDir,
       '.auth',
-      `admin-del-org-${testId}.json`
+      `admin-del-org-${testId}.json`,
     );
     fs.mkdirSync(path.dirname(adminStatePath), { recursive: true });
 
@@ -601,7 +604,7 @@ test.describe('Role Control - Admin', () => {
       adminCtx,
       'POST',
       `${AUTH_BASE_PATH}/organization/delete`,
-      { organizationId: orgId }
+      { organizationId: orgId },
     );
     await expect(a7DeveloperExists(a7Ctx, portalId, orgId)).resolves.toBe(true);
 

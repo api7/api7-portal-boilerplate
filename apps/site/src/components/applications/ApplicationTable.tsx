@@ -3,7 +3,7 @@
 import { memo, useState } from 'react';
 
 import { useCreation } from 'ahooks';
-import { Button, Typography } from 'antd';
+import { Button } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import ApplicationAddDrawer from './ApplicationAddDrawer';
@@ -12,9 +12,9 @@ import ApplicationEditDrawer from './ApplicationEditDrawer';
 import { tableColDesc } from '@/components/slices/table-col/desc';
 import { tableColLabels } from '@/components/slices/table-col/labels';
 import TimeFormat from '@/components/slices/time-format';
-import IconImage from '@/components/ui/icon-image';
-import { MoreMenu } from '@/components/ui/more-menu';
-import A7Table from '@/components/ui/table';
+import IconImage from '@/components/ui-legacy/icon-image';
+import { MoreMenu } from '@/components/ui-legacy/more-menu';
+import A7Table from '@/components/ui-legacy/table';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
@@ -69,8 +69,8 @@ const ApplicationTable: React.FC = () => {
             : `${PATH_APPLICATIONS}/detail?id=${detail.id}`;
 
           return (
-            <Link passHref href={href}>
-              <Typography.Link>{name}</Typography.Link>
+            <Link href={href} className="text-primary hover:text-primary/80">
+              {name}
             </Link>
           );
         },

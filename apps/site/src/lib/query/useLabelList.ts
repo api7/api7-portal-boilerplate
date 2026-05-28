@@ -1,12 +1,10 @@
-import { useMemo, useState } from 'react';
-
+import type { TreeOptionProps } from '@/components/ui-legacy/form-item-label/LabelDropDown';
+import { portalClient } from '@/lib/portal-sdk/client';
+import { LabelParams } from '@/types/portal-sdk';
 import { useQuery } from '@tanstack/react-query';
 import { useCreation, useDeepCompareEffect } from 'ahooks';
 import type { ColumnFilterItem } from 'antd/es/table/interface';
-
-import { portalClient } from '@/lib/portal-sdk/client';
-import type { TreeOptionProps } from '@/components/ui/form-item-label/LabelDropDown';
-import { LabelParams } from '@/types/portal-sdk';
+import { useMemo, useState } from 'react';
 
 type LabelFetcherParams = TableParams & LabelParams;
 
@@ -39,7 +37,7 @@ const useLabelList = (params: LabelFetcherParams) => {
           value: childItem,
         })),
       })) as ColumnFilterItem[],
-    [data]
+    [data],
   );
 
   const treeOptions: TreeOptionProps = useCreation(
@@ -56,7 +54,7 @@ const useLabelList = (params: LabelFetcherParams) => {
           })) || [];
         return acc;
       }, {} as TreeOptionProps),
-    [labelList]
+    [labelList],
   );
 
   const [checkList, setCheckList] = useState<TreeOptionProps>(treeOptions);
@@ -76,7 +74,7 @@ const useLabelList = (params: LabelFetcherParams) => {
           }));
         })
         .flatMap((x) => x),
-    [checkList]
+    [checkList],
   );
 
   const resetCheckList = () => setCheckList(treeOptions);
@@ -91,7 +89,7 @@ const useLabelList = (params: LabelFetcherParams) => {
         acc[`labels[${cur}]`] = children;
         return acc;
       }, {} as RequestParams),
-    [checkList]
+    [checkList],
   );
 
   const selectedLabelLength = computedLabelLength(checkList);
@@ -112,4 +110,3 @@ const useLabelList = (params: LabelFetcherParams) => {
 };
 
 export default useLabelList;
-

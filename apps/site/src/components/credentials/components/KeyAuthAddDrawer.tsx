@@ -7,8 +7,8 @@ import { useApplicationId } from '../hook';
 import Form from '@/components/slices/form/Form';
 import { portalClient } from '@/lib/portal-sdk/client';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
-import Alert from '@/components/ui/alert';
-import A7Drawer from '@/components/ui/drawer';
+import Alert from '@/components/ui-legacy/alert';
+import A7Drawer from '@/components/ui-legacy/drawer';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import type {
   CreateApplicationCredentialReq,

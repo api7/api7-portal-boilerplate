@@ -1,0 +1,49 @@
+server:
+  listen:
+    host: "0.0.0.0"
+    port: 7900
+  tls:
+    host: "0.0.0.0"
+    port: 7943
+  status:
+    disable: false
+    host: "127.0.0.1"
+    port: 7901
+  pprof:
+    enable: true
+    host: "127.0.0.1"
+    port: 6060
+
+log:
+  level: warn
+  output: stderr
+  access_log: stdout
+
+database:
+  dsn: "postgres://api7ee:changeme@postgresql:5432/api7ee"
+  max_open_conns: 30
+  max_idle_time: 30s
+  timeout: 5s
+
+prometheus:
+  addr: "http://prometheus:9090"
+  remote_write_path: "/api/v1/write"
+
+jaeger:
+  collector_addr: "http://jaeger:4318"
+  timeout: 30s
+
+consumer_cache:
+  size: 50000
+  max_ttl: 2h
+  evict_interval: 5s
+
+developer_cache:
+  size: 50000
+  max_ttl: 2h
+  evict_interval: 5s
+
+rate_limit:
+  enable: false
+  time_window: 1
+  count: 1000

@@ -1,20 +1,21 @@
 import { expect } from '@playwright/test';
+
 import { test } from '../fixture';
+import { a7DeleteDCRProviderList } from '../req/dashboard/auth';
+import { a7PostGateway } from '../req/dashboard/gateway';
 import { a7DeleteProductList, httpbinRawOAS } from '../req/dashboard/product';
+import {
+  a7DeletePublishedRoute,
+  a7PostPublishedRoute,
+} from '../req/dashboard/route';
 import {
   a7DeleteService,
   a7PostPublishedService,
   a7PutServiceOAS,
 } from '../req/dashboard/service';
-import { a7PostGateway } from '../req/dashboard/gateway';
-import {
-  a7DeletePublishedRoute,
-  a7PostPublishedRoute,
-} from '../req/dashboard/route';
-import { uiGoToAPICredentials, uiVerifyToast } from '../utils/ui';
-import { kcAdmin } from '../utils/keycloak';
 import { a7UICreateDCR, a7UICreateGatewayProduct } from '../utils/a7UI';
-import { a7DeleteDCRProviderList } from '../req/dashboard/auth';
+import { kcAdmin } from '../utils/keycloak';
+import { uiGoToAPICredentials, uiVerifyToast } from '../utils/ui';
 
 test.describe('Test Gateway Product with DCR', () => {
   let gatewayId: string;
@@ -133,14 +134,14 @@ test.describe('Test Gateway Product with DCR', () => {
         a7Ctx,
         'dcr',
         dcrProviderName,
-        portalHost
+        portalHost,
       );
     });
 
     await test.step('go to application page to create oauth client', async () => {
       await uiGoToAPICredentials(page);
       await expect(
-        page.getByRole('main').getByText('Authentication Type')
+        page.getByRole('main').getByText('Authentication Type'),
       ).toBeVisible();
       await expect(page.getByRole('tab', { name: 'OAuth' })).toBeVisible();
       await page.getByRole('tab', { name: 'OAuth' }).click();
@@ -155,7 +156,7 @@ test.describe('Test Gateway Product with DCR', () => {
         .locator('button', { hasText: 'Add' })
         .click();
       await expect(
-        page.locator('.ant-alert', { hasText: 'OAuth Client Created' })
+        page.locator('.ant-alert', { hasText: 'OAuth Client Created' }),
       ).toBeVisible({ timeout: 5000 });
 
       clientId = await page
@@ -170,7 +171,7 @@ test.describe('Test Gateway Product with DCR', () => {
       await expect(page.getByLabel('Identity Provider')).toBeDisabled();
       // check form fields are correct
       await expect(page.locator('#redirect_uris_0_redirect_url')).toHaveValue(
-        '*'
+        '*',
       );
       await expect(page.locator('#desc')).toHaveValue('test desc');
 
@@ -187,7 +188,7 @@ test.describe('Test Gateway Product with DCR', () => {
       // check update data save correctly
       await page.getByRole('button', { name: 'Edit' }).click();
       await expect(page.locator('#redirect_uris_0_redirect_url')).toHaveValue(
-        'localhost:3000'
+        'localhost:3000',
       );
       await expect(page.locator('#desc')).toHaveValue('test desc 2');
     });
@@ -215,7 +216,8 @@ test.describe('Test Gateway Product with DCR', () => {
 
       // Mock credential list API to return provider_type: 'http_bridge'
       // so the Regenerate Secret button becomes enabled
-      await page.route('**/api/credentials**', async (route) => {
+      const credentialsRouteMatcher = /\/api\/[^/]+\/credentials(?:\?.*)?$/;
+      await page.route(credentialsRouteMatcher, async (route) => {
         const response = await route.fetch();
         const body = await response.json();
         body.list = body.list?.map((item: Record<string, unknown>) => {
@@ -269,10 +271,7 @@ test.describe('Test Gateway Product with DCR', () => {
       });
       await expect(regenerateBtn).toBeVisible();
       // Should NOT be disabled since we mocked provider_type to http_bridge
-      await expect(regenerateBtn).not.toHaveAttribute(
-        'aria-disabled',
-        'true'
-      );
+      await expect(regenerateBtn).not.toHaveAttribute('aria-disabled', 'true');
       await regenerateBtn.click();
 
       // Verify modal title
@@ -283,7 +282,7 @@ test.describe('Test Gateway Product with DCR', () => {
 
       // Verify alert message in modal
       const alertMessage = page.getByText(
-        'After regeneration, a new Client Secret'
+        'After regeneration, a new Client Secret',
       );
       await expect(alertMessage).toBeVisible();
 
@@ -311,14 +310,14 @@ test.describe('Test Gateway Product with DCR', () => {
       await expect(
         page.locator('.ant-alert', {
           hasText: 'OAuth Client Secret Regenerated',
-        })
+        }),
       ).toBeVisible({ timeout: 5000 });
 
       // Verify Client ID field is visible in alert
       await expect(
         page
           .locator('.ant-space-item', { hasText: 'Client ID' })
-          .locator('input')
+          .locator('input'),
       ).toBeVisible();
       // Verify Client Secret field is visible and has the mocked value
       const secretInput = page
@@ -328,14 +327,14 @@ test.describe('Test Gateway Product with DCR', () => {
       await expect(secretInput).toHaveValue(mockClientSecret);
 
       // Clean up route mocks
-      await page.unroute('**/api/credentials**');
+      await page.unroute(credentialsRouteMatcher);
       await page.unroute('**/credentials/*/regenerate');
     });
 
     await test.step('delete oauth client', async () => {
       await uiGoToAPICredentials(page);
       await expect(
-        page.getByRole('main').getByText('Authentication Type')
+        page.getByRole('main').getByText('Authentication Type'),
       ).toBeVisible();
       await expect(page.getByRole('tab', { name: 'OAuth' })).toBeVisible();
       await page.getByRole('tab', { name: 'OAuth' }).click();
@@ -349,7 +348,7 @@ test.describe('Test Gateway Product with DCR', () => {
       await page.locator('[id="inputText"]').fill(clientId);
       await page.getByRole('button', { name: 'Confirm' }).click();
       await expect(
-        page.locator('.ant-table-cell', { hasText: clientId })
+        page.locator('.ant-table-cell', { hasText: clientId }),
       ).toBeHidden();
     });
   });
@@ -383,14 +382,14 @@ test.describe('Test Gateway Product with DCR', () => {
         a7Ctx,
         'dcr',
         invalidDcrProviderName,
-        portalHost
+        portalHost,
       );
     });
 
     await test.step('go to application page to create oauth client to show error', async () => {
       await uiGoToAPICredentials(page);
       await expect(
-        page.getByRole('main').getByText('Authentication Type')
+        page.getByRole('main').getByText('Authentication Type'),
       ).toBeVisible();
       await expect(page.getByRole('tab', { name: 'OAuth' })).toBeVisible();
       await page.getByRole('tab', { name: 'OAuth' }).click();
@@ -454,14 +453,14 @@ test.describe('Test Gateway Product with DCR', () => {
         a7Ctx,
         'dcr',
         dcrProviderName,
-        portalHost
+        portalHost,
       );
     });
 
     await test.step('go to application page to create oauth client', async () => {
       await uiGoToAPICredentials(page);
       await expect(
-        page.getByRole('main').getByText('Authentication Type')
+        page.getByRole('main').getByText('Authentication Type'),
       ).toBeVisible();
       await expect(page.getByRole('tab', { name: 'OAuth' })).toBeVisible();
       await page.getByRole('tab', { name: 'OAuth' }).click();
@@ -469,7 +468,10 @@ test.describe('Test Gateway Product with DCR', () => {
       // create first oauth client
       await page.getByRole('button', { name: 'Add OAuth Client' }).click();
       await page.getByLabel('Identity Provider').click();
-      await page.getByTitle(dcrProviderName).first().click();
+      await page
+        .locator('.ant-select-item-option', { hasText: dcrProviderName })
+        .first()
+        .click();
       await page.locator('#redirect_uris_0_redirect_url').fill('*');
       await page.locator('#desc').fill('test desc 1');
       await page
@@ -477,7 +479,7 @@ test.describe('Test Gateway Product with DCR', () => {
         .locator('button', { hasText: 'Add' })
         .click();
       await expect(
-        page.locator('.ant-alert', { hasText: 'OAuth Client Created' })
+        page.locator('.ant-alert', { hasText: 'OAuth Client Created' }),
       ).toBeVisible({ timeout: 5000 });
       await expect(page.locator('.ant-drawer-open')).toBeHidden();
 
@@ -490,7 +492,10 @@ test.describe('Test Gateway Product with DCR', () => {
       await page.getByRole('button', { name: 'Add OAuth Client' }).click();
       await page.getByLabel('Identity Provider').click();
       const drawer = page.getByRole('dialog');
-      await page.getByTitle(dcrProviderName).first().click();
+      await page
+        .locator('.ant-select-item-option', { hasText: dcrProviderName })
+        .first()
+        .click();
       await drawer.locator('#redirect_uris_0_redirect_url').fill('*');
       await page.locator('#desc').fill('test desc 2');
       await page
@@ -498,7 +503,7 @@ test.describe('Test Gateway Product with DCR', () => {
         .locator('button', { hasText: 'Add' })
         .click();
       await expect(
-        page.locator('.ant-alert', { hasText: 'OAuth Client Created' })
+        page.locator('.ant-alert', { hasText: 'OAuth Client Created' }),
       ).toBeVisible({ timeout: 5000 });
       await expect(page.locator('.ant-drawer-open')).toBeHidden();
 
@@ -513,10 +518,10 @@ test.describe('Test Gateway Product with DCR', () => {
         .fill('test desc');
       await page.locator('[placeholder="Search Description"]').press('Enter');
       await expect(
-        page.locator('.ant-table-cell', { hasText: clientId1 })
+        page.locator('.ant-table-cell', { hasText: clientId1 }),
       ).toBeVisible();
       await expect(
-        page.locator('.ant-table-cell', { hasText: clientId2 })
+        page.locator('.ant-table-cell', { hasText: clientId2 }),
       ).toBeVisible();
 
       await page
@@ -524,10 +529,10 @@ test.describe('Test Gateway Product with DCR', () => {
         .fill('test desc 1');
       await page.locator('[placeholder="Search Description"]').press('Enter');
       await expect(
-        page.locator('.ant-table-cell', { hasText: clientId1 })
+        page.locator('.ant-table-cell', { hasText: clientId1 }),
       ).toBeVisible();
       await expect(
-        page.locator('.ant-table-cell', { hasText: clientId2 })
+        page.locator('.ant-table-cell', { hasText: clientId2 }),
       ).toBeHidden();
 
       await page
@@ -535,10 +540,10 @@ test.describe('Test Gateway Product with DCR', () => {
         .fill('test desc 2');
       await page.locator('[placeholder="Search Description"]').press('Enter');
       await expect(
-        page.locator('.ant-table-cell', { hasText: clientId2 })
+        page.locator('.ant-table-cell', { hasText: clientId2 }),
       ).toBeVisible();
       await expect(
-        page.locator('.ant-table-cell', { hasText: clientId1 })
+        page.locator('.ant-table-cell', { hasText: clientId1 }),
       ).toBeHidden();
 
       await page
@@ -546,10 +551,10 @@ test.describe('Test Gateway Product with DCR', () => {
         .fill('non-existent');
       await page.locator('[placeholder="Search Description"]').press('Enter');
       await expect(
-        page.locator('.ant-table-cell', { hasText: clientId1 })
+        page.locator('.ant-table-cell', { hasText: clientId1 }),
       ).toBeHidden();
       await expect(
-        page.locator('.ant-table-cell', { hasText: clientId2 })
+        page.locator('.ant-table-cell', { hasText: clientId2 }),
       ).toBeHidden();
     });
   });

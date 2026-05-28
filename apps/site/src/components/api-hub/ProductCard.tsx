@@ -1,4 +1,4 @@
-import { Typography } from 'antd';
+import { Tooltip, Typography } from 'antd';
 import type { TitleProps } from 'antd/es/typography/Title';
 import { map } from 'lodash-es';
 import Link from 'next/link';
@@ -10,10 +10,9 @@ import {
   CardContent,
   CardFooter,
   CardHeader,
-  CardTitle,
 } from '@/components/ui/card';
-import { BareIconImage } from '@/components/ui/icon-image';
-import { MetaAvatar } from '@/components/ui/meta';
+import { BareIconImage } from '@/components/ui-legacy/icon-image';
+import { MetaAvatar } from '@/components/ui-legacy/meta';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import { cn } from '@/lib/utils';
@@ -30,9 +29,9 @@ export const ProductTitle = (
   return (
     <Typography.Title
       level={3}
-      ellipsis={{ rows: 2 }}
+      ellipsis={{ tooltip: name }}
       {...titleProps}
-      className={cn('!text-lg !mb-1', titleProps.className)}
+      className={cn('text-lg! mb-1!', titleProps.className)}
     >
       {name}
     </Typography.Title>
@@ -57,7 +56,7 @@ const SubsStatusTag = (props: {
   const tagColor = tagLabel[subscription_status].color;
 
   return (
-    <div className="flex h-fit ml-2 align-middle justify-center py-[5px] mb-[4px]">
+    <div className="flex h-fit shrink-0 align-middle justify-center py-[5px] mb-[4px]">
       <A7Label isStatus color={tagColor}>
         {tagText}
       </A7Label>
@@ -74,58 +73,71 @@ const ProductCard = (props: ApiProductListItem) => {
       : map(props?.labels, (v, k) => `${k}:${v}`);
 
   return (
-    <Link className="h-full flex flex-col" href={`${apiHubBasePath}/detail?id=${id}`}>
+    <Link
+      className="h-full min-w-0 flex flex-col"
+      href={`${apiHubBasePath}/detail?id=${id}`}
+    >
       <CardHeader className="pt-6 pb-4 px-6">
-        <CardTitle className="gap-2 flex">
+        <div className="gap-2 flex min-w-0 items-start">
           <MetaAvatar
             {...props}
             {...(props.type === 'gateway' && { src: props.logo })}
             isLoading={!id}
           />
-          <div className="flex flex-col">
-            <div className="flex">
-              <Typography.Title
-                level={3}
-                className="!text-lg !mb-1 !text-primary-content"
-                ellipsis={{ rows: 2, tooltip: name }}
-              >
-                {name}
-              </Typography.Title>
+          <div className="flex min-w-0 flex-1 flex-col items-start text-left">
+            <div className="flex w-full min-w-0 items-start gap-2 text-left">
+              <div className="min-w-0 max-w-full overflow-hidden">
+                <Tooltip placement="top" arrow title={name}>
+                  <Typography.Title
+                    level={3}
+                    className="mb-1! block! truncate text-lg! text-primary-content! [text-align:left]"
+                  >
+                    {name}
+                  </Typography.Title>
+                </Tooltip>
+              </div>
               {subscription_status !== 'unsubscribed' && (
                 <SubsStatusTag subscription_status={subscription_status} />
               )}
             </div>
-            <div>
+            <div className="flex w-full min-w-0 overflow-hidden text-left leading-6">
               <A7LabelList
                 limitCount={3}
                 data={finalTags?.slice(0, 3) || []}
                 labelOption={{
                   color: 'default',
-                  rootClassName:
-                    'rounded-sm text-secondary-content bg-gray-100',
+                  className:
+                    'min-w-0 flex-1 rounded-sm text-left text-secondary-content bg-gray-100',
+                  style: {
+                    paddingInline: 0,
+                  },
+                  textProps: {
+                    className: 'max-w-full text-left [overflow-wrap:anywhere]',
+                  },
                 }}
               />
             </div>
           </div>
-        </CardTitle>
+        </div>
       </CardHeader>
       <CardContent className="pb-3  px-6 flex-1">
-        <Typography.Paragraph
-          className="!mb-0 text-neutral-content"
-          ellipsis={{ rows: 2, tooltip: desc }}
-        >
-          {desc}
-        </Typography.Paragraph>
+        <Tooltip placement="top" arrow title={desc}>
+          <p className="m-0 overflow-hidden text-sm leading-[22px] text-neutral-content [display:-webkit-box] [overflow-wrap:anywhere] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+            {desc}
+          </p>
+        </Tooltip>
       </CardContent>
       <CardFooter
         className="px-6 py-[10px] flex justify-between bg-white 
         dark:bg-gray-800 rounded-b text-neutral-content"
       >
-        <div className="flex gap-2 items-center">
+        <div className="flex min-w-0 gap-2 items-center">
           <BareIconImage src="/icons/api-count.svg" size={20} alt="API Count" />
-          <div>API Count</div>
+          <div className="min-w-0 truncate">API Count</div>
         </div>
-        <div>{props.api_count}</div>
+        <div className="ml-2 max-w-[50%] min-w-0 truncate text-right">
+          {props.api_count}
+        </div>
       </CardFooter>
     </Link>
   );
@@ -163,11 +175,10 @@ const ProductCardWrapper = (
   }
 
   return (
-    <Card className="bg-gray-50 dark:bg-slate-800 h-full shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]">
+    <Card className="bg-gray-50 dark:bg-slate-800 h-full min-w-0 shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]">
       <ProductCard {...props} />
     </Card>
   );
 };
 
 export default ProductCardWrapper;
-

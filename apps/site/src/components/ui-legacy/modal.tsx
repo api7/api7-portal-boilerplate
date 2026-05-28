@@ -1,7 +1,7 @@
 import { StyleProvider } from '@ant-design/cssinjs';
 import { Modal, type ModalProps } from 'antd';
 
-import Alert, { type AlertProps } from '@/components/ui/alert';
+import Alert, { type AlertProps } from '@/components/ui-legacy/alert';
 import { cn } from '@/lib/utils';
 
 const btnProps = {

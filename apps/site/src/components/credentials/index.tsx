@@ -7,7 +7,7 @@ import BasicAuthTable from './components/BasicAuthTable';
 import KeyAuthTable from './components/KeyAuthTable';
 import OAuthTable from './components/OAuthTable';
 import { ApplicationIdContext } from './hook';
-import A7Tabs from '../ui/tabs';
+import A7Tabs from '../ui-legacy/tabs';
 import { configStatusQueryOptions } from '@/apis/query-option';
 
 type ApplicationCredentialsProps = {

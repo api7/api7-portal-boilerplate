@@ -5,7 +5,7 @@ A customizable developer portal frontend for API7 Enterprise, built with Next.js
 ## Requirements
 
 - Node.js 22 LTS or 24 LTS recommended; Node.js 20.9.0 or later is the current package engine floor
-- pnpm 9.6.0 (enforced via `packageManager`)
+- pnpm 11 (enforced via `packageManager`)
 - PostgreSQL database
 
 ## Quick Start
@@ -29,13 +29,13 @@ pnpm dev
 
 ## Configuration
 
-All configuration is managed via `apps/site/config.yaml`. Copy `apps/site/config.yaml.example` to `apps/site/config.yaml`, then follow [docs/usage.md](docs/usage.md) for required values, environment variable substitution, auth settings, Portal API tokens, Docker usage, and Kubernetes examples.
+All configuration is managed via `apps/site/config.yaml`. Copy `apps/site/config.yaml.example` to `apps/site/config.yaml`, then follow [docs/usage.md](docs/usage.md) for required values, environment variable substitution, auth settings, Portal API tokens, Docker usage, and E2E examples.
 
 ## Project Structure
 
 This is a pnpm workspace monorepo:
 
-```
+```text
 apps/
 ├── site/          # Main Next.js application
 └── site-e2e/      # Playwright E2E tests
@@ -74,9 +74,10 @@ pnpm e2e:headed    # Headed browser
 Deployment reference files:
 
 - [Dockerfile](Dockerfile)
-- [dev-tools/devportal.yaml](dev-tools/devportal.yaml)
+- [apps/site-e2e/runtime/api7-ee-minimal/docker-compose.yaml](apps/site-e2e/runtime/api7-ee-minimal/docker-compose.yaml)
+- [apps/site-e2e/runtime/api7-ee-minimal/docker-compose.support.yaml](apps/site-e2e/runtime/api7-ee-minimal/docker-compose.support.yaml)
 
-Detailed Docker build modes, runtime config mounting, preflight behavior, and Kubernetes notes are maintained in [docs/usage.md](docs/usage.md).
+Detailed Docker build modes, runtime config mounting, preflight behavior, and E2E notes are maintained in [docs/usage.md](docs/usage.md).
 
 ## Tech Stack
 

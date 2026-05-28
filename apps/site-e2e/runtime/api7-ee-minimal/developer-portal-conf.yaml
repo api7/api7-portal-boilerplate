@@ -1,0 +1,27 @@
+server:
+  listen:
+    host: "0.0.0.0"
+    port: 4321
+    tls:
+      enabled: false
+      key_file: ""
+      cert_file: ""
+  status:
+    disable: false
+    host: "127.0.0.1"
+    port: 4322
+  pprof:
+    enable: true
+    host: "127.0.0.1"
+    port: 6060
+
+log:
+  level: warn
+  output: stderr
+  access_log: stdout
+
+database:
+  dsn: "postgres://api7ee:changeme@postgresql:5432/api7ee"
+  max_open_conns: 30
+  max_idle_time: 30s
+  timeout: 5s

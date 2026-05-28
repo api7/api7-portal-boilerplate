@@ -1,18 +1,12 @@
 'use client';
 
+import { RESERVED_FIRST_SEGMENTS } from '@/constants/common';
 import { usePathname } from 'next/navigation';
 
-export const NON_ORG_PREFIX_ROUTE_SEGMENTS = new Set([
-  'auth',
-  'account',
-  'user-profile',
-]);
-export const RESERVED_FIRST_SEGMENTS = new Set([
-  ...NON_ORG_PREFIX_ROUTE_SEGMENTS,
-  'api-hub',
-  'dashboard',
-  'organization',
-]);
+export {
+  NON_ORG_PREFIX_ROUTE_SEGMENTS,
+  RESERVED_FIRST_SEGMENTS,
+} from '@/constants/common';
 
 export const useOrganizationSlug = () => {
   const pathname = usePathname();

@@ -16,7 +16,7 @@ export const OAuthAlert = (props: OAuthAlertProps) => {
   return (
     <div className="pt-35px">
       <AntdAlert
-        message={props.title ?? 'OAuth Client Created'}
+        title={props.title ?? 'OAuth Client Created'}
         description={
           props.description ??
           'Please copy and save it immediately, you will not be able to view Client Secret again.'

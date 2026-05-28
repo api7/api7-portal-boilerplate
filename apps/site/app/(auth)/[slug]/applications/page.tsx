@@ -1,5 +1,5 @@
 import ApplicationTable from '@/components/applications/ApplicationTable';
-import Header from '@/components/ui/header';
+import Header from '@/components/ui-legacy/header';
 import { Suspense } from 'react';
 
 export default function AuthApplications() {

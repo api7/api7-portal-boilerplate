@@ -8,7 +8,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import ReactPaginate from 'react-paginate';
 
 import { BareIconImage } from './icon-image';
-import { Skeleton } from './skeleton';
+import { Skeleton } from '../ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { WithSavePage } from '@/types/utils';
 
@@ -106,9 +106,12 @@ const Pagination: FC<PaginationProps> = (props) => {
   }, [searchParams, pageSize, total, router, savePage, pathname]);
 
   useEffect(
-    () => setPageCount(Math.ceil(total / pageSize) || 1),
+    () => setPageCount(Math.max(0, Math.ceil(total / pageSize))),
     [pageSize, total]
   );
+
+  const safePageIndex =
+    pageCount > 0 ? Math.min(pageIndex, pageCount - 1) : undefined;
 
   const handlePageClick = (event: { selected: number }) => {
     const newOffset = (event.selected * pageSize) % total;
@@ -136,9 +139,12 @@ const Pagination: FC<PaginationProps> = (props) => {
           nextClassName={'ml-2'}
           activeClassName={'bg-primary [&>a]:text-white! rounded-sm'}
           breakClassName={'ml-2'}
-          forcePage={pageIndex}
+          forcePage={safePageIndex}
           nextLabel={
-            <PrevNextLabel disable={pageIndex === pageCount - 1} mode="next" />
+            <PrevNextLabel
+              disable={pageCount === 0 || pageIndex >= pageCount - 1}
+              mode="next"
+            />
           }
           onPageChange={handlePageClick}
           pageRangeDisplayed={2}

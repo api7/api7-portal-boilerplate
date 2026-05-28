@@ -1,16 +1,21 @@
 import { APIRequest, expect, request } from '@playwright/test';
+import { API_DEVELOPERS } from '@site/constants/api-prefix';
+
 import { ONETIME_PASSWORD } from '../../constant';
 import { API_ME } from './constant';
 import { API_PORTALS, API_PROVIDER_PUBLIC_ACCESS } from './constant';
-import { API_DEVELOPERS } from '@site/constants/api-prefix';
 import { A7Login } from './type';
 
 export const a7GenCtx = async (
-  options?: Parameters<APIRequest['newContext']>[0]
+  options?: Parameters<APIRequest['newContext']>[0],
 ) => {
   const { A7_URL } = process.env;
   if (!A7_URL) throw new Error('env A7_URL is not set');
-  const ctx = await request.newContext({ baseURL: A7_URL, ...options });
+  const ctx = await request.newContext({
+    baseURL: A7_URL,
+    ignoreHTTPSErrors: true,
+    ...options,
+  });
   return ctx;
 };
 
@@ -100,7 +105,7 @@ export const a7PutPublicAccess = async (ctx: A7Ctx, status: boolean) => {
   const portalID = await a7DefaultPortalID(ctx);
   const putPublicAccess = await ctx.put(
     `${API_PROVIDER_PUBLIC_ACCESS}?portal_id=${portalID}`,
-    { data }
+    { data },
   );
   expect(putPublicAccess.status()).toBe(200);
 };
@@ -130,7 +135,7 @@ export const a7DefaultPortalID = async (ctx: A7Ctx) => {
 export const a7DeveloperExists = async (
   ctx: A7Ctx,
   portalId: string,
-  developerId: string
+  developerId: string,
 ) => {
   const res = await ctx.get(API_DEVELOPERS, {
     failOnStatusCode: false,
@@ -144,6 +149,6 @@ export const a7DeveloperExists = async (
 
   return developers.some(
     (developer: { developer_id: string }) =>
-      developer.developer_id === developerId
+      developer.developer_id === developerId,
   );
 };

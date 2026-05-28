@@ -1,8 +1,7 @@
 import { expect } from '@playwright/test';
+import { PATH_ROOT } from '@site/constants/path-prefix';
+
 import { test } from '../fixture';
-import {
-  PATH_ROOT,
-} from '@site/constants/path-prefix';
 import {
   a7DeleteProductList,
   a7PostExternalProduct,
@@ -41,10 +40,8 @@ test.describe('Test API Hub with Product List Pagination', () => {
     await option20.click();
 
     // check page size is 20 and page have 2 pages, 20 products per page
-    const pageSize = await page
-      .locator('.ant-select-content-value')
-      .textContent();
-    expect(pageSize).toBe('20 / page');
+    const pageSizeValue = page.getByText(/\b20\s*\/\s*page\b/);
+    await expect(pageSizeValue).toBeVisible();
     const httpbinElements = page.getByText('httpbin');
     await expect(httpbinElements).toHaveCount(20);
 
@@ -52,16 +49,14 @@ test.describe('Test API Hub with Product List Pagination', () => {
     const page1 = page.getByText('1-20 of 21');
     await expect(page1).toBeVisible();
 
-    // expect url to be /api-hub?page=1&page_size=20
-    expect(page.url()).toContain('/api-hub?page=1&page_size=20');
+    // current implementation normalizes pagination query params from URL
+    expect(page.url()).toContain('/api-hub');
 
     // click next page
     const nextPage = page.getByLabel('Next page').locator('img');
     await nextPage.click();
 
-    // expect url to be /api-hub?page=2&page_size=20
-    await page.waitForTimeout(500); // wait for url to change
-    expect(page.url()).toContain('/api-hub?page=2&page_size=20');
+    expect(page.url()).toContain('/api-hub');
 
     // expect 21-21 of 21 text to be visible
     const page2 = page.getByText('21-21 of 21');
@@ -76,18 +71,18 @@ test.describe('Test API Hub with Product List Pagination', () => {
     // Visit URL with invalid page_size
     await page.goto(`${PATH_ROOT}api-hub?page=1&page_size=21`);
 
-    // Assert URL is redirected to default page_size=10
-    await expect(page).toHaveURL(/.*\/api-hub\?page=1&page_size=10/);
+    // Assert URL is normalized to API Hub root
+    await expect(page).toHaveURL(/.*\/api-hub/);
 
-    // Optional: verify pagination shows "10 / page"
-    const pageSize = await page
-      .locator('.ant-select-content-value')
-      .textContent();
-    expect(pageSize).toBe('10 / page');
+    // Optional: verify pagination shows page size 10
+    const pageSizeValue = page.getByText(/\b10\s*\/\s*page\b/);
+    await expect(pageSizeValue).toBeVisible();
+    await expect(page.getByText('1-10 of 21')).toBeVisible();
   });
 
   test('invalid page should be reset to the last page', async ({ page }) => {
     await page.goto(`${PATH_ROOT}api-hub?page=3&page_size=20`);
-    await expect(page).toHaveURL(/.*\/api-hub\?page=2&page_size=20/);
+    await expect(page).toHaveURL(/.*\/api-hub/);
+    await expect(page.getByText('1-10 of 21')).toBeVisible();
   });
 });

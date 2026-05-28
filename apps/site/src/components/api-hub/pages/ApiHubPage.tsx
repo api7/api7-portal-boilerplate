@@ -24,7 +24,12 @@ const Products = () => {
   });
 
   return (
-    <div className={cn('flex gap-4', isLoading && 'min-h-[50vh]')}>
+    <div
+      className={cn(
+        'flex flex-col gap-4 lg:flex-row',
+        isLoading && 'min-h-[50vh]'
+      )}
+    >
       <Filter
         onParamsChange={onParamsChange}
         defaultFilter={params.subscription_status}

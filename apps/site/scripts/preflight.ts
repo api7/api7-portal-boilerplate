@@ -1,9 +1,11 @@
 import { existsSync } from 'fs';
+
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
-import { getConfig } from '../src/lib/config';
+
 import { API_PUBLIC_ACCESS } from '../src/constants/api-prefix';
+import { getConfig } from '../src/lib/config';
 
 // In Docker, cwd is /app but config.yaml is at /app/apps/site/config.yaml
 // Locally, cwd is apps/site where config.yaml exists

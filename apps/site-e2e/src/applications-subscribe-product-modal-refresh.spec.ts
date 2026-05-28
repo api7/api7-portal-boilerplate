@@ -1,28 +1,29 @@
 import { expect } from '@playwright/test';
-import { test } from '../fixture';
 import { PATH_APPLICATIONS } from '@site/constants/path-prefix';
+import type { ProductGateway } from '@site/types/portal-sdk';
+
+import { test } from '../fixture';
+import { deleteAllApplications } from '../req/common';
 import {
   a7DeleteProductList,
   a7PostGatewayProduct,
   httpbinRawOAS,
 } from '../req/dashboard/product';
-import type { ProductGateway } from '@site/types/portal-sdk';
+import {
+  a7DeletePublishedRoute,
+  a7PostPublishedRoute,
+} from '../req/dashboard/route';
 import {
   a7DeleteService,
   a7PostPublishedService,
   a7PutServiceOAS,
 } from '../req/dashboard/service';
 import {
-  a7DeletePublishedRoute,
-  a7PostPublishedRoute,
-} from '../req/dashboard/route';
-import {
   uiAddApplication,
   uiDeleteApplicationInList,
   uiGoToApplications,
   uiVerifyToast,
 } from '../utils/ui';
-import { deleteAllApplications } from '../req/common';
 
 test.describe('Test SubscribeAPIProductModal auto refresh status after subscription', () => {
   let serviceId: string;
@@ -143,7 +144,7 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
 
       // Verify it shows "This API product requires approval"
       await expect(
-        waitOption.getByText('This API product requires approval')
+        waitOption.getByText('This API product requires approval'),
       ).toBeVisible();
 
       await waitOption.click();
@@ -153,9 +154,12 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
       await page.waitForTimeout(500);
 
       // Submit subscription
-      await dialog
-        .getByRole('button', { name: 'Subscribe', exact: true })
-        .click();
+      const subscribeButton = dialog.getByRole('button', {
+        name: 'Subscribe',
+        exact: true,
+      });
+      await expect(subscribeButton).toBeEnabled();
+      await subscribeButton.click();
 
       await expect(dialog).toBeHidden();
       await uiVerifyToast(page, {

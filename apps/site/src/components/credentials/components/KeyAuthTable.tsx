@@ -3,7 +3,7 @@
 import { memo, useState } from 'react';
 
 import { useCreation } from 'ahooks';
-import { Button, Typography } from 'antd';
+import { Button, Space, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 
 import CredentialDeleteModal from './CredentialDeleteModal';
@@ -15,8 +15,8 @@ import Menu from '@/components/slices/menu';
 import { tableColDesc } from '@/components/slices/table-col/desc';
 import { tableColLabels } from '@/components/slices/table-col/labels';
 import TimeFormat from '@/components/slices/time-format';
-import IconImage from '@/components/ui/icon-image';
-import A7Table from '@/components/ui/table';
+import IconImage from '@/components/ui-legacy/icon-image';
+import A7Table from '@/components/ui-legacy/table';
 import { DEFAULT_LIST_PARAMS } from '@/constants/common';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
@@ -114,7 +114,7 @@ const KeyAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
         dataIndex: 'id',
         fixed: 'right',
         render: (id, data) => (
-          <Button.Group>
+          <Space.Compact>
             <Button
               type="link"
               className="px-0"
@@ -150,7 +150,7 @@ const KeyAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
               ]}
             disabled={!canManageApplications}
             />
-          </Button.Group>
+          </Space.Compact>
         ),
       },
     ],

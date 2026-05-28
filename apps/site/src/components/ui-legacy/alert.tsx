@@ -5,13 +5,14 @@ import { cn } from '@/lib/utils';
 export type AlertProps = AntdAlertProps;
 
 const Alert = (props: AlertProps) => {
-  const { type, ...rest } = props;
+  const { type, title, message, ...rest } = props;
   return (
     <AntdAlert
       showIcon
       banner
       // error use info icon like in console
       type={type === 'error' ? 'info' : type}
+      title={title ?? message}
       {...rest}
       className={cn(
         'flex !items-start !my-4 rounded [&>.ant-alert-content]:text-gray-700',

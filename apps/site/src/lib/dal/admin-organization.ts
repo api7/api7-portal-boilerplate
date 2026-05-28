@@ -1,9 +1,24 @@
 import 'server-only';
-import { API7Portal } from '@api7/portal-sdk';
-import { and, asc, count, desc, eq, ilike, inArray, isNull, or } from 'drizzle-orm';
-import { db } from '@/lib/db';
+
 import { getConfig } from '@/lib/config';
-import { member, organization, user } from '@/lib/db/schema';
+import { db } from '@/lib/db';
+import {
+  members as member,
+  organizations as organization,
+  users as user,
+} from '@/lib/db/schema';
+import { API7Portal } from '@api7/portal-sdk';
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNull,
+  or,
+} from 'drizzle-orm';
 
 export type ListAdminOrganizationsParams = {
   page: number;
@@ -36,7 +51,7 @@ const buildOrganizationWhere = (search?: string) => {
   const keyword = `%${escapedSearch}%`;
   return or(
     ilike(organization.name, keyword),
-    ilike(organization.slug, keyword)
+    ilike(organization.slug, keyword),
   );
 };
 
@@ -51,15 +66,17 @@ const getPortalForOrganization = (organizationId: string) => {
 
 const getApplicationCount = async (organizationId: string) => {
   try {
-    const res = await getPortalForOrganization(organizationId).application.list({
-      page: 1,
-      page_size: 1,
-    });
+    const res = await getPortalForOrganization(organizationId).application.list(
+      {
+        page: 1,
+        page_size: 1,
+      },
+    );
     return res.total ?? 0;
   } catch (error) {
     console.error(
       `Failed to fetch application count for organization ${organizationId}:`,
-      error
+      error,
     );
     return 0;
   }
@@ -84,8 +101,8 @@ const getOwnersByOrganizationIds = async (organizationIds: string[]) => {
       and(
         inArray(member.organizationId, organizationIds),
         eq(member.role, 'owner'),
-        or(isNull(user.banned), eq(user.banned, false))
-      )
+        or(isNull(user.banned), eq(user.banned, false)),
+      ),
     )
     .orderBy(asc(member.createdAt), asc(member.id));
 
@@ -132,10 +149,7 @@ export const listAdminOrganizations = async ({
       .orderBy(orderDirection)
       .limit(pageSize)
       .offset(offset),
-    db
-      .select({ total: count() })
-      .from(organization)
-      .where(where),
+    db.select({ total: count() }).from(organization).where(where),
   ]);
 
   const organizationIds = organizations.map((item) => item.id);
@@ -146,8 +160,8 @@ export const listAdminOrganizations = async ({
         async (organizationId): Promise<readonly [string, number]> => [
           organizationId,
           await getApplicationCount(organizationId),
-        ]
-      )
+        ],
+      ),
     ),
   ]);
 
@@ -162,7 +176,7 @@ export const listAdminOrganizations = async ({
         created_at: item.createdAt,
         application_count: applicationCountMap.get(item.id) ?? 0,
         owner: owners.get(item.id) ?? null,
-      })
+      }),
     ),
     page,
     page_size: pageSize,

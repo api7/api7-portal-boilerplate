@@ -4,8 +4,8 @@ import { useCreation, useMemoizedFn } from 'ahooks';
 import { Button, Select, Checkbox } from 'antd';
 import { toast } from 'sonner';
 
-import IconImage from '@/components/ui/icon-image';
-import A7Modal from '@/components/ui/modal';
+import IconImage from '@/components/ui-legacy/icon-image';
+import A7Modal from '@/components/ui-legacy/modal';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
@@ -34,25 +34,34 @@ const OptionRender = (props: OptionRenderProps) => {
   const { option, navigateToProduct, isSelected } = props;
   const { data, disabled, status } = option;
   if (!data) return null;
+  const statusText =
+    (status === 'wait_for_approval' && 'Pending Approval') ||
+    (status === 'subscribed' && 'Subscribed') ||
+    '';
   return (
-    <div className="flex items-center justify-between w-full py-1">
+    <div className="flex w-full items-center justify-between py-2">
       <div
-        className="flex items-center space-x-3! flex-1 min-w-0"
+        className="flex min-w-0 flex-1 items-center gap-3"
         data-testid={`option-${data.name}`}
       >
-        <Checkbox
-          checked={isSelected(data.id)}
-          disabled={disabled}
-          onClick={(e) => e.stopPropagation()}
-        />
+        <div className="flex h-5 w-6 shrink-0 items-center justify-center [&_.ant-checkbox]:top-0!">
+          <Checkbox
+            checked={isSelected(data.id)}
+            disabled={disabled}
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
         <div className="flex-1 min-w-0">
-          <div className="font-medium text-sm">{data.name}</div>
-          <div className="flex items-center space-x-2 mt-1">
-            <span className="text-[#A0ABC5] text-xs font-normal">
-              {status === 'wait_for_approval' && 'Pending Approval'}
-              {status === 'subscribed' && 'Subscribed'}
-            </span>
+          <div className="truncate text-sm font-medium leading-5 text-primary-content">
+            {data.name}
           </div>
+          {statusText && (
+            <div className="mt-1 flex items-center space-x-2">
+              <span className="text-xs font-normal text-[#A0ABC5]">
+                {statusText}
+              </span>
+            </div>
+          )}
         </div>
       </div>
       <Button
@@ -63,7 +72,7 @@ const OptionRender = (props: OptionRenderProps) => {
           e.stopPropagation();
           navigateToProduct(data.id);
         }}
-        className="shrink-0 ml-2"
+        className="ml-3 shrink-0"
       >
         <IconImage type="down-arrow" alt="down-arrow" size={24} className="-rotate-90" />
       </Button>
@@ -200,6 +209,7 @@ const SubscribeAPIProductModalApplication = (props: Props) => {
         loading={appsReq.isLoading}
         maxTagCount="responsive"
         options={selectOptions}
+        classNames={{ popup: { root: 'subscription-select-popup' } }}
         menuItemSelectedIcon={null}
         optionRender={(option) => (
           <OptionRender

@@ -25,7 +25,6 @@
     "typescript": "~5.5.2"
   },
   "dependencies": {
-    "@kubernetes/client-node": "^1.4.0",
     "tinyexec": "^1.0.2"
   }
 }

@@ -9,7 +9,7 @@ import { FormItemOAuth } from './OAuthAddDrawer';
 import { useApplicationId } from '../hook';
 import Form from '@/components/slices/form/Form';
 import { portalClient } from '@/lib/portal-sdk/client';
-import A7Drawer from '@/components/ui/drawer';
+import A7Drawer from '@/components/ui-legacy/drawer';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import {
   transformAPIRedirectURIsToForm,

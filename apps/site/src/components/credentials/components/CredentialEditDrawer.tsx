@@ -9,7 +9,7 @@ import { useApplicationId } from '../hook';
 import Form from '@/components/slices/form/Form';
 import { portalClient } from '@/lib/portal-sdk/client';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
-import A7Drawer from '@/components/ui/drawer';
+import A7Drawer from '@/components/ui-legacy/drawer';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { pipeProduce } from '@/helper/utils/form-producer/common';
 import {

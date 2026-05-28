@@ -6,8 +6,8 @@ import { useCreation, useMemoizedFn } from 'ahooks';
 import { Button, Select, Checkbox } from 'antd';
 import { toast } from 'sonner';
 
-import IconImage from '@/components/ui/icon-image';
-import A7Modal from '@/components/ui/modal';
+import IconImage from '@/components/ui-legacy/icon-image';
+import A7Modal from '@/components/ui-legacy/modal';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import useProductList from '@/lib/query/useProductList';
@@ -122,35 +122,45 @@ const SubscribeAPIProductModal = (props: SubscribeAPIProductModalProps) => {
         loading={productListQuery.isLoading}
         maxTagCount="responsive"
         options={selectOptions}
+        classNames={{ popup: { root: 'subscription-select-popup' } }}
         menuItemSelectedIcon={null}
         optionRender={(option) => {
           const { product, disabled } = option.data || {};
           if (!product) return option.label;
           const isSelected = selectedProducts.includes(product.id);
           const status = product.subscription_status;
+          const statusText =
+            (status === 'wait_for_approval' && 'Pending Approval') ||
+            (product.type === 'gateway' &&
+              !product.can_view_unsubscribed &&
+              status === 'unsubscribed' &&
+              'This API product requires approval') ||
+            (status === 'subscribed' && 'Subscribed') ||
+            '';
           return (
-            <div className="flex items-center justify-between w-full py-1">
+            <div className="flex w-full items-center justify-between py-2">
               <div
-                className="flex items-center space-x-3 flex-1 min-w-0"
+                className="flex min-w-0 flex-1 items-center gap-3"
                 data-testid={`option-${product.name}`}
               >
-                <Checkbox
-                  checked={isSelected}
-                  disabled={disabled}
-                  onClick={(e) => e.stopPropagation()}
-                />
+                <div className="flex h-5 w-6 shrink-0 items-center justify-center [&_.ant-checkbox]:top-0!">
+                  <Checkbox
+                    checked={isSelected}
+                    disabled={disabled}
+                    onClick={(e) => e.stopPropagation()}
+                  />
+                </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-medium text-sm">{product.name}</div>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <span className="text-[#A0ABC5] text-xs font-normal">
-                      {status === 'wait_for_approval' && 'Pending Approval'}
-                      {product.type === 'gateway' &&
-                        !product.can_view_unsubscribed &&
-                        status === 'unsubscribed' &&
-                        'This API product requires approval'}
-                      {status === 'subscribed' && 'Subscribed'}
-                    </span>
+                  <div className="truncate text-sm font-medium leading-5 text-primary-content">
+                    {product.name}
                   </div>
+                  {statusText && (
+                    <div className="mt-1 flex items-center space-x-2">
+                      <span className="text-xs font-normal text-[#A0ABC5]">
+                        {statusText}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
               <Button
@@ -160,7 +170,7 @@ const SubscribeAPIProductModal = (props: SubscribeAPIProductModalProps) => {
                   e.stopPropagation();
                   handleNavigateToProduct(product.id);
                 }}
-                className="shrink-0 ml-2"
+                className="ml-3 shrink-0"
               >
                 <IconImage
                   type="down-arrow"

@@ -1,9 +1,11 @@
 import 'server-only';
-import { auth } from '../auth/server';
+
+import { PATH_LANDING, PATH_LOGIN } from '@/constants/path-prefix';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { PATH_LANDING, PATH_LOGIN } from '@/constants/path-prefix';
 import { cache } from 'react';
+
+import { auth } from '../auth/server';
 import { portal } from '../portal-sdk/server';
 
 /**
@@ -18,7 +20,7 @@ export const isPublicAccessEnabled = cache(
     }
 
     return portal.systemSetting.getPublicAccess();
-  }
+  },
 );
 
 /**
@@ -39,7 +41,7 @@ export const verifySession = cache(
     }
 
     return session;
-  }
+  },
 );
 
 /**

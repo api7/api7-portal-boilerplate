@@ -1,8 +1,8 @@
 'use client';
 
 import MaskCopyTextItem from './MaskCopyTextItem';
-import { DescTemplate } from '@/components/ui/desc-template';
-import A7Drawer from '@/components/ui/drawer';
+import { DescTemplate } from '@/components/ui-legacy/desc-template';
+import A7Drawer from '@/components/ui-legacy/drawer';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import type {
   BasicAuthCredential,

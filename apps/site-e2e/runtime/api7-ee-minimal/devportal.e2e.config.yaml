@@ -1,0 +1,36 @@
+"portal":
+  "url": "http://developer-portal:4321"
+  "token": "a7prt-kdr8Ap9u97q4K7wXvwSXHw9P6l0571YY84KmOFv06uE7Yqc7eo-c6261f24ba6c4614b5afae2981d989a5"
+"db":
+  "url": "postgres://api7ee:changeme@postgresql:5432/devportal_fe_e2e"
+  "pool":
+    "max": 20
+    "min": 0
+    "idleTimeout": 30000
+    "connectionTimeout": 2000
+    "allowExitOnIdle": false
+  "ssl": false
+"auth":
+  "secret": "devportal-e2e-secret-devportal-e2e-secret"
+  "adminUserIds": []
+  "session":
+    "expiresIn": 604800
+    "updateAge": 86400
+  "emailAndPassword":
+    "enabled": true
+    "requireEmailVerification": false
+  "twoFactor":
+    "enabled": false
+"app":
+  "name": "Developer Portal"
+  "baseURL": "http://127.0.0.1:3001"
+  "trustedOrigins":
+    - "http://127.0.0.1:3001"
+  "applicationDetail":
+    "subscriptions": true
+    "usage": true
+    "credentialsTabs":
+      "keyAuth": true
+      "basicAuth": true
+      "oauth": true
+

@@ -1,5 +1,5 @@
-import { verifySessionAndOrganization } from '@/lib/dal';
 import { PATH_ROOT } from '@/constants/path-prefix';
+import { verifySessionAndOrganization } from '@/lib/dal';
 import { redirect } from 'next/navigation';
 
 export default async function ApplicationDetailRedirectPage({
@@ -8,13 +8,14 @@ export default async function ApplicationDetailRedirectPage({
   searchParams: Promise<{ [key: string]: string | undefined }>;
 }) {
   const { id } = await searchParams;
-  const { session, orgs } = await verifySessionAndOrganization();
-  const activeOrgId = session?.session.activeOrganizationId || orgs?.[0]?.id;
-  const activeOrg = orgs?.find((org) => org.id === activeOrgId);
+  const { orgs } = await verifySessionAndOrganization();
+  const activeOrg = orgs?.[0];
 
   if (!activeOrg?.slug) {
     redirect(PATH_ROOT);
   }
 
-  redirect(`/${activeOrg.slug}/applications/detail?id=${encodeURIComponent(id ?? '')}`);
+  redirect(
+    `/${activeOrg.slug}/applications/detail?id=${encodeURIComponent(id ?? '')}`,
+  );
 }

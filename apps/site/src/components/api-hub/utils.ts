@@ -1,15 +1,13 @@
+import { authClient } from '@/lib/auth/client';
+import useCredentialList from '@/lib/query/useCredentialList';
+import useSubscriptionList from '@/lib/query/useSubscriptionList';
+import { BasicAuthCredential, KeyAuthCredential } from '@/types/portal-sdk';
 import type { ApiProduct } from '@api7/portal-sdk/unstable-types';
-
-import { useCallback, useMemo } from 'react';
-
+import { dereference } from '@scalar/openapi-parser';
 import { produce } from 'immer';
 import { set } from 'lodash-es';
+import { useCallback, useMemo } from 'react';
 import { parse, stringify } from 'yaml';
-import { BasicAuthCredential, KeyAuthCredential } from '@/types/portal-sdk';
-import { authClient } from '@/lib/auth/client';
-import useSubscriptionList from '@/lib/query/useSubscriptionList';
-import useCredentialList from '@/lib/query/useCredentialList';
-import { dereference } from '@scalar/openapi-parser';
 
 export type ApiProductExternal = Extract<ApiProduct, { type: 'external' }>;
 export const getServerUrls = (data: ApiProductExternal): string[] =>
@@ -27,7 +25,7 @@ export const useParsedProduct = (data: ApiProductGateway) => {
 
   const subscribedAppIds = useMemo(
     () => subscribedAppsReq.data?.map((app) => app.application_id),
-    [subscribedAppsReq.data]
+    [subscribedAppsReq.data],
   );
   const keyAuthCredentialReq = useCredentialList({
     savePage: false,
@@ -75,7 +73,7 @@ export const useParsedProduct = (data: ApiProductGateway) => {
       }
       set(d, 'components.securitySchemes', securitySchemes);
     },
-    [basicAuthPlugin, data.auth, keyAuthPlugin]
+    [basicAuthPlugin, data.auth, keyAuthPlugin],
   );
 
   const openAPIs = useMemo(() => {
@@ -100,7 +98,7 @@ export const useParsedProduct = (data: ApiProductGateway) => {
           type: 'apiKey',
           in: 'header',
           name: data.auth['key-auth'].header || 'apikey',
-          key: keyAuthPlugin.key,
+          value: keyAuthPlugin.key,
         };
       }
     }

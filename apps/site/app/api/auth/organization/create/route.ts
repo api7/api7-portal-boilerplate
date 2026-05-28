@@ -2,9 +2,11 @@ import { auth } from '@/lib/auth/server';
 import { errToNextResJson } from '@/lib/auth/util';
 import { portal } from '@/lib/portal-sdk/server';
 import { APIError } from 'better-auth';
-import { nanoid } from 'nanoid';
+import { customAlphabet } from 'nanoid';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
+
+const genSlug = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 8);
 
 const MAX_SLUG_RETRIES = 2;
 
@@ -16,7 +18,7 @@ export const POST = async (req: Request) => {
     // Track whether slug was auto-generated (only retry on conflict for auto-generated slugs)
     const slugWasProvided = Boolean(body.slug);
     if (!slugWasProvided) {
-      body.slug = nanoid(8);
+      body.slug = genSlug();
     }
 
     let res: Awaited<ReturnType<typeof auth.api.createOrganization>> | null =
@@ -37,7 +39,7 @@ export const POST = async (req: Request) => {
 
         // Only retry with a new slug if it was auto-generated
         if (!slugWasProvided && isSlugConflict && attempt < MAX_SLUG_RETRIES) {
-          body.slug = nanoid(8);
+          body.slug = genSlug();
           continue;
         }
         throw error;
@@ -48,7 +50,7 @@ export const POST = async (req: Request) => {
       return errToNextResJson(
         new APIError('INTERNAL_SERVER_ERROR', {
           message: 'Failed to create organization.',
-        })
+        }),
       );
     }
 
@@ -64,7 +66,7 @@ export const POST = async (req: Request) => {
       // Rollback: delete organization if developer creation fails
       console.error(
         `Failed to create developer for organization ${res.id}, deleting organization:`,
-        JSON.stringify(error, null, 2)
+        JSON.stringify(error, null, 2),
       );
 
       await auth.api.deleteOrganization({

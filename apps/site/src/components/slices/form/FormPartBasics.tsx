@@ -5,7 +5,7 @@ import { ProFormText, ProFormTextArea } from '@ant-design/pro-components';
 import FormItemBox, { type FormItemBoxProps } from './FormItemBox';
 import FormItemLabel, {
   type FormItemLabelProps,
-} from '@/components/ui/form-item-label';
+} from '@/components/ui-legacy/form-item-label';
 import { useNamePrefix } from '@/lib/hooks/useNamePrefix';
 
 export type FormPartBasicsProps = {

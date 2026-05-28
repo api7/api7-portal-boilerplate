@@ -1,11 +1,15 @@
 'use client';
 
 import { type FormEvent, useState } from 'react';
-import { nanoid } from 'nanoid';
+import { useRouter } from 'next/navigation';
+import { customAlphabet } from 'nanoid';
 import { toast } from 'sonner';
 import * as Dialog from '@radix-ui/react-dialog';
 
 import { authClient } from '@/lib/auth/client';
+import { queryClient } from '@/lib/req';
+
+const genSlug = customAlphabet('abcdefghijklmnopqrstuvwxyz0123456789', 8);
 
 interface CreateOrganizationModalProps {
   open: boolean;
@@ -16,6 +20,7 @@ export const CreateOrganizationModal = ({
   open,
   onOpenChange,
 }: CreateOrganizationModalProps) => {
+  const router = useRouter();
   const [name, setName] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -40,7 +45,7 @@ export const CreateOrganizationModal = ({
     setLoading(true);
 
     const tryCreate = async (attempt: number): Promise<void> => {
-      const slug = nanoid(8);
+      const slug = genSlug();
       const { data, error: apiError } = await authClient.organization.create({
         name: trimmedName,
         slug,
@@ -62,6 +67,10 @@ export const CreateOrganizationModal = ({
         `Organization created. Slug: ${actualSlug} (editable in settings)`
       );
       handleClose(false);
+      // Invalidate org list so the switcher picks up the new org,
+      // then navigate to it.
+      queryClient.invalidateQueries({ queryKey: ['organizations'] });
+      router.push(`/${actualSlug}/applications`);
     };
 
     try {

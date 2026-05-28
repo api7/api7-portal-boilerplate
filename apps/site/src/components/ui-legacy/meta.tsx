@@ -1,7 +1,7 @@
 import type { FC, ReactNode } from 'react';
 
 import { BareIconImage } from './icon-image';
-import { Skeleton } from './skeleton';
+import { Skeleton } from '../ui/skeleton';
 import { CopyBtn } from '../api-hub/CopyBtn';
 import ProductAvatar from '../api-hub/ProductAvatar';
 import A7LabelList from '../api7/api7-label-list';

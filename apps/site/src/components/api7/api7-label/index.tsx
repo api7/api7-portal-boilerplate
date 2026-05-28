@@ -10,10 +10,10 @@ export type A7LabelProps = TagProps & {
 const StatusPoint = (props: { color: string }) => (
   <div
     className={cn(
-      'size-[6px] rounded-full mr-1',
+      'mr-1 h-2 w-2 rounded-full',
       props.color === 'green' && 'bg-green-700',
       props.color === 'gray' && 'bg-gray-700',
-      'w-2 h-2 align-middle'
+      props.color === 'orange' && 'bg-orange-700'
     )}
   />
 );

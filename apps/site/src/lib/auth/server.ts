@@ -1,18 +1,19 @@
 import { betterAuth } from 'better-auth';
-import { nextCookies } from 'better-auth/next-js';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { db } from '@/lib/db';
-import { getConfig } from '@/lib/config';
-import { AUTH_BASE_PATH } from '@/constants/api-prefix';
+import { nextCookies } from 'better-auth/next-js';
 import {
-  organization,
-  openAPI,
-  magicLink,
-  genericOAuth,
   GenericOAuthConfig,
-  twoFactor,
   admin,
+  genericOAuth,
+  magicLink,
+  openAPI,
+  organization,
+  twoFactor,
 } from 'better-auth/plugins';
+
+import { AUTH_BASE_PATH } from '../../constants/api-prefix';
+import { getConfig } from '../config';
+import { db } from '../db';
 import { ac, roles } from './permissions';
 
 const config = getConfig();
@@ -78,7 +79,9 @@ export const auth = betterAuth({
   basePath: AUTH_BASE_PATH,
   database: drizzleAdapter(db, {
     provider: 'pg',
+    usePlural: true,
   }),
+  experimental: { joins: true },
   emailAndPassword: config.auth.emailAndPassword,
   session: {
     expiresIn: config.auth.session.expiresIn,
@@ -87,7 +90,6 @@ export const auth = betterAuth({
   secret: config.auth.secret,
   socialProviders: config.auth.socialProviders,
   plugins: [
-    nextCookies(),
     openAPI(),
     admin({
       adminUserIds: config.auth.adminUserIds,
@@ -97,7 +99,9 @@ export const auth = betterAuth({
     organization({
       ac,
       roles,
+      requireEmailVerificationOnInvitation: false,
     }),
     ...getTestingConfig(),
+    nextCookies(),
   ],
 });

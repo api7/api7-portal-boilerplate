@@ -1,5 +1,6 @@
-import path from 'node:path';
 import fs from 'node:fs';
+import path from 'node:path';
+
 import { Browser, expect, test } from '@playwright/test';
 import { API_APPLICATIONS, AUTH_BASE_PATH } from '@site/constants/api-prefix';
 import {
@@ -8,8 +9,10 @@ import {
   PATH_ROOT,
 } from '@site/constants/path-prefix';
 import { ConfigMapData } from '@site/lib/config/schema';
+
 import { E2E_TARGET_URL } from '../constant';
 import {
+  acceptInvitationViaUI,
   createOrganization,
   genCtx,
   getSession,
@@ -20,9 +23,13 @@ import {
   patchConfigMapYaml,
   updateConfigMapYaml,
 } from '../utils/devportal-config';
-import { restartDevPortal, x } from '../utils/shell';
+import { restartDevPortal } from '../utils/shell';
 
-test.describe.configure({ mode: 'serial' });
+const ORG_LIST_MEMBERS = `${AUTH_BASE_PATH}/organization/list-members`;
+const ORG_CREATE_INVITATION = `${AUTH_BASE_PATH}/organization/invite-member`;
+const ORG_ACCEPT_INVITATION = `${AUTH_BASE_PATH}/organization/accept-invitation`;
+const ORG_SET_ACTIVE = `${AUTH_BASE_PATH}/organization/set-active`;
+const ORG_UPDATE_MEMBER_ROLE = `${AUTH_BASE_PATH}/organization/update-member-role`;
 
 const createAuth = (prefix: string) => {
   const id = `${prefix}-${Date.now()}`;
@@ -37,7 +44,7 @@ const createAuth = (prefix: string) => {
 const createPageWithStorageState = async (
   browser: Browser,
   storageStatePath: string,
-  testInfo: { outputDir: string }
+  testInfo: { outputDir: string },
 ) => {
   const context = await browser.newContext({
     baseURL: E2E_TARGET_URL,
@@ -48,6 +55,52 @@ const createPageWithStorageState = async (
   return { context, page };
 };
 
+const listOrganizationMembers = async (
+  ctx: Awaited<ReturnType<typeof genCtx>>,
+  organizationId: string,
+) => {
+  const res = await ctx.get(
+    `${ORG_LIST_MEMBERS}?organizationId=${encodeURIComponent(organizationId)}`,
+    { failOnStatusCode: false },
+  );
+  expect(res.status()).toBe(200);
+  const body = await res.json();
+  return (body.members ?? []) as Array<{
+    id: string;
+    userId: string;
+    role: string;
+  }>;
+};
+
+const getOrganizationMemberId = async (
+  ctx: Awaited<ReturnType<typeof genCtx>>,
+  organizationId: string,
+  userId: string,
+) => {
+  const members = await listOrganizationMembers(ctx, organizationId);
+  const member = members.find((item) => item.userId === userId);
+  expect(member?.id).toBeTruthy();
+  return member!.id;
+};
+
+const updateOrganizationMemberRole = async (
+  ctx: Awaited<ReturnType<typeof genCtx>>,
+  organizationId: string,
+  memberId: string,
+  role: 'owner' | 'admin' | 'member',
+) => {
+  const res = await ctx.post(ORG_UPDATE_MEMBER_ROLE, {
+    data: {
+      organizationId,
+      memberId,
+      role,
+    },
+    failOnStatusCode: false,
+  });
+  expect(res.status()).toBe(200);
+  return await res.json();
+};
+
 test.describe('Impersonation UI', () => {
   test.setTimeout(60_000);
 
@@ -56,18 +109,25 @@ test.describe('Impersonation UI', () => {
   const helperAuth = createAuth('impersonation-helper');
   const adminStorageStatePath = path.resolve(
     process.cwd(),
-    `apps/site-e2e/test-results/.auth/${adminAuth.name}.json`
+    `apps/site-e2e/test-results/.auth/${adminAuth.name}.json`,
   );
   const ownerStorageStatePath = path.resolve(
     process.cwd(),
-    `apps/site-e2e/test-results/.auth/${ownerAuth.name}.json`
+    `apps/site-e2e/test-results/.auth/${ownerAuth.name}.json`,
+  );
+  const helperStorageStatePath = path.resolve(
+    process.cwd(),
+    `apps/site-e2e/test-results/.auth/${helperAuth.name}.json`,
   );
 
   let defaultConfig: string | null = null;
   let adminUserId = '';
   let ownerUserId = '';
+  let ownerOrganizationId = '';
+  let ownerOrganizationSlug = '';
+  let helperUserId = '';
 
-  test.beforeAll(async ({}, testInfo) => {
+  test.beforeAll(async ({ browser }, testInfo) => {
     testInfo.setTimeout(600_000);
     fs.mkdirSync(path.dirname(adminStorageStatePath), { recursive: true });
 
@@ -81,7 +141,7 @@ test.describe('Impersonation UI', () => {
 
     await patchConfigMapYaml<ConfigMapData>((configObj) => {
       configObj.auth.adminUserIds = Array.from(
-        new Set([...(configObj.auth.adminUserIds || []), adminUserId])
+        new Set([...(configObj.auth.adminUserIds || []), adminUserId]),
       );
     });
     await restartDevPortal();
@@ -94,25 +154,82 @@ test.describe('Impersonation UI', () => {
 
     const ownerCtx = await genCtx();
     await login(ownerCtx, ownerAuth);
-    await createOrganization(ownerCtx, ownerAuth.organization);
+    const ownerOrganization = await createOrganization(
+      ownerCtx,
+      ownerAuth.organization,
+    );
     const ownerSessionRes = await getSession(ownerCtx);
     const ownerSession = await ownerSessionRes.json();
     ownerUserId = ownerSession.user.id;
     await ownerCtx.storageState({ path: ownerStorageStatePath });
-    const ownerOrgId = ownerSession.session.activeOrganizationId;
+    ownerOrganizationId = ownerSession.session.activeOrganizationId;
+    ownerOrganizationSlug = ownerOrganization.slug;
     await ownerCtx.dispose();
 
-    // Register a helper user and add them as a second owner in the org,
-    // so the original owner can be safely downgraded to member.
     const helperCtx = await genCtx();
-    await login(helperCtx, helperAuth);
-    const helperSessionRes = await getSession(helperCtx);
-    const helperSession = await helperSessionRes.json();
-    const helperUserId = helperSession.user.id;
-    await helperCtx.dispose();
-    await x(
-      `kubectl exec -n api7 api7-postgresql-0 -- env PGPASSWORD=changeme psql -U api7ee -d api7ee -c "INSERT INTO member (id, organization_id, user_id, role, created_at) VALUES ('helper-${Date.now()}', '${ownerOrgId}', '${helperUserId}', 'owner', NOW())"`
-    );
+    try {
+      await login(helperCtx, helperAuth);
+
+      const helperSessionRes = await getSession(helperCtx);
+      const helperSession = await helperSessionRes.json();
+      helperUserId = helperSession.user.id;
+      await helperCtx.storageState({ path: helperStorageStatePath });
+    } finally {
+      await helperCtx.dispose();
+    }
+
+    const ownerRoleCtx = await genCtx({ storageState: ownerStorageStatePath });
+    try {
+      const inviteRes = await ownerRoleCtx.post(ORG_CREATE_INVITATION, {
+        data: {
+          email: helperAuth.email,
+          role: 'admin',
+          organizationId: ownerOrganizationId,
+        },
+        failOnStatusCode: false,
+      });
+      expect(inviteRes.status()).toBe(200);
+      const invitation = await inviteRes.json();
+
+      const helperAcceptCtx = await genCtx();
+      try {
+        await login(helperAcceptCtx, helperAuth);
+        const acceptRes = await helperAcceptCtx.post(ORG_ACCEPT_INVITATION, {
+          data: { invitationId: invitation.id },
+          failOnStatusCode: false,
+        });
+        expect(acceptRes.status()).toBe(200);
+
+        const setActiveRes = await helperAcceptCtx.post(ORG_SET_ACTIVE, {
+          data: { organizationId: ownerOrganizationId },
+          failOnStatusCode: false,
+        });
+        expect(setActiveRes.status()).toBe(200);
+      } finally {
+        await helperAcceptCtx.dispose();
+      }
+    } finally {
+      await ownerRoleCtx.dispose();
+    }
+
+    const promoteHelperCtx = await genCtx({
+      storageState: ownerStorageStatePath,
+    });
+    try {
+      const helperMemberId = await getOrganizationMemberId(
+        promoteHelperCtx,
+        ownerOrganizationId,
+        helperUserId,
+      );
+      await updateOrganizationMemberRole(
+        promoteHelperCtx,
+        ownerOrganizationId,
+        helperMemberId,
+        'owner',
+      );
+    } finally {
+      await promoteHelperCtx.dispose();
+    }
   });
 
   test.afterAll(async () => {
@@ -122,16 +239,20 @@ test.describe('Impersonation UI', () => {
     }
   });
 
-  test('non-admin user should not access dashboard', async ({ browser }, testInfo) => {
+  test('non-admin user should not access dashboard', async ({
+    browser,
+  }, testInfo) => {
     const { context, page } = await createPageWithStorageState(
       browser,
       ownerStorageStatePath,
-      testInfo
+      testInfo,
     );
 
     try {
       await page.goto(PATH_ROOT);
-      await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveCount(0);
+      await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveCount(
+        0,
+      );
 
       await page.goto('/dashboard/organizations');
       await expect(page).not.toHaveURL(/\/dashboard\/organizations(?:\?.*)?$/);
@@ -146,28 +267,26 @@ test.describe('Impersonation UI', () => {
     const { context, page } = await createPageWithStorageState(
       browser,
       adminStorageStatePath,
-      testInfo
+      testInfo,
     );
 
     try {
       await page.goto(
-        `/dashboard/organizations?search=${encodeURIComponent(ownerAuth.organization)}`
+        `/dashboard/organizations?search=${encodeURIComponent(ownerAuth.organization)}`,
       );
 
-      await expect(
-        page.getByText('Organization Dashboard')
-      ).toBeVisible();
+      await expect(page.getByText('Organization Dashboard')).toBeVisible();
       await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
       const organizationRow = page
         .getByRole('row')
         .filter({
-          has: page
-            .getByRole('cell', { name: ownerAuth.organization })
-            .first(),
+          has: page.getByRole('cell', { name: ownerAuth.organization }).first(),
         })
         .first();
       await expect(
-        organizationRow.getByRole('cell', { name: ownerAuth.organization }).first()
+        organizationRow
+          .getByRole('cell', { name: ownerAuth.organization })
+          .first(),
       ).toBeVisible();
 
       await organizationRow
@@ -175,13 +294,15 @@ test.describe('Impersonation UI', () => {
         .click();
 
       await expect(
-        page.getByText('Currently in Impersonation Mode')
+        page.getByText('Currently in Impersonation Mode'),
       ).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveCount(0);
+      await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveCount(
+        0,
+      );
 
       const impersonatedSessionRes = await page.request.get(
         `${AUTH_BASE_PATH}/get-session`,
-        { failOnStatusCode: false }
+        { failOnStatusCode: false },
       );
       expect(impersonatedSessionRes.status()).toBe(200);
       const impersonatedSession = await impersonatedSessionRes.json();
@@ -193,13 +314,13 @@ test.describe('Impersonation UI', () => {
 
       await page.getByRole('button', { name: 'Exit Impersonation' }).click();
       await expect(
-        page.getByText('Currently in Impersonation Mode')
+        page.getByText('Currently in Impersonation Mode'),
       ).toHaveCount(0);
       await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
 
       const restoredSessionRes = await page.request.get(
         `${AUTH_BASE_PATH}/get-session`,
-        { failOnStatusCode: false }
+        { failOnStatusCode: false },
       );
       expect(restoredSessionRes.status()).toBe(200);
       const restoredSession = await restoredSessionRes.json();
@@ -216,63 +337,53 @@ test.describe('Impersonation UI', () => {
     const { context, page } = await createPageWithStorageState(
       browser,
       adminStorageStatePath,
-      testInfo
+      testInfo,
     );
 
     try {
       // Step 1: Admin starts impersonation of the owner
       await page.goto(
-        `/dashboard/organizations?search=${encodeURIComponent(ownerAuth.organization)}`
+        `/dashboard/organizations?search=${encodeURIComponent(ownerAuth.organization)}`,
       );
       const organizationRow = page
         .getByRole('row')
         .filter({
-          has: page
-            .getByRole('cell', { name: ownerAuth.organization })
-            .first(),
+          has: page.getByRole('cell', { name: ownerAuth.organization }).first(),
         })
         .first();
       await organizationRow
         .getByRole('button', { name: 'Impersonate' })
         .click();
       await expect(
-        page.getByText('Currently in Impersonation Mode')
+        page.getByText('Currently in Impersonation Mode'),
       ).toBeVisible();
 
-      // Get orgId early so we can restore the role in finally
-      const sessionRes = await page.request.get(
-        `${AUTH_BASE_PATH}/get-session`,
-        { failOnStatusCode: false }
-      );
-      const session = await sessionRes.json();
-      const orgId = session.session.activeOrganizationId;
+      const helperCtx = await genCtx();
+      await login(helperCtx, helperAuth);
+      const setActiveRes = await helperCtx.post(ORG_SET_ACTIVE, {
+        data: { organizationId: ownerOrganizationId },
+        failOnStatusCode: false,
+      });
+      expect(setActiveRes.status()).toBe(200);
 
       try {
-        // Step 2: Downgrade owner to member via the Members UI
-        await page.goto(`${PATH_ORGANIZATION}/members`);
-        await page.waitForLoadState('networkidle');
-        await page.screenshot({ path: path.join(testInfo.outputDir, 'members-page.png') });
-        // Find the owner's card by their email and click the ⋯ menu
-        const ownerCard = page
-          .locator('[data-slot="card-content"] [data-slot="card"]')
-          .filter({ hasText: ownerAuth.email });
-        await expect(ownerCard).toBeVisible({ timeout: 10_000 });
-        // The ⋯ button has no aria-label; use the dropdown menu trigger
-        await ownerCard.locator('[data-slot="dropdown-menu-trigger"]').click();
-        await page.getByRole('menuitem', { name: 'Update Role' }).click();
-
-        // In the Update Role dialog, select "Member" role
-        const dialog = page.getByRole('dialog');
-        await expect(dialog).toBeVisible();
-        await dialog.getByRole('combobox').click();
-        await page.getByRole('option', { name: 'Member' }).click();
-        await dialog.getByRole('button', { name: 'Update Role' }).click();
-        await expect(dialog).toBeHidden();
+        // Step 2: Downgrade owner to member via a separate owner session.
+        const ownerMemberId = await getOrganizationMemberId(
+          helperCtx,
+          ownerOrganizationId,
+          ownerUserId,
+        );
+        await updateOrganizationMemberRole(
+          helperCtx,
+          ownerOrganizationId,
+          ownerMemberId,
+          'member',
+        );
 
         // Step 3: Verify UI buttons are disabled on the applications page
         await page.goto(PATH_APPLICATIONS);
         await expect(
-          page.getByRole('button', { name: 'Add Application' })
+          page.getByRole('button', { name: 'Add Application' }),
         ).toBeDisabled();
 
         // Verify the actions menu (more button) is also disabled
@@ -282,26 +393,49 @@ test.describe('Impersonation UI', () => {
         }
 
         // Step 4: Write operations should return 403
-        const createAppRes = await page.request.post(API_APPLICATIONS, {
-          data: { name: `test-app-after-downgrade-${Date.now()}` },
-          failOnStatusCode: false,
-        });
+        const createAppRes = await page.request.post(
+          `/api/${ownerOrganizationSlug}/applications`,
+          {
+            data: { name: `test-app-after-downgrade-${Date.now()}` },
+            failOnStatusCode: false,
+          },
+        );
         expect(createAppRes.status()).toBe(403);
 
         // Step 5: Impersonation session remains active despite role change
         await expect(
-          page.getByText('Currently in Impersonation Mode')
+          page.getByText('Currently in Impersonation Mode'),
         ).toBeVisible();
       } finally {
-        // Step 6: Restore owner role via DB (always runs)
-        await x(
-          `kubectl exec -n api7 api7-postgresql-0 -- env PGPASSWORD=changeme psql -U api7ee -d api7ee -c "UPDATE member SET role = 'owner' WHERE user_id = '${ownerUserId}' AND organization_id = '${orgId}'"`
-        );
+        const cleanupErrors: string[] = [];
+        try {
+          const ownerMemberId = await getOrganizationMemberId(
+            helperCtx,
+            ownerOrganizationId,
+            ownerUserId,
+          );
+          if (ownerMemberId) {
+            await updateOrganizationMemberRole(
+              helperCtx,
+              ownerOrganizationId,
+              ownerMemberId,
+              'owner',
+            );
+          }
+        } catch (error) {
+          cleanupErrors.push(
+            `restore owner role failed: ${error instanceof Error ? error.message : String(error)}`,
+          );
+        }
+        await helperCtx.dispose();
+        if (cleanupErrors.length > 0) {
+          throw new Error(cleanupErrors.join('; '));
+        }
       }
 
       await page.getByRole('button', { name: 'Exit Impersonation' }).click();
       await expect(
-        page.getByText('Currently in Impersonation Mode')
+        page.getByText('Currently in Impersonation Mode'),
       ).toHaveCount(0);
     } finally {
       await context.close();
@@ -314,27 +448,25 @@ test.describe('Impersonation UI', () => {
     const { context, page } = await createPageWithStorageState(
       browser,
       adminStorageStatePath,
-      testInfo
+      testInfo,
     );
 
     try {
       // Step 1: Admin starts impersonation of the owner
       await page.goto(
-        `/dashboard/organizations?search=${encodeURIComponent(ownerAuth.organization)}`
+        `/dashboard/organizations?search=${encodeURIComponent(ownerAuth.organization)}`,
       );
       const organizationRow = page
         .getByRole('row')
         .filter({
-          has: page
-            .getByRole('cell', { name: ownerAuth.organization })
-            .first(),
+          has: page.getByRole('cell', { name: ownerAuth.organization }).first(),
         })
         .first();
       await organizationRow
         .getByRole('button', { name: 'Impersonate' })
         .click();
       await expect(
-        page.getByText('Currently in Impersonation Mode')
+        page.getByText('Currently in Impersonation Mode'),
       ).toBeVisible();
 
       // Step 2: Ban the owner using a separate admin context
@@ -350,7 +482,7 @@ test.describe('Impersonation UI', () => {
         // Step 3: Session should become invalid (get-session returns null body)
         const sessionAfterBanRes = await page.request.get(
           `${AUTH_BASE_PATH}/get-session`,
-          { failOnStatusCode: false }
+          { failOnStatusCode: false },
         );
         expect(sessionAfterBanRes.status()).toBe(200);
         const sessionBody = await sessionAfterBanRes.json();
@@ -360,13 +492,17 @@ test.describe('Impersonation UI', () => {
         await page.reload();
         await page.waitForLoadState('networkidle');
         await expect(
-          page.getByText('Currently in Impersonation Mode')
+          page.getByText('Currently in Impersonation Mode'),
         ).toHaveCount(0);
       } finally {
-        await adminCtx.post(`${AUTH_BASE_PATH}/admin/unban-user`, {
-          data: { userId: ownerUserId },
-          failOnStatusCode: false,
-        }).catch(() => {});
+        const unbanRes = await adminCtx.post(
+          `${AUTH_BASE_PATH}/admin/unban-user`,
+          {
+            data: { userId: ownerUserId },
+            failOnStatusCode: false,
+          },
+        );
+        expect(unbanRes.status()).toBe(200);
         await adminCtx.dispose();
       }
     } finally {

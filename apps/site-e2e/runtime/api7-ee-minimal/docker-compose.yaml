@@ -1,0 +1,121 @@
+services:
+  prometheus:
+    image: api7/prometheus:${PROMETHEUS_TAG}
+    hostname: prometheus
+    user: root
+    command:
+      - --config.file=/opt/bitnami/prometheus/conf/prometheus.yml
+      - --web.enable-remote-write-receiver
+    healthcheck:
+      test: ["CMD", "/opt/bitnami/prometheus/bin/promtool", "check", "healthy"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - api7
+
+  postgresql:
+    image: api7/postgresql:${POSTGRESQL_TAG}
+    hostname: postgresql
+    user: root
+    environment:
+      POSTGRES_USER: api7ee
+      POSTGRES_PASSWORD: changeme
+      POSTGRES_POSTGRES_PASSWORD: changeme
+    ports:
+      - "127.0.0.1:${POSTGRES_HOST_PORT}:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "api7ee"]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    networks:
+      - api7
+
+  jaeger:
+    image: cr.jaegertracing.io/jaegertracing/jaeger:${JAEGER_TAG}
+    hostname: jaeger
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${JAEGER_UI_PORT}:16686"
+    networks:
+      - api7
+
+  api7-ee-dashboard:
+    image: ${API7_REGISTRY}/${API7_REGISTRY_NAMESPACE}/api7-ee-3-integrated:${API7_EE_TAG}
+    hostname: dashboard
+    restart: unless-stopped
+    volumes:
+      - ./dashboard-conf.yaml:/usr/local/api7/conf/conf.yaml:ro
+    command:
+      - -c
+      - /nodejs/bin/node /app/server.js & /usr/local/api7/api7-ee-dashboard -c /usr/local/api7/conf/conf.yaml
+    ports:
+      - "127.0.0.1:${DASHBOARD_HTTP_PORT}:7080"
+      - "127.0.0.1:${DASHBOARD_HTTPS_PORT}:7443"
+    healthcheck:
+      test:
+        - CMD
+        - /nodejs/bin/node
+        - -e
+        - "const net=require('net');const socket=net.connect(7443,'127.0.0.1');socket.on('connect',()=>{socket.end();process.exit(0)});socket.on('error',()=>process.exit(1));setTimeout(()=>process.exit(1),3000);"
+      interval: 10s
+      timeout: 5s
+      retries: 12
+    depends_on:
+      prometheus:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+    networks:
+      - api7
+
+  api7-ee-dp-manager:
+    image: ${API7_REGISTRY}/${API7_REGISTRY_NAMESPACE}/api7-ee-dp-manager:${API7_EE_TAG}
+    hostname: dp-manager
+    restart: unless-stopped
+    volumes:
+      - ./dp-manager-conf.yaml:/usr/local/api7/conf/conf.yaml:ro
+    command:
+      - /usr/local/api7/api7-ee-dp-manager
+      - -c
+      - /usr/local/api7/conf/conf.yaml
+    ports:
+      - "127.0.0.1:${DP_MANAGER_HTTP_PORT}:7900"
+      - "127.0.0.1:${DP_MANAGER_HTTPS_PORT}:7943"
+    depends_on:
+      api7-ee-dashboard:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+      prometheus:
+        condition: service_healthy
+    networks:
+      - api7
+
+  api7-ee-developer-portal:
+    image: ${API7_REGISTRY}/${API7_REGISTRY_NAMESPACE}/api7-ee-developer-portal:${API7_EE_TAG}
+    hostname: developer-portal
+    restart: unless-stopped
+    volumes:
+      - ./developer-portal-conf.yaml:/usr/local/api7/conf/conf.yaml:ro
+    command:
+      - /usr/local/api7/api7-ee-developer-portal
+      - -c
+      - /usr/local/api7/conf/conf.yaml
+    ports:
+      - "127.0.0.1:${DEVELOPER_PORTAL_API_PORT}:4321"
+    depends_on:
+      api7-ee-dashboard:
+        condition: service_healthy
+      postgresql:
+        condition: service_healthy
+    networks:
+      - api7
+
+networks:
+  api7:
+    name: api7-ee_api7
+    driver: bridge

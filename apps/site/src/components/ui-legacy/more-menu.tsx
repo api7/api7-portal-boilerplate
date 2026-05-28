@@ -3,7 +3,7 @@ import { type FC, type ReactNode } from 'react';
 import { Button, Dropdown } from 'antd';
 import type { ItemType } from 'antd/es/menu/interface';
 
-import IconImage, { BareIconImage } from '@/components/ui/icon-image';
+import IconImage, { BareIconImage } from '@/components/ui-legacy/icon-image';
 import { cn } from '@/lib/utils';
 
 type MenuItem = {
@@ -49,7 +49,7 @@ export const MoreMenu = <T extends Record<string, unknown>>(
       ),
       onClick: item.onClick,
       disabled: item.disabled,
-      className: cn('!px-3 !py-4 !leading-5'),
+      className: cn('px-3! py-4! leading-5!'),
     }));
 
   // Default button props for actions type
@@ -63,10 +63,10 @@ export const MoreMenu = <T extends Record<string, unknown>>(
   return (
     <Dropdown
       trigger={['click']}
-      destroyPopupOnHide
+      destroyOnHidden
       menu={{
         items: menuItems,
-        className: '!w-40 !p-0',
+        className: 'w-40! p-0!',
       }}
       {...rest}
     >
@@ -97,4 +97,3 @@ export const MoreMenu = <T extends Record<string, unknown>>(
     </Dropdown>
   );
 };
-

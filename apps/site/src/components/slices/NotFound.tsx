@@ -5,8 +5,8 @@ import type { PropsWithChildren } from 'react';
 import { Button } from 'antd';
 import { motion } from 'framer-motion';
 
-import { BareIconImage } from '../ui/icon-image';
-import Loading from '../ui/loading';
+import { BareIconImage } from '../ui-legacy/icon-image';
+import Loading from '../ui-legacy/loading';
 import { useRouter } from 'next/navigation';
 import { PATH_ROOT } from '@/constants/path-prefix';
 import { authClient } from '@/lib/auth/client';

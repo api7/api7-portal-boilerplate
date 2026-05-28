@@ -1,20 +1,23 @@
-import { test as baseTest, Page } from '@playwright/test';
-import path from 'node:path';
 import fs from 'node:fs';
-import {
-  A7Ctx,
-  a7GenCtx,
-  a7ActivateLicenseAndChangePasswd,
-} from './req/dashboard/common';
+import path from 'node:path';
+
+import { Page, test as baseTest } from '@playwright/test';
+
+import { PROVIDER_UI_PREFIX } from './constant';
 import {
   Ctx,
-  genCtx,
-  login,
   createOrganization,
+  genCtx,
   getSession,
+  login,
 } from './req/common';
-import { PROVIDER_UI_PREFIX } from './constant';
+import {
+  A7Ctx,
+  a7ActivateLicenseAndChangePasswd,
+  a7GenCtx,
+} from './req/dashboard/common';
 import { BetterAuthLogin } from './req/type';
+
 export const genAuth = (id: string): BetterAuthLogin => {
   return {
     password: `Password3412.${id}`,
@@ -45,7 +48,7 @@ const a7AuthConf = {
 } as const;
 
 export const test = baseTest.extend<
-  { a7Ctx: A7Ctx; ctx: Ctx; a7UIPage: Page; },
+  { a7Ctx: A7Ctx; ctx: Ctx; a7UIPage: Page },
   { workerStorageState: string; auth: BetterAuthLogin }
 >({
   auth: [
@@ -64,7 +67,7 @@ export const test = baseTest.extend<
       console.log('auth', auth);
       const fileName = path.resolve(
         test.info().project.outputDir,
-        `.auth/${auth.id}.json`
+        `.auth/${auth.id}.json`,
       );
       const ctx = await genCtx();
       await login(ctx, auth);
@@ -98,6 +101,7 @@ export const test = baseTest.extend<
     const storageState = await login();
     const context = await browser.newContext({
       baseURL: A7_URL,
+      ignoreHTTPSErrors: true,
       storageState,
     });
     const sharedPage = await context.newPage();
@@ -122,5 +126,5 @@ export const test = baseTest.extend<
     await use(sharedPage);
     await sharedPage.close();
     await context.close();
-  }
+  },
 });

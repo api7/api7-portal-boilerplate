@@ -1,6 +1,8 @@
 import { expect } from '@playwright/test';
+import { PATH_APPLICATIONS } from '@site/constants/path-prefix';
 
 import { test } from '../fixture';
+import { API_PRODUCTS } from '../req/dashboard/constant';
 import {
   a7DeleteProductList,
   a7PostGatewayProduct,
@@ -17,8 +19,6 @@ import {
   uiGoToApplications,
   uiSubscribeProductInAPIHub,
 } from '../utils/ui';
-import { PATH_APPLICATIONS } from '@site/constants/path-prefix';
-import { API_PRODUCTS } from '../req/dashboard/constant';
 
 const gateway_group_id = 'default';
 const random = Math.random().toString(36).substring(7);
@@ -85,7 +85,10 @@ test.describe('auth type auto fill in detail page', () => {
     expect(productDetailRes.status()).toBe(200);
     const productDetail = await productDetailRes.json();
     const authHeader = productDetail?.auth?.['key-auth']?.header;
-    expect(authHeader, 'expected key-auth header in product detail').toBeTruthy();
+    expect(
+      authHeader,
+      'expected key-auth header in product detail',
+    ).toBeTruthy();
 
     const title = page.getByTestId('meta-name').getByText(productName);
     await expect(title).toBeVisible();
@@ -93,7 +96,7 @@ test.describe('auth type auto fill in detail page', () => {
     await page.getByRole('button', { name: 'Test Request' }).first().click();
 
     const authType = page.locator(
-      '[id^="headlessui-popover-button-scalar-client"]:has-text("Key Authentication")'
+      '[id^="headlessui-popover-button-scalar-client"]:has-text("Key Authentication")',
     );
     await expect(authType).toBeVisible();
 
@@ -106,7 +109,7 @@ test.describe('auth type auto fill in detail page', () => {
 
     // click add credential
     const button = page.locator(
-      'button:has-text("Add Key Authentication Credential")'
+      'button:has-text("Add Key Authentication Credential")',
     );
     await button.click();
 
@@ -126,7 +129,7 @@ test.describe('auth type auto fill in detail page', () => {
     await page.locator('#copy-img').click();
 
     const clipboardText = await page.evaluate(() =>
-      navigator.clipboard.readText()
+      navigator.clipboard.readText(),
     );
 
     // subscribe product to application
@@ -135,23 +138,37 @@ test.describe('auth type auto fill in detail page', () => {
       productId,
     });
 
-    // go to product detail page
-    await page.goto(`/api-hub/detail?id=${productId}`);
+    // reload the current org-scoped product detail page so subscription-bound
+    // credential queries keep the active organization context.
+    await page.reload();
 
     await page.getByRole('button', { name: 'Test Request' }).first().click();
 
     // should see auth type and key
     await expect(authType).toBeVisible();
-    await page.getByLabel('API Client').getByRole('button', { name: 'Show Password' }).click();
+    await page
+      .getByLabel('API Client')
+      .getByRole('button', { name: 'Show Password' })
+      .click();
 
-    const token = page.getByText(clipboardText);
-    await expect(token).toBeVisible();
-
-    const authHeaderElement = page
+    const apiClientFieldValues = await page
       .getByLabel('API Client')
       .getByRole('textbox')
-      .first();
-    await expect(authHeaderElement).toContainText(authHeader);
+      .evaluateAll((elements) =>
+        elements.map((element) => {
+          if (
+            element instanceof HTMLInputElement ||
+            element instanceof HTMLTextAreaElement
+          ) {
+            return element.value;
+          }
+
+          return element.textContent ?? '';
+        }),
+      );
+
+    expect(apiClientFieldValues).toContain(authHeader);
+    expect(apiClientFieldValues).toContain(clipboardText);
 
     // close modal
     await closeButton.click();

@@ -5,8 +5,8 @@ import { useBoolean } from 'ahooks';
 import { Tooltip, Typography } from 'antd';
 
 import Form from '../form/Form';
-import { type AlertProps } from '@/components/ui/alert';
-import A7Modal, { type A7ModalProps } from '@/components/ui/modal';
+import { type AlertProps } from '@/components/ui-legacy/alert';
+import A7Modal, { type A7ModalProps } from '@/components/ui-legacy/modal';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 
 type Props = A7ModalProps &

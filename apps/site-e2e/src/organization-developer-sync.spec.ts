@@ -1,33 +1,43 @@
+import { Page, expect } from '@playwright/test';
+import { API_DEVELOPERS, AUTH_BASE_PATH } from '@site/constants/api-prefix';
+import {
+  PATH_ACCOUNT,
+  PATH_ORGANIZATION,
+  PATH_ROOT,
+} from '@site/constants/path-prefix';
+
 import { test } from '../fixture';
-import { expect, Page } from '@playwright/test';
-import { PATH_ORGANIZATION, PATH_ROOT } from '@site/constants/path-prefix';
 import { a7DefaultPortalID, a7DeveloperExists } from '../req/dashboard/common';
 import { uiVerifyToast } from '../utils/ui';
-import { API_DEVELOPERS, AUTH_BASE_PATH } from '@site/constants/api-prefix';
 
 /**
  * Helper to create an organization via the switcher dropdown (no slug field).
  * Returns the org id and auto-generated slug from the response.
  */
 const uiCreateOrganization = async (page: Page, orgName: string) => {
-  // Open the org switcher dropdown, then click "Create Organization" menu item
-  await page.getByRole('button', { name: 'Organization', exact: true }).click();
-  await page.getByRole('menuitem', { name: 'Create Organization' }).click();
+  await page.goto(`${PATH_ACCOUNT}/organizations`);
+  await page.getByRole('button', { name: 'Create Organization' }).click();
 
   const dialog = page.getByRole('dialog');
   await dialog.locator('input[name="name"]').fill(orgName);
+  const slug = orgName.toLowerCase();
+  await dialog.locator('input[name="slug"]').fill(slug);
+  await dialog.getByRole('button', { name: 'Create Organization' }).click();
 
-  const responsePromise = page.waitForResponse(
-    (response) =>
-      response.url().includes(
-        `${AUTH_BASE_PATH}${PATH_ORGANIZATION}/create`
-      ) && response.request().method() === 'POST'
+  await page.waitForURL(
+    (url) =>
+      url.pathname === `/${slug}` ||
+      url.pathname === `/${slug}/applications` ||
+      url.pathname.startsWith(`/${slug}/applications/`),
   );
 
-  await dialog.getByRole('button', { name: 'Create' }).click();
-
-  const response = await responsePromise;
+  const response = await page.request.get(
+    `${AUTH_BASE_PATH}/organization/get-full-organization`,
+    { failOnStatusCode: false },
+  );
+  expect(response.status()).toBe(200);
   const body = await response.json();
+  expect(body.slug).toBe(slug);
 
   // Wait for dialog to close and reset pointer-events leaked by Radix Dialog
   await expect(dialog).not.toBeVisible({ timeout: 5000 });
@@ -37,7 +47,16 @@ const uiCreateOrganization = async (page: Page, orgName: string) => {
   });
   await page.waitForTimeout(1000);
 
-  return { id: body.id, slug: body.slug };
+  return { id: body.id, slug };
+};
+
+const uiDeleteOrganization = async (page: Page, orgSlug: string) => {
+  await page.goto(`/${orgSlug}${PATH_ORGANIZATION}/settings`);
+  await page.getByRole('button', { name: 'Delete Organization' }).click();
+  await page
+    .getByRole('textbox', { name: 'Enter the organization slug' })
+    .fill(orgSlug);
+  await page.getByRole('button', { name: 'Delete Organization' }).click();
 };
 
 test.describe('Organization and Developer Sync', () => {
@@ -59,13 +78,7 @@ test.describe('Organization and Developer Sync', () => {
       // Verify that the corresponding developer has been created
       expect(await a7DeveloperExists(a7Ctx, portalId, org.id)).toBe(true);
 
-      await page.getByRole('button', { name: 'Organization' }).click();
-      await page.getByRole('button').click();
-      await page.getByRole('button', { name: 'Delete Organization' }).click();
-      await page
-        .getByRole('textbox', { name: 'Enter the organization slug' })
-        .fill(org.slug);
-      await page.getByRole('button', { name: 'Delete Organization' }).click();
+      await uiDeleteOrganization(page, org.slug);
       await uiVerifyToast(page, { hasText: 'Organization deleted' });
 
       // Verify that the corresponding developer has been deleted
@@ -92,7 +105,7 @@ test.describe('Organization and Developer Sync', () => {
 
       // Delete developer directly from provider portal (simulating admin action)
       const deleteRes = await a7Ctx.delete(
-        `${API_DEVELOPERS}/${org.id}?portal_id=${portalId}`
+        `${API_DEVELOPERS}/${org.id}?portal_id=${portalId}`,
       );
       expect(deleteRes.status()).toBe(200);
 
@@ -100,13 +113,7 @@ test.describe('Organization and Developer Sync', () => {
       expect(await a7DeveloperExists(a7Ctx, portalId, org.id)).toBe(false);
 
       // Now try to delete the organization - this should succeed even though developer is already gone
-      await page.getByRole('button', { name: 'Organization' }).click();
-      await page.getByRole('button').click();
-      await page.getByRole('button', { name: 'Delete Organization' }).click();
-      await page
-        .getByRole('textbox', { name: 'Enter the organization slug' })
-        .fill(org.slug);
-      await page.getByRole('button', { name: 'Delete Organization' }).click();
+      await uiDeleteOrganization(page, org.slug);
       await uiVerifyToast(page, { hasText: 'Organization deleted' });
     });
   });

@@ -2,7 +2,7 @@
 
 import { FormItemKey } from './KeyAuthAddDrawer';
 import MaskCopyTextItem from './MaskCopyTextItem';
-import A7Drawer from '@/components/ui/drawer';
+import A7Drawer from '@/components/ui-legacy/drawer';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import type { KeyAuthCredential, KeyAuthPluginValue } from '@/types/portal-sdk';
 

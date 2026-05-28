@@ -6,6 +6,7 @@ import { ShieldAlert } from 'lucide-react';
 import { authClient } from '@/lib/auth/client';
 import { isImpersonatingSession } from '@/lib/auth/admin';
 import { Button } from '@/components/ui/button';
+import { useActiveOrganizationId } from '@/lib/hooks/useActiveOrganizationId';
 
 const ImpersonationBanner = () => {
   const queryClient = useQueryClient();
@@ -15,21 +16,11 @@ const ImpersonationBanner = () => {
   const impersonatedBy = sessionReq.data?.session?.impersonatedBy;
   const isImpersonating = isImpersonatingSession(impersonatedBy);
 
-  const { data: organizations } = useQuery({
-    queryKey: ['impersonation-organizations'],
-    queryFn: async () => {
-      const { data } = await authClient.organization.list();
-      return data ?? [];
-    },
-    enabled: isImpersonating,
-  });
+  const { activeOrg, orgs, isLoading: orgsLoading } = useActiveOrganizationId();
 
   const activeOrganizationName = useMemo(() => {
-    const activeOrganizationId = sessionReq.data?.session?.activeOrganizationId;
-    return (
-      organizations?.find((org) => org.id === activeOrganizationId)?.name ?? 'Unknown organization'
-    );
-  }, [organizations, sessionReq.data?.session?.activeOrganizationId]);
+    return activeOrg?.name ?? 'Unknown organization';
+  }, [activeOrg]);
 
   if (!isImpersonating || !sessionReq.data?.user) {
     return null;

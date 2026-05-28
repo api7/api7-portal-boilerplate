@@ -2,14 +2,15 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Table, ConfigProvider, Input, Tooltip, Button } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
+import type { AnyObject } from 'antd/es/_util/type';
 import type { SorterResult } from 'antd/es/table/interface';
 
 import TableEmpty from './TableEmpty';
 import TableLoading from './TableLoading';
 import type { TableProps } from './type';
 import IconImage from '../icon-image';
-import { Skeleton } from '../skeleton';
-import Pagination from '@/components/ui/paginate';
+import { Skeleton } from '../../ui/skeleton';
+import Pagination from '@/components/ui-legacy/paginate';
 
 function wrapOnHeaderCell<T>(cols: ColumnsType<T>) {
   return cols.map((v) => ({
@@ -60,6 +61,7 @@ const A7Table = <T extends object, P = object>({
   refetch = () => {},
   options,
   savePage = true,
+  isError: _isError,
   ...rest
 }: TableProps<T, P>) => {
   const text = { ...defaultText, ...rest.text };
@@ -96,6 +98,17 @@ const A7Table = <T extends object, P = object>({
     // These states require the reset button to reset
     return nameSearchCheck && paginationCheck && !customResetStatus;
   }, [columns.length, rest, searchValue, customResetStatus]);
+
+  const rowKey =
+    options?.rowKey ||
+    ((record: AnyObject) =>
+      String(
+        record.id ??
+          record.key ??
+          record.name ??
+          record.slug ??
+          JSON.stringify(record)
+      ));
 
   return (
     <div className={'mt-4'} {...rest}>
@@ -175,6 +188,7 @@ const A7Table = <T extends object, P = object>({
             <Table
               {...options}
               style={{ marginTop: '16px' }}
+              rowKey={rowKey}
               loading={
                 isLoading || isValidating
                   ? {
@@ -183,7 +197,7 @@ const A7Table = <T extends object, P = object>({
                     }
                   : false
               }
-              columns={wrapOnHeaderCell(columns)}
+              columns={wrapOnHeaderCell(columns) as ColumnsType<AnyObject>}
               dataSource={data}
               pagination={false}
               onChange={(pagination, filters, sorter) => {

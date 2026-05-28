@@ -3,10 +3,10 @@ import { useEffect, useState } from 'react';
 import { Input } from 'antd';
 
 import type { CardListProps } from './types';
-import IconImage from '@/components/ui/icon-image';
-import Pagination from '@/components/ui/paginate';
-import ListEmpty from '@/components/ui/table/TableEmpty';
-import ListLoading from '@/components/ui/table/TableLoading';
+import IconImage from '@/components/ui-legacy/icon-image';
+import Pagination from '@/components/ui-legacy/paginate';
+import ListEmpty from '@/components/ui-legacy/table/TableEmpty';
+import ListLoading from '@/components/ui-legacy/table/TableLoading';
 import { cn } from '@/lib/utils';
 
 const CardList = <T extends object>({
@@ -53,7 +53,7 @@ const CardList = <T extends object>({
         <div
           className={cn(
             'flex justify-between',
-            helperText ? 'flex-column' : 'flex-row'
+            helperText ? 'flex-col' : 'flex-row'
           )}
         >
           <div className="flex justify-end w-full">
@@ -82,20 +82,20 @@ const CardList = <T extends object>({
       )}
       <div>
         {extra}
-        <div className="mt-5 relative">
-          <div className="grid grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 gap-4 auto-rows-fr">
+        <div className="mt-5 relative min-w-0">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,20rem),1fr))] gap-4 auto-rows-fr">
             {(isLoading
               ? (Array.from({ length: skeletonCount }).fill({}) as T[])
               : data
             ).map((item, idx) => (
-              <div key={idx} className="h-full">
-              <CardItem
-                {...{
-                  reload,
-                  isLoading: isLoading || isValidating,
-                  ...item,
-                }}
-              />
+              <div key={idx} className="h-full min-w-0">
+                <CardItem
+                  {...{
+                    reload,
+                    isLoading: isLoading || isValidating,
+                    ...item,
+                  }}
+                />
               </div>
             ))}
           </div>

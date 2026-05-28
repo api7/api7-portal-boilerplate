@@ -1,0 +1,53 @@
+services:
+  keycloak:
+    container_name: api7ee3-keycloak
+    image: api7/keycloak:21.1.1-debian-11-r8
+    hostname: api7ee3-keycloak
+    restart: unless-stopped
+    environment:
+      KEYCLOAK_ADMIN_USER: kc_admin
+      KEYCLOAK_ADMIN_PASSWORD: KHZ0yG4al1
+      KEYCLOAK_DATABASE_VENDOR: dev-file
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      api7:
+        aliases:
+          - api7ee3-keycloak
+
+  smtp4dev:
+    container_name: smtp4dev
+    image: rnwood/smtp4dev:v3
+    hostname: smtp4dev
+    restart: unless-stopped
+    environment:
+      ServerOptions__Urls: http://*:80
+      ServerOptions__HostName: smtp4dev
+      ServerOptions__SmtpEnabledAuthTypesWhenSecureConnection: "[]"
+      ServerOptions__SmtpEnabledAuthTypesWhenNotSecureConnection: "[]"
+      ServerOptions__SecureConnectionRequired: "false"
+    ports:
+      - "127.0.0.1:8000:80"
+      - "127.0.0.1:2525:25"
+    networks:
+      api7:
+        aliases:
+          - smtp4dev
+          - smtp4dev.api7.svc.cluster.local
+
+  httpbin:
+    container_name: httpbin
+    image: mccutchen/go-httpbin:v2.15.0
+    hostname: httpbin
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:17080:8080"
+    networks:
+      api7:
+        aliases:
+          - httpbin.default.svc
+
+networks:
+  api7:
+    external: true
+    name: api7-ee_api7

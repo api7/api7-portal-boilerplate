@@ -6,25 +6,18 @@ This guide explains how to configure and deploy the API7 Developer Portal.
 
 ## Deployment Sample
 
-The project includes reference configurations for Docker and Kubernetes deployment. These files are primarily for testing/development purposes, but you can use them as templates for your own deployment.
+The project includes reference configurations for Docker deployment and Compose-based local E2E runtime. These files are primarily for testing/development purposes, but you can use them as templates for your own deployment.
 
 **Reference files:**
-| File | Description |
-|------|-------------|
-| `Dockerfile` | Multi-stage build using Node.js 22 Alpine |
-| `apps/site/docker-entrypoint.sh` | Entrypoint script used by Docker image startup and preflight |
-| `dev-tools/devportal.yaml` | Example K8s manifests (Secret, ConfigMap, Service, Deployment) |
-| `Makefile` | Make targets for Kind cluster operations |
+
+| File                                                                | Description                                                  |
+| ------------------------------------------------------------------- | ------------------------------------------------------------ |
+| `Dockerfile`                                                        | Multi-stage build using Node.js 22 Alpine                    |
+| `apps/site/docker-entrypoint.sh`                                    | Entrypoint script used by Docker image startup and preflight |
+| `apps/site-e2e/runtime/api7-ee-minimal/docker-compose.yaml`         | Minimal API7 EE control-plane Compose stack                  |
+| `apps/site-e2e/runtime/api7-ee-minimal/docker-compose.support.yaml` | E2E support services such as Keycloak, smtp4dev, and httpbin |
 
 > **Note:** These configurations contain testing-related settings. Review and modify them for production use.
-
-The Kubernetes sample is intended to be deployed through the Make target so the Portal token is substituted into the generated Secret:
-
-```bash
-make kind-deploy-devportal PORTAL_TOKEN="a7prt-xxx"
-```
-
-If you apply `dev-tools/devportal.yaml` manually, create your own `developer-portal-token` Secret or render the manifest with `envsubst '$PORTAL_TOKEN'` first. Applying the file directly leaves `${PORTAL_TOKEN}` as a literal placeholder and the pod will fail Portal preflight.
 
 ---
 
@@ -32,7 +25,7 @@ If you apply `dev-tools/devportal.yaml` manually, create your own `developer-por
 
 The Developer Portal uses a centralized configuration file:
 
-```
+```text
 apps/site/config.yaml
 ```
 
@@ -43,6 +36,7 @@ Copy from `apps/site/config.yaml.example` and customize for your environment.
 You can set values in two ways:
 
 **1. Direct values** - Write the value directly in config:
+
 ```yaml
 # file: apps/site/config.yaml
 db:
@@ -71,12 +65,12 @@ export MY_TOKEN="a7prt-xxx"
 export MY_DB_CONNECTION="postgres://user:pass@host:5432/db"
 ```
 
-| Syntax | Behavior |
-|--------|----------|
-| `${VAR}` | Required - error if `VAR` is not set |
+| Syntax           | Behavior                                      |
+| ---------------- | --------------------------------------------- |
+| `${VAR}`         | Required - error if `VAR` is not set          |
 | `${VAR:default}` | Optional - uses `default` if `VAR` is not set |
 
-You can mix both approaches in the same config file. See `config.yaml.example` and `dev-tools/devportal.yaml` for reference examples.
+You can mix both approaches in the same config file. See `config.yaml.example` for reference examples.
 
 ---
 
@@ -108,6 +102,29 @@ pnpm db:generate   # Generate new migrations
 ```
 
 For local non-Docker runs, run migrations explicitly before starting the app. The Docker image entrypoint runs preflight before starting Next.js, including Portal connectivity, DB connectivity, and Drizzle migrations.
+
+## Local E2E Runtime
+
+The Kind-based E2E environment has been removed. Local E2E now uses Docker Compose directly.
+
+Start the control plane:
+
+```bash
+docker compose \
+  --env-file ./apps/site-e2e/runtime/api7-ee-minimal/.env.example \
+  -f ./apps/site-e2e/runtime/api7-ee-minimal/docker-compose.yaml \
+  up -d
+```
+
+Start the support services:
+
+```bash
+docker compose \
+  -f ./apps/site-e2e/runtime/api7-ee-minimal/docker-compose.support.yaml \
+  up -d
+```
+
+The Playwright global setup now builds and starts the FE-under-test container directly, so no Make target is involved.
 
 For multi-replica production deployments, prefer running migrations as a single Job before rolling out the web deployment, or otherwise ensure that only one startup path applies migrations.
 
@@ -219,12 +236,11 @@ app:
   # - https://www.better-auth.com/docs/reference/security#trusted-origins
   # - https://nextjs.org/docs/app/getting-started/metadata-and-og-images
   trustedOrigins:
+  
     - "https://your-portal.example.com"
 ```
 
 Set `app.baseURL` to the primary public URL for the portal. `app.trustedOrigins` must include every browser-facing origin (scheme, host, and port) that can access the portal.
-
----
 
 ## Docker Build Modes
 
@@ -289,10 +305,10 @@ If any preflight step fails, the container exits before the web server starts.
 
 ### Logo & Assets
 
-| File | Location | Purpose |
-|------|----------|---------|
-| Favicon | `apps/site/app/favicon.ico` | Browser tab icon |
-| Logo | `apps/site/public/logo.svg` | Main logo |
+| File    | Location                      | Purpose             |
+| ------- | ----------------------------- | ------------------- |
+| Favicon | `apps/site/app/favicon.ico`   | Browser tab icon    |
+| Logo    | `apps/site/public/logo.svg`   | Main logo           |
 | Hero BG | `apps/site/public/herobg.svg` | Homepage background |
 
 ### Application Name
@@ -324,7 +340,7 @@ Edit CSS variables in `apps/site/app/globals.css` for colors and styling.
 
 ## Quick Start Checklist
 
-1. [ ] Copy `config.yaml.example` to `config.yaml` (You can refer to file `dev-tools/devportal.yaml` to deploy in k8s in a simpler way)
+1. [ ] Copy `config.yaml.example` to `config.yaml`
 2. [ ] Configure database connection (`db.url`)
 3. [ ] Set authentication secret (`auth.secret`)
 4. [ ] Configure Portal API (`portal.url`, `portal.token`)

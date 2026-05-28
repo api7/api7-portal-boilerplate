@@ -1,12 +1,13 @@
+import { expect } from '@playwright/test';
+import { API_PRODUCTS } from '@site/constants/api-prefix';
 import { PATH_API_HUB } from '@site/constants/path-prefix';
+import type { ProductListRes } from '@site/types/portal-sdk';
+import { HTTPBIN_URL } from 'apps/site-e2e/constant';
+
 import { test } from '../../fixture';
 import { a7DeleteProductList } from '../../req/dashboard/product';
-import { expect } from '@playwright/test';
 import { a7UICreateExternalProduct } from '../../utils/a7UI';
-import { API_PRODUCTS } from '@site/constants/api-prefix';
-import type { ProductListRes } from '@site/types/portal-sdk';
 import { uiAPIHubSearchProduct, uiShowNotFound } from '../../utils/ui';
-import { HTTPBIN_URL } from 'apps/site-e2e/constant';
 
 // Reset storage state for this file to avoid being authenticated
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -28,14 +29,14 @@ test.describe(
         a7UIPage,
         externalProductPublic,
         'public',
-        a7Ctx
+        a7Ctx,
       );
       // create external product with visibility logged_in
       externalProductLoggedInId = await a7UICreateExternalProduct(
         a7UIPage,
         externalProductLoggedIn,
         'logged_in',
-        a7Ctx
+        a7Ctx,
       );
     });
 
@@ -76,24 +77,30 @@ test.describe(
       await expect(page.getByText('ID:')).toBeVisible();
       await expect(getOperationLink).toBeVisible();
       // Subscriptions tab should be hidden for guests
-      await expect(page.getByRole('tab', { name: 'Subscriptions' })).toBeHidden();
+      await expect(
+        page.getByRole('tab', { name: 'Subscriptions' }),
+      ).toBeHidden();
       await getOperationLink.click();
 
       // click Test Request
       await page.getByRole('button', { name: 'Test Request' }).first().click();
-      const sendBtn = page.getByRole('button', { name: 'Send get request to http://' })
+      const sendBtn = page.getByRole('button', {
+        name: 'Send get request to http://',
+      });
       await expect(sendBtn).toBeVisible();
       await sendBtn.click();
       await page.waitForResponse(
         (response) =>
           response.url().includes(`${HTTPBIN_URL}/get`) &&
-          response.status() === 200
+          response.status() === 200,
       );
 
       // check response status code
       await expect(page.getByRole('link', { name: '200 OK' })).toBeVisible();
       // check response body
-      const responseCode = page.locator('.body-raw-scroller');
+      const responseRegion = page.getByRole('region', { name: 'Response' });
+      await responseRegion.getByRole('button', { name: 'Raw' }).click();
+      const responseCode = responseRegion.getByRole('textbox');
       await expect(responseCode).toContainText(`${HTTPBIN_URL}/get`);
     });
 
@@ -116,5 +123,5 @@ test.describe(
       await uiShowNotFound(page);
       await expect(page.getByText(productName)).toBeHidden();
     });
-  }
+  },
 );

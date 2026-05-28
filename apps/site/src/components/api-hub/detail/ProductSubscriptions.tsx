@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import { useSearchParams } from 'next/navigation';
 import { useCreation } from 'ahooks';
-import { Button, Typography } from 'antd';
+import { Button } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { toast } from 'sonner';
 
@@ -14,9 +14,9 @@ import SubscribeAPIProductApplicationModal from '../../applications/components/S
 import ValidateModal from '@/components/slices/modal/ValidateModal';
 import { portalClient } from '@/lib/portal-sdk/client';
 import TimeFormat from '@/components/slices/time-format';
-import IconImage from '@/components/ui/icon-image';
-import { MoreMenu } from '@/components/ui/more-menu';
-import A7Table from '@/components/ui/table';
+import IconImage from '@/components/ui-legacy/icon-image';
+import { MoreMenu } from '@/components/ui-legacy/more-menu';
+import A7Table from '@/components/ui-legacy/table';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
@@ -87,8 +87,12 @@ const ProductSubscriptions = () => {
             ? `/${orgSlug}${PATH_APPLICATIONS}/detail?id=${record.application_id}`
             : `${PATH_APPLICATIONS}/detail?id=${record.application_id}`;
           return (
-            <Link href={href} target="_blank">
-              <Typography.Link>{name}</Typography.Link>
+            <Link
+              href={href}
+              target="_blank"
+              className="text-primary hover:text-primary/80"
+            >
+              {name}
             </Link>
           );
         },

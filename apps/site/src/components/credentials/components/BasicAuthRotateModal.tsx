@@ -7,7 +7,7 @@ import { FormItemBasicAuth } from './BasicAuthAddDrawer';
 import { useApplicationId } from '../hook';
 import Form from '@/components/slices/form/Form';
 import { portalClient } from '@/lib/portal-sdk/client';
-import A7Modal from '@/components/ui/modal';
+import A7Modal from '@/components/ui-legacy/modal';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import type {
   BasicAuthCredential,
@@ -24,9 +24,9 @@ const BasicAuthRotateModal = (props: BasicAuthRotateModalProps) => {
   const [form] = ProForm.useForm();
   const applicationId = useApplicationId();
 
-  if (!oldData) return null;
-
   const submitRotate = (form: CredentialForm) => {
+    if (!oldData) return Promise.resolve();
+
     const { username, password } = form?.['basic-auth'] as BasicAuthPluginValue;
 
     return portalClient.application.credential
@@ -47,7 +47,7 @@ const BasicAuthRotateModal = (props: BasicAuthRotateModalProps) => {
   return (
     <A7Modal
       title={'Rotate Basic Authentication Credential'}
-      onOk={form.submit}
+      onOk={oldData ? form.submit : undefined}
       destroyOnHidden
       alertProps={{
         type: 'error',
@@ -68,7 +68,7 @@ const BasicAuthRotateModal = (props: BasicAuthRotateModalProps) => {
         submitter={false}
         preserve={false}
       >
-        <FormItemBasicAuth form={form} />
+        {oldData ? <FormItemBasicAuth form={form} /> : null}
       </Form>
     </A7Modal>
   );

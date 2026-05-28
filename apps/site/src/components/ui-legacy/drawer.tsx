@@ -41,12 +41,16 @@ const A7Drawer: React.FC<A7DrawerProps> = (props) => {
     customAlert,
     ...drawerProps
   } = props;
+  const {
+    message: _alertMessage,
+    title: alertPropTitle,
+    ...safeAlertProps
+  } = props.alertProps || {};
+  const alertTitle = alertPropTitle ?? props.alertProps?.message;
   return (
     <Drawer
       closeIcon={null}
       size='large'
-      // Doesn't work well with form's preserve={false}, clearOnDestroy
-      // destroyOnHidden
       zIndex={1400}
       title={
         <div className="flex justify-between text-lg font-semibold">
@@ -79,7 +83,7 @@ const A7Drawer: React.FC<A7DrawerProps> = (props) => {
         </div>
       }
       {...drawerProps}
-      classNames={{ body: '!px-6', ...drawerProps.classNames }}
+      classNames={{ body: 'px-6!', ...drawerProps.classNames }}
     >
       {showAlert &&
         (customAlert || (
@@ -88,7 +92,8 @@ const A7Drawer: React.FC<A7DrawerProps> = (props) => {
             showIcon
             animate={{ scale: [0, 1], y: 0 }}
             transition={{ duration: 0.3 }}
-            {...props.alertProps}
+            {...safeAlertProps}
+            title={alertTitle}
           />
         ))}
 
@@ -98,4 +103,3 @@ const A7Drawer: React.FC<A7DrawerProps> = (props) => {
 };
 
 export default A7Drawer;
-

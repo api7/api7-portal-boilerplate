@@ -9,7 +9,7 @@ import Select, {
 } from 'react-select';
 
 import A7Label from '../api7-label';
-import { BareIconImage } from '@/components/ui/icon-image';
+import { BareIconImage } from '@/components/ui-legacy/icon-image';
 import { cn } from '@/lib/utils';
 
 export type Options = {
@@ -94,15 +94,19 @@ type LabelListProps = {
 type TagWrapperProps = TagProps & { textProps?: TextProps };
 
 const TagWrapper = (props: TagWrapperProps) => {
-  const { children, color = 'blue', textProps, ...rest } = props;
+  const { children, color = 'blue', textProps, className, ...rest } = props;
   return (
-    <A7Label className="mr-1" color={color as string} {...rest}>
+    <A7Label
+      className={cn('mr-1 max-w-full align-middle', className)}
+      color={color as string}
+      {...rest}
+    >
       <Tooltip placement="top" arrow title={children}>
         <Typography.Text
           ellipsis
           {...textProps}
           className={cn(
-            'text-current text-[length:inherit]',
+            'max-w-full text-current text-[length:inherit]',
             textProps?.className
           )}
         >

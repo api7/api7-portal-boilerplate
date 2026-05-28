@@ -1,11 +1,41 @@
+import { randomUUID } from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
+
 import { A7Ctx } from '../req/dashboard/common';
 import {
-  GetHelmDeploymentScript,
-  a7GetHelmDeploymentScript,
+  GetDockerDeploymentScript,
+  a7GetDockerDeploymentScript,
 } from '../req/dashboard/gateway';
 import { waitForPort } from './helper';
 
 const tinyexecPromise = import('tinyexec').then((m) => m.x);
+
+const ROOT_DIR = process.cwd().replace(/\/apps\/site-e2e$/, '');
+const E2E_RUNTIME_DIR = path.join(
+  ROOT_DIR,
+  'apps/site-e2e/runtime/api7-ee-minimal',
+);
+const E2E_ENV_FILE = path.join(E2E_RUNTIME_DIR, '.env.example');
+const E2E_COMPOSE_FILE = path.join(E2E_RUNTIME_DIR, 'docker-compose.yaml');
+const E2E_SUPPORT_COMPOSE_FILE = path.join(
+  E2E_RUNTIME_DIR,
+  'docker-compose.support.yaml',
+);
+const E2E_DEVPORTAL_CONFIG_PATH = path.join(
+  E2E_RUNTIME_DIR,
+  'devportal.e2e.config.yaml',
+);
+const E2E_GATEWAY_DIR = path.join(E2E_RUNTIME_DIR, 'gateway_conf');
+const E2E_GATEWAY_CONFIG = path.join(E2E_GATEWAY_DIR, 'config.yaml');
+const E2E_GATEWAY_UID = path.join(E2E_GATEWAY_DIR, 'apisix.uid');
+const E2E_FE_CONTAINER = 'developer-portal-e2e';
+const E2E_FE_IMAGE =
+  process.env.E2E_FE_IMAGE || 'api7-ee-developer-portal-e2e:dev';
+const E2E_GATEWAY_NAME = 'api7-ee-gateway-1';
+const E2E_NETWORK = 'api7-ee_api7';
+const E2E_GATEWAY_HTTP_PORT = 9080;
+const E2E_GATEWAY_HTTPS_PORT = 9443;
 
 type ExcludeFirst<T extends any[]> = T extends [any, ...infer Rest]
   ? Rest
@@ -13,6 +43,27 @@ type ExcludeFirst<T extends any[]> = T extends [any, ...infer Rest]
 type XArgs = ExcludeFirst<Parameters<Awaited<typeof tinyexecPromise>>>;
 
 const xParams = [[], { nodeOptions: { shell: true } }] as XArgs;
+const shellQuote = (value: string) => `'${value.replace(/'/g, `'"'"'`)}'`;
+const SAFE_TOKEN = /^[a-zA-Z0-9._/-]+$/;
+
+const assertSafeToken = (field: string, value: string) => {
+  if (!SAFE_TOKEN.test(value)) {
+    throw new Error(`Unsafe ${field}: ${value}`);
+  }
+  return value;
+};
+
+const minimalComposeCmd = [
+  'docker compose',
+  `--env-file ${shellQuote(E2E_ENV_FILE)}`,
+  `-f ${shellQuote(E2E_COMPOSE_FILE)}`,
+].join(' ');
+
+const supportComposeCmd = [
+  'docker compose',
+  `-f ${shellQuote(E2E_SUPPORT_COMPOSE_FILE)}`,
+].join(' ');
+
 export const x = async (cmd: string, ...args: XArgs) => {
   const baseX = await tinyexecPromise;
   return baseX(cmd, ...([...xParams, ...args] as XArgs));
@@ -20,147 +71,232 @@ export const x = async (cmd: string, ...args: XArgs) => {
 
 export const k8NS = 'api7';
 
-export const k8WaitReady = async (label: string, ns = k8NS, timeout = 300) => {
+const runChecked = async (cmd: string, errorMessage: string) => {
+  const result = await x(cmd);
+  if (result.exitCode !== 0) {
+    throw new Error(
+      `${errorMessage}: ${String(result.stderr ?? result.stdout ?? '').trim()}`,
+    );
+  }
+
+  return result;
+};
+
+const ensureGatewayRuntimeFiles = () => {
+  fs.mkdirSync(E2E_GATEWAY_DIR, { recursive: true });
+
+  if (!fs.existsSync(E2E_GATEWAY_CONFIG)) {
+    fs.writeFileSync(
+      E2E_GATEWAY_CONFIG,
+      'nginx_config:\n  error_log_level: warn\n  worker_processes: 1\n',
+    );
+  }
+
+  if (!fs.existsSync(E2E_GATEWAY_UID)) {
+    fs.writeFileSync(E2E_GATEWAY_UID, `${randomUUID().toLowerCase()}\n`);
+  }
+};
+
+export const ensureMinimalPlatform = async () => {
+  await runChecked(
+    `${minimalComposeCmd} up -d`,
+    'Failed to start API7 EE runtime',
+  );
+  await waitForPort(7443, 120000, '127.0.0.1');
+  await waitForPort(4321, 120000, '127.0.0.1');
+};
+
+export const ensureSupportServices = async () => {
+  await runChecked(
+    `${supportComposeCmd} up -d`,
+    'Failed to start E2E support services',
+  );
+
+  await waitForPort(8080, 120000);
+  await waitForPort(8000, 120000);
+  await waitForPort(17080, 120000);
+};
+
+export const buildDevPortalImage = async () => {
+  await runChecked(
+    `cd ${shellQuote(ROOT_DIR)} && docker build -f Dockerfile --build-arg NEXT_PUBLIC_TESTING=true -t ${shellQuote(E2E_FE_IMAGE)} .`,
+    'Failed to build E2E developer portal image',
+  );
+};
+
+export const execPostgres = async (sql: string) => {
   return await x(
-    `kubectl wait --for=condition=ready pod -l ${label} -n ${ns} --timeout=${timeout}s`
-  ).then(({ exitCode, stderr }) => {
-    if (exitCode !== 0) throw new Error(stderr);
-  });
+    `${minimalComposeCmd} exec -T postgresql env PGPASSWORD=changeme psql -v ON_ERROR_STOP=1 -U api7ee -d postgres -c ${shellQuote(sql)}`,
+  );
+};
+
+export const getDevPortalLogs = async (tail = 100) => {
+  return await x(`docker logs --tail=${tail} ${E2E_FE_CONTAINER}`);
+};
+
+export const k8WaitReady = async (
+  _label: string,
+  _ns = k8NS,
+  timeout = 300,
+) => {
+  await waitForPort(3001, timeout * 1000);
 };
 
 export const k8PortForward = async (
-  label: string,
+  _label: string,
   portForward: `${string}:${string}`,
-  ns = k8NS
 ) => {
   const [localPort] = portForward.split(':');
+  await waitForPort(parseInt(localPort, 10), 30000);
+};
 
-  // Kill existing port-forward processes
-  await x(
-    `pkill -f "kubectl.*port-forward.*${localPort}" || true`,
-    []
+const startDevPortalContainer = async () => {
+  if (!fs.existsSync(E2E_DEVPORTAL_CONFIG_PATH)) {
+    throw new Error(
+      `Missing E2E developer portal config: ${E2E_DEVPORTAL_CONFIG_PATH}`,
+    );
+  }
+
+  await x(`docker rm -f ${E2E_FE_CONTAINER} || true`);
+  await runChecked(
+    [
+      'docker run -d',
+      `--name ${E2E_FE_CONTAINER}`,
+      `--network ${E2E_NETWORK}`,
+      '-p 127.0.0.1:3001:3001',
+      `-v ${shellQuote(E2E_DEVPORTAL_CONFIG_PATH)}:/app/apps/site/config.yaml:ro`,
+      shellQuote(E2E_FE_IMAGE),
+    ].join(' '),
+    'Failed to start E2E developer portal container',
   );
-
-  // Brief wait for port to be released
-  await new Promise((r) => setTimeout(r, 500));
-
-  const logId = label.split('/').join('-');
-  const op = `kubectl port-forward -n ${ns} ${label} ${portForward} -v 10 > /tmp/portforward-${logId}-${+Date.now()}.log 2>&1 &`;
-  const { exitCode, stderr } = await x(op);
-  if (exitCode !== 0) throw new Error(stderr);
-
-  // Wait for port to be listening
-  await waitForPort(parseInt(localPort), 30000);
 };
 
 export const restartDevPortal = async (
-  deploymentName = 'developer-portal',
-  serviceName = 'developer-portal',
-  portForward: `${string}:${string}` = '3001:3001',
-  ns = k8NS
+  _deploymentName = 'developer-portal',
+  _serviceName = 'developer-portal',
+  _portForward: `${string}:${string}` = '3001:3001',
+  _ns = k8NS,
 ) => {
-  await x(`kubectl rollout restart deployment/${deploymentName} -n ${ns}`);
-  await k8WaitReady(`app=${deploymentName}`, ns, 300);
+  await startDevPortalContainer();
+  await waitForPort(3001, 120000);
   await new Promise((resolve) => setTimeout(resolve, 5000));
-  await k8PortForward(`svc/${serviceName}`, portForward, ns);
 };
 
 export const k8KeyCloakPort = 8080;
 export const k8DeployKeyCloak = async (port = k8KeyCloakPort) => {
-  await x(
-    `kubectl apply -f ./apps/site-e2e/fixtures/keycloak/keycloak.yaml -n ${k8NS}`
+  await runChecked(
+    `${supportComposeCmd} up -d keycloak`,
+    'Failed to start Keycloak',
   );
-  await k8WaitReady('app=keycloak');
-  await k8PortForward('svc/api7ee3-keycloak', `${port}:8080`);
+  await waitForPort(port, 120000);
 };
 
 export const fixturesPath = './apps/site-e2e/fixtures';
 export const k8DeleteKeyCloak = async () => {
-  await x(
-    `kubectl delete -f ${fixturesPath}/keycloak/keycloak.yaml -n ${k8NS} --wait`
-  ).then((out) => {
+  await x('docker rm -f api7ee3-keycloak || true').then((out) => {
     console.log('delete keycloak Result', JSON.stringify(out));
-  });
-};
-
-export const k8DeployLDAP = async (ns = k8NS) => {
-  if (ns !== k8NS) await x(`kubectl namespace ${ns}`);
-  await x(`kubectl create secret generic openldap-certs \
-  --from-file=ldapserver.crt=${fixturesPath}/ldap/ldapserver.crt \
-  --from-file=ldapserver.key=${fixturesPath}/ldap/ldapserver.key \
-  --from-file=ldapCA.crt=${fixturesPath}/ldap/ldapCA.crt \
-  --namespace ${ns}`);
-  await x(`kubectl apply -f ${fixturesPath}/ldap/openldap.yaml -n ${ns}`);
-  await k8WaitReady('app.kubernetes.io/name=openldap');
-};
-
-export const k8DeleteLDAP = async (ns = k8NS) => {
-  await x(
-    `kubectl delete -f ${fixturesPath}/ldap/openldap.yaml -n ${ns} --wait`
-  ).then((out) => {
-    console.log('delete ldap Result', JSON.stringify(out));
   });
 };
 
 export const k8DeployA7Gateway = async (
   ctx: A7Ctx,
-  data: GetHelmDeploymentScript
+  data: Omit<GetDockerDeploymentScript, 'image'>,
 ) => {
-  const name = data.name || 'api7-ee-3-gateway';
-  const ns = data.namespace || k8NS;
-  // clear old secret if exist
-  await x(`kubectl delete secret ${name}-tls -n ${ns} --ignore-not-found`);
+  const name = assertSafeToken('gateway name', data.name || E2E_GATEWAY_NAME);
+  const registry = assertSafeToken(
+    'registry',
+    process.env.API7_REGISTRY || process.env.REGISTRY || 'docker.io',
+  );
+  const registryNamespace = assertSafeToken(
+    'registry namespace',
+    process.env.API7_REGISTRY_NAMESPACE || process.env.REGISTRY_NS || 'api7',
+  );
+  const gatewayTag = (
+    process.env.API7_GATEWAY_TAG ||
+    process.env.API7_EE_TAG ||
+    'v3.9.13'
+  ).replace(/^v/, '');
+  const safeGatewayTag = assertSafeToken('gateway tag', gatewayTag);
 
-  const script = await a7GetHelmDeploymentScript(ctx, data);
-  const { REGISTRY, REGISTRY_NS } = process.env;
-  const finalScript = script
-    // replace image with dev version
-    .replace(
-      'repository=api7/api7-ee-3-gateway',
-      `repository=${REGISTRY}/${REGISTRY_NS}/api7-ee-3-gateway`
-    )
-    // prevent `//` from being converted to `/`
-    .replaceAll('https://', 'https:\\/\\/');
-  const { stdout, stderr, exitCode } = await x(finalScript);
-  if (exitCode !== 0) throw new Error(stderr);
-  console.log('deploy gateway instance', stdout, finalScript);
-  // wait ready
-  await k8WaitReady('app.kubernetes.io/instance=api7-ee-3-gateway');
+  ensureGatewayRuntimeFiles();
+  await x(`docker rm -f ${shellQuote(name)} || true`);
+
+  const script = await a7GetDockerDeploymentScript(ctx, {
+    ...data,
+    image: `${registry}/${registryNamespace}/api7-ee-3-gateway:${safeGatewayTag}`,
+    name,
+    http_port: E2E_GATEWAY_HTTP_PORT,
+    https_port: E2E_GATEWAY_HTTPS_PORT,
+    dp_manager_address: 'https://dp-manager:7943',
+    extra_args: [
+      `--network=${E2E_NETWORK}`,
+      `-v ${E2E_GATEWAY_CONFIG}:/usr/local/apisix/conf/config.yaml`,
+      `-v ${E2E_GATEWAY_UID}:/usr/local/apisix/conf/apisix.uid`,
+    ],
+  });
+
+  const deployCmd = `cd ${shellQuote(ROOT_DIR)} && timeout 15s ${script}`;
+  const { stdout, stderr, exitCode } = await x(deployCmd);
+  if (exitCode === 124) {
+    const logs = await x(`docker logs --tail=200 ${shellQuote(name)} || true`);
+    const ps = await x(
+      `docker ps -a --filter name=${shellQuote(name)} || true`,
+    );
+    throw new Error(
+      [
+        'Gateway deployment timed out after 15s',
+        `stderr: ${String(stderr ?? '').trim()}`,
+        `ps:\n${String(ps.stdout ?? '').trim()}`,
+        `logs:\n${String(logs.stdout ?? logs.stderr ?? '').trim()}`,
+      ].join('\n\n'),
+    );
+  }
+  if (exitCode !== 0) {
+    const logs = await x(`docker logs --tail=200 ${shellQuote(name)} || true`);
+    const ps = await x(
+      `docker ps -a --filter name=${shellQuote(name)} || true`,
+    );
+    throw new Error(
+      [
+        'Gateway deployment command failed',
+        `stderr: ${String(stderr ?? '').trim()}`,
+        `ps:\n${String(ps.stdout ?? '').trim()}`,
+        `logs:\n${String(logs.stdout ?? logs.stderr ?? '').trim()}`,
+      ].join('\n\n'),
+    );
+  }
+  console.log('deploy gateway instance', {
+    containerName: name,
+    exitCode,
+    status: exitCode === 0 ? 'success' : 'failure',
+    shortSummary: String(stdout ?? '')
+      .trim()
+      .slice(0, 120),
+  });
+  try {
+    await waitForPort(E2E_GATEWAY_HTTP_PORT, 15000);
+  } catch (err) {
+    const logs = await x(`docker logs --tail=200 ${shellQuote(name)} || true`);
+    const ps = await x(
+      `docker ps -a --filter name=${shellQuote(name)} || true`,
+    );
+    throw new Error(
+      [
+        `Gateway port ${E2E_GATEWAY_HTTP_PORT} not ready within 15s`,
+        `cause: ${String(err)}`,
+        `ps:\n${String(ps.stdout ?? '').trim()}`,
+        `logs:\n${String(logs.stdout ?? logs.stderr ?? '').trim()}`,
+      ].join('\n\n'),
+    );
+  }
 };
 
 /** default uninstall the gateway */
 export const k8HelmUninstall = async (
-  data: Pick<GetHelmDeploymentScript, 'name' | 'namespace'> = {}
+  data: Pick<GetDockerDeploymentScript, 'name'> = {},
 ) => {
-  const { name = 'api7-ee-3-gateway', namespace = k8NS } = data;
-
-  // Check if release exists first
-  const { exitCode } = await x(`helm status ${name} -n ${namespace}`);
-  if (exitCode !== 0) {
-    console.log(`Helm release ${name} not found, skipping uninstall`);
-    return;
-  }
-
-  await x(`helm uninstall ${name} -n ${namespace} --wait`).then((out) => {
-    console.log('Helm Uninstall Result', JSON.stringify(out));
-  });
-
-  // Wait for pods to be fully terminated (ignore errors if no pods exist)
-  await x(
-    `kubectl wait --for=delete pod -l app.kubernetes.io/instance=${name} -n ${namespace} --timeout=60s`
-  ).catch(() => {});
-};
-
-export const k8DeployCas = async (ns = k8NS) => {
-  await x(`kubectl apply -f ${fixturesPath}/cas/cas.yaml -n ${ns}`);
-  await k8WaitReady('app=cas-server', ns, 600);
-  await k8PortForward('svc/cas-server', '8089:8089');
-};
-
-export const k8DeleteCas = async (ns = k8NS) => {
-  await x(
-    `kubectl delete -f ${fixturesPath}/cas/cas.yaml -n ${ns} --wait`
-  ).then((out) => {
-    console.log('delete cas Result', JSON.stringify(out));
+  const { name = E2E_GATEWAY_NAME } = data;
+  await x(`docker rm -f ${shellQuote(name)} || true`).then((out) => {
+    console.log('Gateway uninstall Result', JSON.stringify(out));
   });
 };

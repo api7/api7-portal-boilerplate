@@ -1,26 +1,32 @@
 import { expect, request } from '@playwright/test';
+
+import { KEYCLOAK_K8S_URL, KEYCLOAK_URL } from '../constant';
 import { test } from '../fixture';
+import { a7GetDCRProviderList } from '../req/dashboard/auth';
+import { a7PostGateway } from '../req/dashboard/gateway';
 import {
   a7DeleteProductList,
+  a7PostGatewayProduct,
   httpbinRawOAS,
 } from '../req/dashboard/product';
-import { k8HelmUninstall, k8DeployA7Gateway, k8PortForward } from '../utils/shell';
+import {
+  a7DeletePublishedRoute,
+  a7PostPublishedRoute,
+} from '../req/dashboard/route';
 import {
   a7DeleteService,
   a7PostPublishedService,
   a7PutServiceOAS,
 } from '../req/dashboard/service';
-import { a7PostGateway } from '../req/dashboard/gateway';
-import {
-  a7DeletePublishedRoute,
-  a7PostPublishedRoute,
-} from '../req/dashboard/route';
-import { uiGoToAPICredentials, uiSubscribeProductInAPIHub, } from '../utils/ui';
-import {
-  kcAdmin,
-} from '../utils/keycloak';
-import { a7UICreateDCR, a7UICreateGatewayProduct } from '../utils/a7UI';
+import { a7UICreateDCR } from '../utils/a7UI';
 import { getAccessToken } from '../utils/helper';
+import { kcAdmin } from '../utils/keycloak';
+import {
+  k8DeployA7Gateway,
+  k8HelmUninstall,
+  k8PortForward,
+} from '../utils/shell';
+import { uiGoToAPICredentials, uiSubscribeProductInAPIHub } from '../utils/ui';
 
 test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
   let gatewayId: string;
@@ -31,18 +37,45 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
   let productId: string;
   let initialAccessToken: string;
   let validToken: string;
+  let dcrProviderId: string;
   const seed = (+Date.now()).toString();
   const serviceName = `product-service-${seed}`;
   const productName = `gateway-product-${seed}`;
   const gatewayName = `gateway-product-${seed}`;
-  const keycloakBaseURL = 'http://api7ee3-keycloak:8080';
   const dcrProviderName = `dcr-provider-${seed}`;
-  const keycloakInitialAccessTokenAddress = `${keycloakBaseURL}/admin/master/console/#/master/clients/initial-access-token`;
-  const keycloakTokenURL = `${keycloakBaseURL}/realms/master/protocol/openid-connect/token`;
-  const keycloakIssuer = `${keycloakBaseURL}/realms/master`;
+  const keycloakInitialAccessTokenAddress = `${KEYCLOAK_K8S_URL}/admin/master/console/#/master/clients/initial-access-token`;
+  const keycloakTokenURL = `${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token`;
+  const keycloakIssuer = `${KEYCLOAK_K8S_URL}/realms/master`;
   const gatewayAddress = `http://localhost:9080`;
   const portalHost = 'httpbin.portal.org';
   const routePathPrefix = `/${seed}/anything`;
+
+  const expectGatewayStatus = async (token: string, expectedStatus: number) => {
+    const api = await request.newContext();
+
+    try {
+      await expect
+        .poll(
+          async () => {
+            const res = await api.get(`${gatewayAddress}${routePathPrefix}`, {
+              headers: {
+                Host: portalHost,
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            return res.status();
+          },
+          {
+            timeout: 120_000,
+            intervals: [1000, 2000, 5000],
+          },
+        )
+        .toBe(expectedStatus);
+    } finally {
+      await api.dispose();
+    }
+  };
 
   test.beforeAll(async ({ a7Ctx }) => {
     test.setTimeout(600_000);
@@ -70,8 +103,8 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
         type: 'roundrobin',
         nodes: [
           {
-            host: 'httpbin.default.svc',
-            port: 80,
+            host: 'httpbin',
+            port: 8080,
             weight: 100,
           },
         ],
@@ -101,11 +134,7 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
     await a7DeleteService(a7Ctx, serviceId, gatewayId);
   });
 
-  test('test gateway product with dcr', async ({
-    page,
-    a7Ctx,
-    a7UIPage,
-  }) => {
+  test('test gateway product with dcr', async ({ page, a7Ctx, a7UIPage }) => {
     test.setTimeout(600_000);
 
     await test.step('create keycloak client initial access token', async () => {
@@ -121,7 +150,9 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
       await page.getByTestId('expiration').fill('10');
       await page.getByTestId('count').getByLabel('Count').fill('100');
       await page.getByTestId('save').click();
-      initialAccessToken = await page.locator('[aria-label="Copyable input"]').inputValue();
+      initialAccessToken = await page
+        .locator('[aria-label="Copyable input"]')
+        .inputValue();
       expect(initialAccessToken).not.toBeNull();
     });
 
@@ -133,36 +164,59 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
         auth_headers_key: 'Authorization',
         auth_headers_value: `Bearer ${initialAccessToken}`,
       });
+
+      const dcrProviders = await a7GetDCRProviderList(a7Ctx);
+      dcrProviderId =
+        dcrProviders.list.find(({ name }) => name === dcrProviderName)?.id ||
+        '';
+      expect(dcrProviderId).toBeTruthy();
     });
 
     await test.step('create product with dcr', async () => {
-      productId = await a7UICreateGatewayProduct(a7UIPage, productName, gatewayName, serviceName, 'public', false, a7Ctx, 'dcr', dcrProviderName, portalHost);
+      const productRes = await a7PostGatewayProduct(a7Ctx, {
+        name: productName,
+        linked_gateway_services: [
+          {
+            gateway_group_id: gatewayId,
+            service_id: serviceId,
+          },
+        ],
+        auth: {
+          dcr: {
+            dcr_provider_id: dcrProviderId,
+          },
+        },
+      });
+      productId = productRes.value.id;
     });
 
     await test.step('go to application page to create oauth client', async () => {
       await uiGoToAPICredentials(page);
       await expect(
-        page.getByRole('main').getByText('Authentication Type')
+        page.getByRole('main').getByText('Authentication Type'),
       ).toBeVisible();
-      await expect(
-        page.getByRole('tab', { name: 'OAuth' })
-      ).toBeVisible();
+      await expect(page.getByRole('tab', { name: 'OAuth' })).toBeVisible();
       await page.getByRole('tab', { name: 'OAuth' }).click();
 
       await page.getByRole('button', { name: 'Add OAuth Client' }).click();
       await page.getByLabel('Identity Provider').click();
       await page.getByTitle(dcrProviderName).click();
       await page.locator('#redirect_uris_0_redirect_url').fill('*');
-      await page.locator('.ant-drawer-footer').locator('button', { hasText: 'Add' }).click();
+      await page
+        .locator('.ant-drawer-footer')
+        .locator('button', { hasText: 'Add' })
+        .click();
       await expect(
-        page.locator('.ant-alert', { hasText: 'OAuth Client Created' })
+        page.locator('.ant-alert', { hasText: 'OAuth Client Created' }),
       ).toBeVisible({ timeout: 5000 });
 
-      clientId = await page.locator('.ant-space-item', { hasText: 'Client ID' })
+      clientId = await page
+        .locator('.ant-space-item', { hasText: 'Client ID' })
         .locator('input')
         .inputValue();
 
-      clientSecret = await page.locator('.ant-space-item', { hasText: 'Client Secret' })
+      clientSecret = await page
+        .locator('.ant-space-item', { hasText: 'Client Secret' })
         .locator('input')
         .inputValue();
     });
@@ -186,15 +240,7 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
       });
       expect(validToken).not.toBeNull();
 
-      // request to gateway to verify the token
-      const api = await request.newContext();
-      const res = await api.get(`${gatewayAddress}/${routePathPrefix}`, {
-        headers: {
-          'Host': portalHost,
-          Authorization: `Bearer ${validToken}`,
-        },
-      });
-      expect(res.status()).toBe(200);
+      await expectGatewayStatus(validToken, 200);
     });
 
     await test.step('get invalid scope access token', async () => {
@@ -207,25 +253,15 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
         scope: 'email', // invalid scope
       });
 
-      // request to gateway to verify the token
-      const api = await request.newContext();
-      const res = await api.get(`${gatewayAddress}${routePathPrefix}`, {
-        headers: {
-          'Host': portalHost,
-          Authorization: `Bearer ${invalidToken}`,
-        },
-      });
-      expect(res.status()).toBe(401);
+      await expectGatewayStatus(invalidToken, 401);
     });
 
     await test.step('delete oauth client then check token can not access gateway', async () => {
       await uiGoToAPICredentials(page);
       await expect(
-        page.getByRole('main').getByText('Authentication Type')
+        page.getByRole('main').getByText('Authentication Type'),
       ).toBeVisible();
-      await expect(
-        page.getByRole('tab', { name: 'OAuth' })
-      ).toBeVisible();
+      await expect(page.getByRole('tab', { name: 'OAuth' })).toBeVisible();
       await page.getByRole('tab', { name: 'OAuth' }).click();
 
       // Open dropdown menu and click Delete
@@ -236,19 +272,11 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
 
       await page.locator('[id="inputText"]').fill(clientId);
       await page.getByRole('button', { name: 'Confirm' }).click();
-      await expect(page.locator('.ant-table-cell', { hasText: clientId })).toBeHidden();
+      await expect(
+        page.locator('.ant-table-cell', { hasText: clientId }),
+      ).toBeHidden();
 
-      // Brief wait for cache to be cleared
-      await page.waitForTimeout(5000);
-
-      const api = await request.newContext();
-      const res = await api.get(`${gatewayAddress}${routePathPrefix}`, {
-        headers: {
-          'Host': portalHost,
-          Authorization: `Bearer ${validToken}`,
-        },
-      });
-      expect(res.status()).toBe(401);
+      await expectGatewayStatus(validToken, 401);
     });
   });
 });

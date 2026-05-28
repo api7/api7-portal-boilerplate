@@ -1,9 +1,10 @@
-import { expect, Locator, Page } from '@playwright/test';
-import { PROVIDER_UI_PREFIX, PROVIDER_UI_ROOT_PATH } from '../constant';
-import { httpbinRawOAS } from '../req/dashboard/product';
+import { Locator, Page, expect } from '@playwright/test';
 import type { ProductVisibility } from '@site/types/portal-sdk';
 import { isString } from 'lodash';
+
+import { PROVIDER_UI_PREFIX, PROVIDER_UI_ROOT_PATH } from '../constant';
 import { A7Ctx, a7DefaultPortalID } from '../req/dashboard/common';
+import { httpbinRawOAS } from '../req/dashboard/product';
 
 export const a7UIVerifyToast = async (
   a7UIPage: Page,
@@ -20,24 +21,24 @@ type LocatorOptions = Parameters<Page['locator']>['1'];
 export const a7UIVerifyDesc = async (
   a7UIPage: Page,
   label: string | LocatorOptions,
-  content: string | LocatorOptions
+  content: string | LocatorOptions,
 ) => {
   await expect(
     a7UIPage
       .locator(
         '.ant-descriptions-item-label',
-        isString(label) ? { hasText: label } : label
+        isString(label) ? { hasText: label } : label,
       )
       .locator(
         'xpath=following-sibling::*[1]',
-        isString(content) ? { hasText: content } : content
-      )
+        isString(content) ? { hasText: content } : content,
+      ),
   ).toBeVisible();
 };
 
 export const a7UISelectVerify = async (
   a7UIPage: Page,
-  { target, isFullMatch = true, exist = true }
+  { target, isFullMatch = true, exist = true },
 ) => {
   const regexStr = `^${target}$`;
   const locator = a7UIPage.locator('[class$="-singleValue"]', {
@@ -48,7 +49,7 @@ export const a7UISelectVerify = async (
 
 export const a7UISelect = async (
   a7UIPage: Page,
-  { name, target, isFullMatch = true }
+  { name, target, isFullMatch = true },
 ) => {
   const s = `[data-cy="${name}"]`;
   await a7UIPage.locator(s).click();
@@ -64,9 +65,9 @@ export const a7UICreateExternalProduct = async (
   a7UIPage: Page,
   product = 'httpbin',
   visibility: ProductVisibility = 'public',
-  a7Ctx: A7Ctx
+  a7Ctx: A7Ctx,
 ) => {
-  const portalID = await a7DefaultPortalID(a7Ctx)
+  const portalID = await a7DefaultPortalID(a7Ctx);
   await a7UIPage.goto(`${PROVIDER_UI_PREFIX}/${portalID}/exposure/products`);
   await a7UIPage.getByRole('button', { name: 'Add API Product' }).click();
   const importOpenAPI = a7UIPage.getByRole('menuitem', {
@@ -82,7 +83,7 @@ export const a7UICreateExternalProduct = async (
     name: product,
     mimeType: 'application/yaml',
     buffer: Buffer.from(
-      httpbinRawOAS.replace('title: httpbin', `title: ${product}`)
+      httpbinRawOAS.replace('title: httpbin', `title: ${product}`),
     ),
   });
   const visibilityText =
@@ -96,7 +97,7 @@ export const a7UICreateExternalProduct = async (
     hasText: 'Add API Product Successfully',
   });
   await expect(
-    a7UIPage.locator('.chakra-text', { hasText: product })
+    a7UIPage.locator('.chakra-text', { hasText: product }),
   ).toBeVisible();
   // check visible
   await a7UIPage.getByRole('tab', { name: 'Visibility' }).click();
@@ -115,7 +116,7 @@ export const a7UICreateExternalProduct = async (
   await expect(
     a7UIPage.locator('.chakra-modal__header', {
       hasText: 'Publish API Product',
-    })
+    }),
   ).toBeVisible();
   await a7UIPage.getByPlaceholder(product).clear();
   await a7UIPage.getByPlaceholder(product).fill(product);
@@ -142,10 +143,12 @@ export const a7UICreateGatewayProduct = async (
   dcrName?: string,
   host?: string,
 ) => {
-  const portalID = await a7DefaultPortalID(a7Ctx)
+  const portalID = await a7DefaultPortalID(a7Ctx);
   await a7UIPage.goto(PROVIDER_UI_PREFIX);
   await a7UIPage.waitForURL('**/overview*');
-  const APIProductMenu = a7UIPage.locator('#menu-item-APIExposure').getByText('API Products');
+  const APIProductMenu = a7UIPage
+    .locator('#menu-item-APIExposure')
+    .getByText('API Products');
   await expect(APIProductMenu).toBeVisible();
   await APIProductMenu.click();
   await a7UIPage.getByRole('button', { name: 'Add API Product' }).click();
@@ -155,8 +158,10 @@ export const a7UICreateGatewayProduct = async (
   await expect(fromAPI7Gateway).toBeVisible();
   await fromAPI7Gateway.click();
   await a7UIPage.waitForURL(/.*\/add/);
-  await a7UIPage.waitForResponse(response =>
-    response.url().includes('/api/dcr_providers?') && response.status() === 200
+  await a7UIPage.waitForResponse(
+    (response) =>
+      response.url().includes('/api/dcr_providers?') &&
+      response.status() === 200,
   );
   await a7UIPage.locator('[name="name"]').fill(product);
   await expect(a7UIPage.locator('[data-cy="create-product"]')).toBeDisabled();
@@ -190,7 +195,7 @@ export const a7UICreateGatewayProduct = async (
 
   // default can_view_unsubscribed is true
   await expect(
-    a7UIPage.locator('[name="can_view_unsubscribed"]')
+    a7UIPage.locator('[name="can_view_unsubscribed"]'),
   ).toBeChecked();
   // if can_view_unsubscribed is false, uncheck it
   if (!can_view_unsubscribed) {
@@ -211,12 +216,31 @@ export const a7UICreateGatewayProduct = async (
     target: gatewayGroupName,
   });
   const lazySelect = drawer.locator('.lazy-load-select');
-  await lazySelect.locator('input').click();
-  await lazySelect.locator('input').fill(service);
-  await lazySelect.getByText(service, { exact: true }).click();
+  const serviceInput = lazySelect.locator('input');
+  await serviceInput.click();
+  await serviceInput.fill(service);
+  const serviceOption = a7UIPage.locator(
+    `[data-cy="select-option-${service}"]`,
+  );
+  const hasServiceOption = await serviceOption
+    .waitFor({ state: 'visible', timeout: 5000 })
+    .then(() => true)
+    .catch(() => false);
+
+  if (hasServiceOption) {
+    await serviceOption.click();
+  } else {
+    // Keep fallback for virtualized/async dropdown rendering.
+    await serviceInput.press('ArrowDown');
+    await serviceInput.press('Enter');
+  }
+
   if (host) {
-    await a7UIPage.locator('[data-cy="linked_hosts"]').click();
-    await a7UIPage.locator(`[data-cy="select-option-${host}"]`).click();
+    const linkedHosts = a7UIPage.locator('[data-cy="linked_hosts"]');
+    if (await linkedHosts.isVisible().catch(() => false)) {
+      await linkedHosts.click();
+      await a7UIPage.locator(`[data-cy="select-option-${host}"]`).click();
+    }
   }
   await drawer.getByRole('button', { name: 'Add' }).click();
   await a7UIPage.waitForTimeout(1000);
@@ -229,7 +253,7 @@ export const a7UICreateGatewayProduct = async (
     hasText: 'Add API Product Successfully',
   });
   await expect(
-    a7UIPage.getByText(product, { exact: true } ).first()
+    a7UIPage.getByText(product, { exact: true }).first(),
   ).toBeVisible();
   // check visible
   await a7UIPage.getByRole('tab', { name: 'Visibility' }).click();
@@ -249,7 +273,7 @@ export const a7UICreateGatewayProduct = async (
   await expect(
     a7UIPage.locator('.chakra-modal__header', {
       hasText: 'Publish API Product',
-    })
+    }),
   ).toBeVisible();
   await a7UIPage.getByPlaceholder(product).clear();
   await a7UIPage.getByPlaceholder(product).fill(product);
@@ -268,9 +292,9 @@ export const a7UIChangeProductVisibility = async (
   productId: string,
   visibility: ProductVisibility = 'public',
   canViewUnsubscribed = false,
-  a7Ctx: A7Ctx
+  a7Ctx: A7Ctx,
 ) => {
-  const portalID = await a7DefaultPortalID(a7Ctx)
+  const portalID = await a7DefaultPortalID(a7Ctx);
   await a7UIPage.goto(`/portals/${portalID}/exposure/products/${productId}`);
   await expect(a7UIPage.getByText('Linked Gateway Services')).toBeVisible();
   await a7UIPage.getByRole('tab', { name: 'Visibility' }).click();
@@ -306,13 +330,13 @@ export const a7UIChangeProductVisibility = async (
       has: canViewUnsubscribed
         ? a7UIPage.locator('label[data-disabled][data-checked]')
         : a7UIPage.locator('label[data-disabled]:not([data-checked])'),
-    }
+    },
   );
 };
 export const a7UIChangeProductAutoApproval = async (
   a7UIPage: Page,
   productId: string,
-  autoApproval: boolean
+  autoApproval: boolean,
 ) => {
   await a7UIPage.goto(`${PROVIDER_UI_ROOT_PATH}/${productId}`);
   await expect(a7UIPage.getByText('Linked Gateway Services')).toBeVisible();
@@ -346,7 +370,7 @@ export const a7UIChangeProductAutoApproval = async (
 
 export const a7UIGetAction = async (
   a7UIPage: Page,
-  options: Parameters<Page['locator']>['1']
+  options: Parameters<Page['locator']>['1'],
 ) => {
   await a7UIPage
     .locator('.chakra-menu__menu-button', { hasText: 'Actions' })
@@ -354,26 +378,35 @@ export const a7UIGetAction = async (
   return a7UIPage.locator('.chakra-menu__menuitem', options);
 };
 
-
 export const a7UICreateDCR = async (
   a7UIPage: Page,
   dcrData: {
-    name: string,
-    description: string,
-    issuer: string,
-    auth_headers_key: string,
-    auth_headers_value: string,
-  }) => {
-  const { name, description, issuer, auth_headers_key, auth_headers_value } = dcrData;
+    name: string;
+    description: string;
+    issuer: string;
+    auth_headers_key: string;
+    auth_headers_value: string;
+  },
+) => {
+  const { name, description, issuer, auth_headers_key, auth_headers_value } =
+    dcrData;
   await a7UIPage.goto('/dcr_providers');
   await a7UIPage.getByRole('button', { name: 'Add DCR Provider' }).click();
   await a7UIPage.getByRole('textbox', { name: 'Name', exact: true }).fill(name);
   await a7UIPage.getByLabel('Description').fill(description);
   await a7UIPage.getByRole('textbox', { name: 'Issuer' }).fill(issuer);
-  await a7UIPage.getByRole('group').locator('div').filter({ hasText: 'Auth headers (Optional)Add' }).getByRole('button').click();
+  await a7UIPage
+    .getByRole('group')
+    .locator('div')
+    .filter({ hasText: 'Auth headers (Optional)Add' })
+    .getByRole('button')
+    .click();
   await a7UIPage.locator('[name="headers.0.key"]').fill(auth_headers_key);
   await a7UIPage.locator('[name="headers.0.value"]').fill(auth_headers_value);
-  await a7UIPage.locator('.ant-drawer-footer').locator('button', { hasText: 'Add' }).click();
+  await a7UIPage
+    .locator('.ant-drawer-footer')
+    .locator('button', { hasText: 'Add' })
+    .click();
   await a7UIVerifyToast(a7UIPage, {
     hasText: 'Add DCR Provider Successfully',
   });

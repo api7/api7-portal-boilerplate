@@ -1,18 +1,13 @@
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils"
 
-const Skeleton = ({
-  className,
-  ...props
-}: React.HTMLAttributes<HTMLDivElement>) => {
+function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn(
-        'h-full rounded relative overflow-hidden bg-gray-200/50 before:absolute before:inset-0 before:w-[200%] before:-translate-x-full before:animate-[shimmer_2s_infinite] before:bg-gradient-to-r before:from-transparent before:via-gray-300 dark:before:via-gray-700 before:to-transparent before:isolate',
-        className
-      )}
+      data-slot="skeleton"
+      className={cn("animate-pulse rounded-md bg-muted", className)}
       {...props}
     />
-  );
-};
+  )
+}
 
-export { Skeleton };
+export { Skeleton }

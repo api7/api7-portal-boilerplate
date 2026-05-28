@@ -7,7 +7,6 @@ import { type ReactNode, useCallback, useEffect, useRef } from 'react';
 import {
   QueryClientProvider,
   useQuery,
-  useQueryClient,
 } from '@tanstack/react-query';
 
 import { authClient } from '@/lib/auth/client';
@@ -34,7 +33,6 @@ const authLocalization = {
 
 function AuthUIProviderWrapper({ children }: { children: ReactNode }) {
   const router = useRouter();
-  const qc = useQueryClient();
   const { data: configStatus } = useQuery(configStatusQueryOptions);
   const domainPrefix =
     typeof window === 'undefined' ? '' : `${window.location.host}/`;
@@ -61,45 +59,9 @@ function AuthUIProviderWrapper({ children }: { children: ReactNode }) {
     }
   }, [activeOrgSlug, router]);
 
-  // Track the last known activeOrganizationId so we can restore it
-  // after re-sign-in (where better-auth resets it to null).
-  // For multi-org users this prevents silently switching to a different org.
-  const prevOrgIdRef = useRef<string | null>(null);
-  const session = authClient.useSession();
-  const activeOrgId = session.data?.session?.activeOrganizationId;
-  useEffect(() => {
-    if (activeOrgId) {
-      prevOrgIdRef.current = activeOrgId;
-    }
-  }, [activeOrgId]);
-
-  // After re-sign-in, better-auth creates a fresh session without
-  // activeOrganizationId. The tanstack layer refetches the session and
-  // caches this null value before our server-side fix can run. Fix it
-  // client-side: detect the missing org, set it, then refetch so the
-  // TanStack cache is correct before any navigation happens.
-  const handleSessionChange = useCallback(async () => {
-    try {
-      const { data: currentSession } = await authClient.getSession();
-      if (
-        currentSession?.user &&
-        !currentSession.session?.activeOrganizationId
-      ) {
-        const { data: orgs } = await authClient.organization.list();
-        if (orgs && orgs.length > 0) {
-          const preferred = prevOrgIdRef.current;
-          const targetOrg =
-            (preferred && orgs.find((o) => o.id === preferred)) || orgs[0];
-          await authClient.organization.setActive({
-            organizationId: targetOrg.id,
-          });
-          await qc.refetchQueries({ queryKey: ['session'] });
-        }
-      }
-    } finally {
-      router.refresh();
-    }
-  }, [router, qc]);
+  const handleSessionChange = useCallback(() => {
+    router.refresh();
+  }, [router]);
 
   return (
     <AuthUIProvider
@@ -110,9 +72,15 @@ function AuthUIProviderWrapper({ children }: { children: ReactNode }) {
       Link={Link as never}
       localization={authLocalization}
       organization={{
-        basePath: activeOrgSlug
-          ? `/${activeOrgSlug}/organization`
-          : '/organization',
+        pathMode: 'slug',
+        slug: activeOrgSlug ?? undefined,
+        basePath: activeOrgSlug ? `/${activeOrgSlug}` : '',
+        viewPaths: {
+          SETTINGS: 'organization/settings',
+          MEMBERS: 'organization/members',
+          TEAMS: 'organization/teams',
+          API_KEYS: 'organization/api-keys',
+        },
         slugField: {
           prefix: domainPrefix,
           labelInfo: (
