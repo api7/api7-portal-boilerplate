@@ -1,15 +1,12 @@
 'use client';
 
-import type { PropsWithChildren } from 'react';
-
-import { Button } from 'antd';
 import { motion } from 'framer-motion';
-
-import { BareIconImage } from '../ui-legacy/icon-image';
-import Loading from '../ui-legacy/loading';
 import { useRouter } from 'next/navigation';
+
+import { Button } from '@/components/ui/button';
 import { PATH_ROOT } from '@/constants/path-prefix';
-import { authClient } from '@/lib/auth/client';
+
+import Image from 'next/image';
 
 export const BarePageNotFound = () => {
   const router = useRouter();
@@ -23,16 +20,18 @@ export const BarePageNotFound = () => {
         className="h-[70vh] mx-0 my-auto"
       >
         <div className="h-full w-full flex justify-center items-center">
-          <BareIconImage
-            className="min-h-[432.35px] min-w-[449.92px]"
-            size={449}
+          <Image
             src="/code/404.svg"
             alt="Error 404 not found Illustration"
+            width={449}
+            height={449}
+            className="min-h-[432.35px] min-w-[449.92px]"
+            unoptimized
           />
         </div>
       </motion.div>
       <div className="text-center my-4">
-        <Button onClick={goHome} type="primary" className="w-[129px]">
+        <Button onClick={goHome} className="w-[129px]">
           Go Back
         </Button>
       </div>
@@ -41,14 +40,3 @@ export const BarePageNotFound = () => {
 };
 
 export const PageNotFound = BarePageNotFound;
-type AuthOrPageNotFoundProps = PropsWithChildren<{
-  isAuthorized?: boolean;
-  loading?: boolean;
-}>;
-export const AuthOrPageNotFound = (props: AuthOrPageNotFoundProps) => {
-  const { data, isPending } = authClient.useSession();
-  const { isAuthorized = !!data?.user, loading = isPending, children } = props;
-  if (loading) return <Loading />;
-  if (!isAuthorized) return <BarePageNotFound />;
-  return children;
-};

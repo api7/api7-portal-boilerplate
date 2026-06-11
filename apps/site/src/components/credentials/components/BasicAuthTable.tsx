@@ -1,61 +1,73 @@
 'use client';
 
-import { memo, useState } from 'react';
-
+import type { ColumnDef } from '@tanstack/react-table';
 import { useCreation } from 'ahooks';
-import { Button, Space, Typography } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
+import {
+  EllipsisVerticalIcon,
+  PlusIcon,
+  RefreshCwIcon,
+  Trash2Icon,
+} from 'lucide-react';
+import { useState } from 'react';
 
-import BasicAuthAddDrawer from './BasicAuthAddDrawer';
-import BasicAuthDetailDrawer from './BasicAuthDetailDrawer';
-import BasicAuthRotateModal from './BasicAuthRotateModal';
-import CredentialDeleteModal from './CredentialDeleteModal';
-import CredentialEditDrawer from './CredentialEditDrawer';
-import Menu from '@/components/slices/menu';
 import { tableColDesc } from '@/components/slices/table-col/desc';
 import { tableColLabels } from '@/components/slices/table-col/labels';
 import TimeFormat from '@/components/slices/time-format';
-import IconImage from '@/components/ui-legacy/icon-image';
-import A7Table from '@/components/ui-legacy/table';
+import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
+import { DataTable } from '@/components/base/data-table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { DEFAULT_LIST_PARAMS } from '@/constants/common';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import useCredentialList, {
   type CredentialParams,
 } from '@/lib/query/useCredentialList';
-import useLabelList from '@/lib/query/useLabelList';
 import type {
-  BasicAuthCredential,
   ApplicationCredential,
+  BasicAuthCredential,
+  BasicAuthPluginValue,
   PluginCredential,
 } from '@/types/portal-sdk';
 
+import BasicAuthAddDrawer from './BasicAuthAddDrawer';
+import BasicAuthDetailDrawer from './BasicAuthDetailDrawer';
+import BasicAuthRotateModal from './BasicAuthRotateModal';
+import CredentialDeleteModal from './CredentialDeleteModal';
+import CredentialEditDrawer from './CredentialEditDrawer';
+import SecretAlert from './SecretAlert';
+
 const AddBasicAuthBtn = ({
   refetch,
+  setAlertData,
   disabled,
 }: {
   refetch: () => void;
+  setAlertData: (data: BasicAuthPluginValue) => void;
   disabled?: boolean;
 }) => {
   const addDisclosure = useDisclosure({ onClose: refetch });
   return (
     <>
-      <Button
-        variant="filled"
-        type="primary"
-        disabled={disabled}
-        icon={<IconImage type="add" />}
-        onClick={addDisclosure.setOpen}
-      >
+      <Button disabled={disabled} onClick={addDisclosure.setOpen}>
+        <PlusIcon />
         Add Basic Authentication Credential
       </Button>
-      <BasicAuthAddDrawer {...addDisclosure} />
+      <BasicAuthAddDrawer {...addDisclosure} setAlertData={setAlertData} />
     </>
   );
 };
 
-const BasicAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
+const BasicAuthTable: React.FC<Pick<CredentialParams, 'application_id'> & { leadingToolBar?: React.ReactNode }> = ({
   application_id,
+  leadingToolBar,
 }) => {
   const { canManageApplications } = useCanManageApplications();
   const req = useCredentialList({
@@ -66,117 +78,175 @@ const BasicAuthTable: React.FC<Pick<CredentialParams, 'application_id'>> = ({
       ...DEFAULT_LIST_PARAMS,
     },
   });
-  const labelReq = useLabelList({ resourceType: 'developer_credential' });
-  const refetch = () => {
-    req.refetch();
-    labelReq.refetch();
-  };
+  const { paramsOnlyStr: _, ...reqProps } = req;
+  const refetch = req.refetch;
   const editDisclosure = useDisclosure({ onClose: refetch });
   const detailDisclosure = useDisclosure({ onClose: refetch });
-  const deleteDisclosure = useDisclosure({ onClose: refetch });
+  const deleteDisclosure = useDisclosure({
+    onClose: () => {
+      refetch();
+      setAlertData(undefined);
+    },
+  });
   const rotateDisclosure = useDisclosure({ onClose: refetch });
   const [curData, setCurData] = useState<ApplicationCredential | undefined>();
-  const columns = useCreation<ColumnsType<ApplicationCredential>>(
+  const [alertData, setAlertData] = useState<BasicAuthPluginValue>();
+  const [alertVariant, setAlertVariant] = useState<'created' | 'rotated'>(
+    'created',
+  );
+
+  const columns = useCreation<ColumnDef<ApplicationCredential>[]>(
     () => [
       {
-        title: 'Name',
-        dataIndex: 'name',
-        sorter: true,
-        render: (name, detail) => (
-          <Typography.Link
+        header: 'Name',
+        accessorKey: 'name',
+        cell: ({ row, getValue }) => (
+          <Button
+            variant="link"
+            className="px-0"
             onClick={() => {
-              setCurData(detail);
+              setCurData(row.original);
               detailDisclosure.setOpen();
             }}
           >
-            {name}
-          </Typography.Link>
+            {getValue() as string}
+          </Button>
         ),
       },
       tableColDesc<ApplicationCredential>({
-        title: 'Description',
-        dataIndex: 'desc',
-      }),
+        header: 'Description',
+        accessorKey: 'desc',
+      } as ColumnDef<ApplicationCredential>),
       tableColLabels<ApplicationCredential>({
-        title: 'Labels',
-        dataIndex: 'labels',
-        onParamsChange: req.onParamsChange,
-        ...labelReq,
-      }),
+        header: 'Labels',
+        accessorKey: 'labels',
+      } as ColumnDef<ApplicationCredential>),
       {
-        title: 'Updated',
-        dataIndex: 'updated_at',
-        sorter: true,
-        render: (value) => <TimeFormat time={value} fromNow />,
+        header: 'Updated',
+        accessorKey: 'updated_at',
+        enableSorting: true,
+        cell: ({ getValue }) => <TimeFormat time={getValue() as number} fromNow />,
       },
       {
-        title: 'Actions',
-        dataIndex: 'id',
-        fixed: 'right',
-        render: (id, data) => (
-          <Space.Compact>
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <ButtonGroup aria-label="Button group">
             <Button
-              type="link"
-              className="px-0 mr-4"
+              variant="ghost"
               disabled={!canManageApplications}
               onClick={() => {
-                setCurData(data);
-                rotateDisclosure.setOpen();
+                setCurData(row.original);
+                editDisclosure.setOpen();
               }}
             >
-              Rotate
+              Edit
             </Button>
-            <Menu
-              items={[
-                {
-                  key: 'edit',
-                  label: 'Edit Basics',
-                  disabled: !canManageApplications,
-                  onClick: () => {
-                    setCurData(data);
-                    editDisclosure.setOpen();
-                  },
-                },
-                {
-                  key: 'delete',
-                  label: 'Delete',
-                  labelProps: { className: 'text-red-500' },
-                  disabled: !canManageApplications,
-                  onClick: () => {
-                    setCurData(data);
-                    deleteDisclosure.setOpen();
-                  },
-                },
-              ]}
-            disabled={!canManageApplications}
-            />
-          </Space.Compact>
+            <DropdownMenu>
+              <DropdownMenuTrigger
+                render={
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="More Options"
+                    disabled={!canManageApplications}
+                  >
+                    <EllipsisVerticalIcon />
+                  </Button>
+                }
+              />
+              <DropdownMenuContent align="end" className="w-40">
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    disabled={!canManageApplications}
+                    onClick={() => {
+                      setCurData(row.original);
+                      rotateDisclosure.setOpen();
+                    }}
+                  >
+                    <RefreshCwIcon />
+                    Rotate
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+                <DropdownMenuSeparator />
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    disabled={!canManageApplications}
+                    onClick={() => {
+                      setCurData(row.original);
+                      deleteDisclosure.setOpen();
+                    }}
+                  >
+                    <Trash2Icon />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </ButtonGroup>
         ),
       },
     ],
-    [req, labelReq, canManageApplications]
+    [req, canManageApplications],
   );
 
   return (
     <>
-      <BasicAuthDetailDrawer {...detailDisclosure} oldData={curData as BasicAuthCredential} />
-      <BasicAuthRotateModal {...rotateDisclosure} oldData={curData as BasicAuthCredential} />
-      <CredentialDeleteModal {...deleteDisclosure} oldData={curData as PluginCredential} />
+      {alertData && (
+        <SecretAlert
+          items={[
+            { label: 'Username', value: alertData.username },
+            { label: 'Password', value: alertData.password },
+          ]}
+          title={
+            alertVariant === 'rotated'
+              ? 'Password Regenerated'
+              : 'Basic Authentication Credential Created'
+          }
+          description={
+            alertVariant === 'rotated'
+              ? 'Please copy and save the new password immediately, the old password has been invalidated. You will not be able to view it again.'
+              : 'Please copy and save the password immediately, you will not be able to view it again.'
+          }
+        />
+      )}
+      <BasicAuthDetailDrawer
+        {...detailDisclosure}
+        oldData={curData as BasicAuthCredential}
+      />
+      <BasicAuthRotateModal
+        {...rotateDisclosure}
+        oldData={curData as BasicAuthCredential}
+        setAlertData={(data) => {
+          setAlertVariant('rotated');
+          setAlertData(data);
+        }}
+      />
+      <CredentialDeleteModal
+        {...deleteDisclosure}
+        oldData={curData as PluginCredential}
+      />
       <CredentialEditDrawer
         title={'Edit Basic Authentication Credential'}
         {...editDisclosure}
         oldData={curData as PluginCredential}
       />
-      <A7Table
+      <DataTable
         data-cy="basic-auth-table"
         columns={columns}
-        {...req}
+        {...reqProps}
         nameSearch
+        leadingToolBar={leadingToolBar}
         text={{ searchPlaceholder: 'Search name, description, label' }}
         toolBar={[
           <AddBasicAuthBtn
             key="add"
             refetch={refetch}
+            setAlertData={(data) => {
+              setAlertVariant('created');
+              setAlertData(data);
+            }}
             disabled={!canManageApplications}
           />,
         ]}

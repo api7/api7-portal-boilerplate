@@ -42,6 +42,10 @@ auth:
   #   github:
   #     clientId: ${GITHUB_CLIENT_ID:}                        # GitHub OAuth App Client ID
   #     clientSecret: ${GITHUB_CLIENT_SECRET:}                # GitHub OAuth App Client Secret
+  # sso:                                                       # Two-phase sign-in: redirect matching email domains to SSO
+  #   providers:
+  #     - domains: ["@company\\.com$", "@corp\\.org$"]         # Regular expressions matched against the full email address
+  #       providerId: keycloak                                 # Must match a configured genericOAuth providerId
 
 # app:
   # name: "Developer Portal"
@@ -55,6 +59,7 @@ auth:
   #    keyAuth: false                                           # Show Key Authentication tab (default: true)
   #    basicAuth: false                                         # Show Basic Authentication tab (default: true)
   #    oauth: false                                             # Show OAuth tab (default: true)
+  # tosURL: "https://example.com/terms"                      # When set, users must accept Terms of Service before signing up
   # beforeSignUpButtonHtml: >-
   #   <p>By continuing, you acknowledge Example's <a href="https://example.com/terms" target="_blank" rel="noopener noreferrer">Terms of use</a> and the <a href="https://example.com/privacy" target="_blank" rel="noopener noreferrer">Privacy policy</a>.</p>
   # IMPORTANT: This value is injected as raw HTML. Only use trusted static content.

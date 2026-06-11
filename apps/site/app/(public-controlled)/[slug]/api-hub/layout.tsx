@@ -1,4 +1,4 @@
-import { PATH_API_HUB, PATH_ROOT } from '@/constants/path-prefix';
+import { PATH_API_HUB } from '@/constants/path-prefix';
 import { verifyOrganizationAccessBySlug, verifySession } from '@/lib/dal/util';
 import { redirect } from 'next/navigation';
 
@@ -20,7 +20,7 @@ export default async function SlugApiHubLayout({
 
   const org = await verifyOrganizationAccessBySlug(slug);
   if (!org) {
-    redirect(`${PATH_ROOT}?error=no-access&slug=${encodeURIComponent(slug)}`);
+    redirect(PATH_API_HUB);
   }
 
   return children;

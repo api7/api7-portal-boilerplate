@@ -1,76 +1,81 @@
 'use client';
 
-import { ProForm } from '@ant-design/pro-components';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 
-import { FormItemBasicAuth } from './BasicAuthAddDrawer';
-import { useApplicationId } from '../hook';
+import Modal from '@/components/base/modal';
 import Form from '@/components/slices/form/Form';
-import { portalClient } from '@/lib/portal-sdk/client';
-import A7Modal from '@/components/ui-legacy/modal';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
+import { portalClient } from '@/lib/portal-sdk/client';
 import type {
   BasicAuthCredential,
   BasicAuthPluginValue,
-  CredentialForm,
 } from '@/types/portal-sdk';
+import { useForm } from '@tanstack/react-form';
+
+import { useApplicationId } from '../hook';
+import { FormItemBasicAuth } from './BasicAuthAddDrawer';
 
 type BasicAuthRotateModalProps = UseDisclosureReturn & {
   oldData?: BasicAuthCredential;
+  // Surfaces the new username/password once; never returned again on read paths.
+  setAlertData?: (data: BasicAuthPluginValue) => void;
 };
 
 const BasicAuthRotateModal = (props: BasicAuthRotateModalProps) => {
-  const { oldData, onOk, ...rest } = props;
-  const [form] = ProForm.useForm();
+  const { oldData, onOk, open, setAlertData, ...rest } = props;
   const applicationId = useApplicationId();
 
-  const submitRotate = (form: CredentialForm) => {
-    if (!oldData) return Promise.resolve();
-
-    const { username, password } = form?.['basic-auth'] as BasicAuthPluginValue;
-
-    return portalClient.application.credential
-      .regenerate(applicationId, oldData.id, {
-        type: 'basic-auth',
-        'basic-auth': {
-          username,
-          password,
+  const form = useForm({
+    defaultValues: {
+      basicAuth: { username: '', password: '' },
+    },
+    onSubmit: async ({ value }) => {
+      if (!oldData) return;
+      const res = (await portalClient.application.credential.regenerate(
+        applicationId,
+        oldData.id,
+        {
+          type: 'basic-auth',
+          'basic-auth': {
+            username: value.basicAuth.username,
+            password: value.basicAuth.password,
+          },
         },
-      })
-      .then(onOk)
-      .then(() =>
-        toast.success('Rotate Basic Authentication Credential Successfully')
-      )
-      .then(props.onClose);
-  };
+      )) as BasicAuthCredential;
+      setAlertData?.(res['basic-auth'] as BasicAuthPluginValue);
+      onOk?.();
+      toast.success('Rotate Basic Authentication Credential Successfully');
+      props.onClose();
+    },
+  });
+
+  useEffect(() => {
+    if (open) form.reset();
+  }, [open, form]);
 
   return (
-    <A7Modal
-      title={'Rotate Basic Authentication Credential'}
-      onOk={oldData ? form.submit : undefined}
-      destroyOnHidden
+    <Modal
+      title="Rotate Basic Authentication Credential"
+      okType="danger"
+      onOk={oldData ? () => form.handleSubmit() : undefined}
       alertProps={{
-        type: 'error',
-        message:
+        variant: 'destructive',
+        description:
           'After rotation, the username and password will be immediately invalidated.',
       }}
       okButtonProps={{
+        disabled: form.state.isSubmitting,
         className:
           'rounded-md disabled:!text-white disabled:!bg-red-500 disabled:opacity-40',
-        danger: true,
       }}
-      okText="Confirm"
+      open={open}
       {...rest}
     >
-      <Form<CredentialForm>
-        form={form}
-        onFinish={submitRotate}
-        submitter={false}
-        preserve={false}
-      >
+      <Form onSubmit={() => form.handleSubmit()}>
         {oldData ? <FormItemBasicAuth form={form} /> : null}
       </Form>
-    </A7Modal>
+    </Modal>
   );
 };
 

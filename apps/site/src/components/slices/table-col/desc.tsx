@@ -1,17 +1,22 @@
-import { Tooltip } from 'antd';
-import type { ColumnType } from 'antd/es/table';
+import type { ColumnDef } from '@tanstack/react-table';
 
-export const tableColDesc = <T extends unknown>(
-  param: Partial<ColumnType<T>>
-): ColumnType<T> => ({
-  ellipsis: {
-    showTitle: false,
-  },
-  render: (desc: string) => (
-    <Tooltip placement="topLeft" title={desc}>
-      {desc}
-    </Tooltip>
-  ),
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+
+export const tableColDesc = <T,>(param: ColumnDef<T>): ColumnDef<T> => ({
   ...param,
-});
-
+  cell: ({ getValue }) => {
+    const desc = getValue() as string;
+    return (
+      <Tooltip>
+        <TooltipTrigger render={<span className="block truncate max-w-xs">{desc}</span>} />
+        <TooltipContent>
+          <p>{desc}</p>
+        </TooltipContent>
+      </Tooltip>
+    );
+  },
+} as ColumnDef<T>);

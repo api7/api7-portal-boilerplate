@@ -69,7 +69,7 @@ export const x = async (cmd: string, ...args: XArgs) => {
   return baseX(cmd, ...([...xParams, ...args] as XArgs));
 };
 
-export const k8NS = 'api7';
+export const DEFAULT_NAMESPACE = 'api7';
 
 const runChecked = async (cmd: string, errorMessage: string) => {
   const result = await x(cmd);
@@ -98,10 +98,12 @@ const ensureGatewayRuntimeFiles = () => {
 };
 
 export const ensureMinimalPlatform = async () => {
-  await runChecked(
-    `${minimalComposeCmd} up -d`,
-    'Failed to start API7 EE runtime',
-  );
+  if (!process.env.SKIP_PLATFORM_SETUP) {
+    await runChecked(
+      `${minimalComposeCmd} up -d`,
+      'Failed to start API7 EE runtime',
+    );
+  }
   await waitForPort(7443, 120000, '127.0.0.1');
   await waitForPort(4321, 120000, '127.0.0.1');
 };
@@ -134,15 +136,15 @@ export const getDevPortalLogs = async (tail = 100) => {
   return await x(`docker logs --tail=${tail} ${E2E_FE_CONTAINER}`);
 };
 
-export const k8WaitReady = async (
+export const waitContainerReady = async (
   _label: string,
-  _ns = k8NS,
+  _ns = DEFAULT_NAMESPACE,
   timeout = 300,
 ) => {
   await waitForPort(3001, timeout * 1000);
 };
 
-export const k8PortForward = async (
+export const waitForGatewayPort = async (
   _label: string,
   portForward: `${string}:${string}`,
 ) => {
@@ -175,15 +177,15 @@ export const restartDevPortal = async (
   _deploymentName = 'developer-portal',
   _serviceName = 'developer-portal',
   _portForward: `${string}:${string}` = '3001:3001',
-  _ns = k8NS,
+  _ns = DEFAULT_NAMESPACE,
 ) => {
   await startDevPortalContainer();
   await waitForPort(3001, 120000);
   await new Promise((resolve) => setTimeout(resolve, 5000));
 };
 
-export const k8KeyCloakPort = 8080;
-export const k8DeployKeyCloak = async (port = k8KeyCloakPort) => {
+export const KEYCLOAK_PORT = 8080;
+export const deployKeycloakContainer = async (port = KEYCLOAK_PORT) => {
   await runChecked(
     `${supportComposeCmd} up -d keycloak`,
     'Failed to start Keycloak',
@@ -192,13 +194,13 @@ export const k8DeployKeyCloak = async (port = k8KeyCloakPort) => {
 };
 
 export const fixturesPath = './apps/site-e2e/fixtures';
-export const k8DeleteKeyCloak = async () => {
+export const removeKeycloakContainer = async () => {
   await x('docker rm -f api7ee3-keycloak || true').then((out) => {
     console.log('delete keycloak Result', JSON.stringify(out));
   });
 };
 
-export const k8DeployA7Gateway = async (
+export const deployGatewayContainer = async (
   ctx: A7Ctx,
   data: Omit<GetDockerDeploymentScript, 'image'>,
 ) => {
@@ -292,7 +294,7 @@ export const k8DeployA7Gateway = async (
 };
 
 /** default uninstall the gateway */
-export const k8HelmUninstall = async (
+export const removeGatewayContainer = async (
   data: Pick<GetDockerDeploymentScript, 'name'> = {},
 ) => {
   const { name = E2E_GATEWAY_NAME } = data;

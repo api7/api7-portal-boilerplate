@@ -1,8 +1,7 @@
 import { base32 } from '@better-auth/utils/base32';
 import { createOTP } from '@better-auth/utils/otp';
 import { type Page, expect } from '@playwright/test';
-import { API_CONFIG_STATUS } from '@site/constants/api-prefix';
-import { PATH_ACCOUNT } from '@site/constants/path-prefix';
+import { PATH_ACCOUNT, PATH_LOGIN } from '@site/constants/path-prefix';
 import { ConfigMapData } from '@site/lib/config/schema';
 
 import { test } from '../fixture';
@@ -12,27 +11,6 @@ import {
   updateConfigMapYaml,
 } from '../utils/devportal-config';
 import { restartDevPortal } from '../utils/shell';
-
-// Better Auth encodes TOTP setup data in the `totpURI` query param on the challenge URL.
-const getTotpChallengeConfigFromUrl = (pageUrl: string) => {
-  const currentUrl = new URL(pageUrl);
-  const totpURI = currentUrl.searchParams.get('totpURI');
-  if (!totpURI) {
-    throw new Error('Missing `totpURI` in two-factor challenge URL');
-  }
-
-  const totpSetup = new URL(totpURI);
-  const secret = totpSetup.searchParams.get('secret');
-  if (!secret) {
-    throw new Error('Missing `secret` in `totpURI`');
-  }
-
-  return {
-    secret,
-    digits: Number(totpSetup.searchParams.get('digits') || '6'),
-    period: Number(totpSetup.searchParams.get('period') || '30'),
-  };
-};
 
 const getTotpChallengeConfigFromUri = (totpURI: string) => {
   const totpSetup = new URL(totpURI);
@@ -57,23 +35,11 @@ const createTotpCode = async (totpURI: string) => {
   }).totp();
 };
 
-// Generate a real TOTP code and complete the verification step to assert end-to-end login.
-async function completeTotpVerification(page: Page): Promise<void> {
-  const { secret, digits, period } = getTotpChallengeConfigFromUrl(page.url());
-  const decodedSecret = new TextDecoder().decode(base32.decode(secret));
-  const code = await createOTP(decodedSecret, {
-    digits,
-    period,
-  }).totp();
+// Dialog content locator — base-ui dialog popup uses data-slot="dialog-content"
+const dialogContent = (page: Page) =>
+  page.locator('[data-slot="dialog-content"]');
 
-  await page.locator('input[data-input-otp]').fill(code);
-  await page.waitForURL((url) => !url.pathname.includes('/auth/two-factor'), {
-    timeout: 10_000,
-  });
-  await expect(page.getByRole('button', { name: 'Account' })).toBeVisible();
-}
-
-// Keep the test idempotent: if previous runs already enabled 2FA, disable it first.
+// Keep the test idempotent: if a previous run already enabled 2FA, disable it first.
 async function ensureTwoFactorDisabled(
   page: Page,
   password: string,
@@ -86,16 +52,27 @@ async function ensureTwoFactorDisabled(
   }
 
   await disableButton.click();
-  const passwordDialog = page.getByRole('dialog');
+  const passwordDialog = dialogContent(page);
   await expect(passwordDialog).toBeVisible();
-  await passwordDialog.getByLabel(/password/i).fill(password);
+  await passwordDialog.getByLabel('Password', { exact: true }).fill(password);
   await passwordDialog
     .getByRole('button', { name: /disable two-factor/i })
     .click();
 
+  // Wait for dialog to close (API call succeeded), then check button updated
+  await expect(dialogContent(page)).not.toBeVisible({ timeout: 10_000 });
+
   await expect(
     page.getByRole('button', { name: /enable two-factor/i }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 30_000 });
+}
+
+// Sign-in is two-phase: email → Continue → password → Sign In
+async function signIn(page: Page, email: string, password: string) {
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByLabel('Password', { exact: true }).fill(password);
+  await page.getByRole('button', { name: /^sign in$/i }).click();
 }
 
 test.describe('Two-Factor Authentication (TOTP only)', () => {
@@ -132,85 +109,98 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
 
   test('enables TOTP-only flow when enabled', async ({
     page,
-    request,
     auth,
   }) => {
     await updateConfigAndRestart(true);
 
-    const configStatusRes = await request.get(API_CONFIG_STATUS);
-    expect(configStatusRes.ok()).toBeTruthy();
-    const configStatus = await configStatusRes.json();
-    expect(configStatus.twoFactor).toBe(true);
-
+    // Navigate to security settings; ensure 2FA is disabled before testing enable
     await page.goto(`${PATH_ACCOUNT}/security`);
-    await expect(page.getByText('Two-Factor', { exact: true })).toBeVisible();
+    await expect(page.getByText('Two-Factor', { exact: true })).toBeVisible({ timeout: 30_000 });
     await ensureTwoFactorDisabled(page, auth.password);
 
+    // Open "Enable Two-Factor" dialog and fill password
     await page.getByRole('button', { name: /enable two-factor/i }).click();
-
-    const passwordDialog = page.getByRole('dialog');
+    const passwordDialog = dialogContent(page);
     await expect(passwordDialog).toBeVisible();
-    await passwordDialog.getByLabel(/password/i).fill(auth.password);
-    const enableTwoFactorResponse = page.waitForResponse(
+    await passwordDialog.getByLabel('Password', { exact: true }).fill(auth.password);
+
+    // Intercept the enable API response to capture totpURI for later TOTP generation
+    const enableResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes('/two-factor/enable') &&
         response.request().method() === 'POST',
     );
-
     await passwordDialog
       .getByRole('button', { name: /enable two-factor/i })
       .click();
 
-    const enableResponse = await enableTwoFactorResponse;
+    const enableResponse = await enableResponsePromise;
     expect(enableResponse.status()).toBe(200);
     const enableBody = await enableResponse.json();
     expect(enableBody?.totpURI).toBeTruthy();
     expect(Array.isArray(enableBody?.backupCodes)).toBe(true);
-    const code = await createTotpCode(enableBody.totpURI);
+    const totpURI = enableBody.totpURI as string;
 
-    const otpInput = page.locator('input[data-input-otp]').first();
-    if (await otpInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      const verifyTotpResponse = page.waitForResponse(
-        (response) =>
-          response.url().includes('/two-factor/verify-totp') &&
-          response.request().method() === 'POST',
-      );
-      await otpInput.fill(code);
-      expect((await verifyTotpResponse).status()).toBe(200);
-    } else {
-      const verifyResult = await page.evaluate(async (otpCode) => {
-        const response = await fetch('/api/auth/two-factor/verify-totp', {
-          method: 'POST',
-          headers: {
-            'content-type': 'application/json',
-          },
-          credentials: 'include',
-          body: JSON.stringify({ code: otpCode }),
-        });
+    // Backup codes dialog appears after the password dialog closes; click "Continue"
+    const backupCodesDialog = dialogContent(page).filter({ hasText: 'Backup Codes' });
+    await expect(backupCodesDialog).toBeVisible({ timeout: 5_000 });
+    await backupCodesDialog.getByRole('button', { name: /continue/i }).click();
 
-        return {
-          status: response.status,
-          body: await response.text(),
-        };
-      }, code);
-      expect(verifyResult.status).toBe(200);
-    }
+    // Should navigate to /auth/two-factor?totpURI=... (setup confirmation page with QR code)
+    await page.waitForURL(
+      (url) => url.pathname.startsWith('/auth/two-factor') && url.searchParams.has('totpURI'),
+      { timeout: 15_000 },
+    );
 
-    // Cleanup user-level 2FA state so this suite does not leak auth state.
+    // Fill OTP input and click Verify to confirm setup
+    const setupCode = await createTotpCode(totpURI);
+    const otpInput = page.locator('input[autocomplete="one-time-code"]');
+    await expect(otpInput).toBeVisible({ timeout: 5_000 });
+    await otpInput.fill(setupCode);
+    await page.getByRole('button', { name: /^verify$/i }).click();
+
+    // Should redirect away from the two-factor setup page after successful verification
+    await page.waitForURL(
+      (url) => !url.pathname.startsWith('/auth/two-factor'),
+      { timeout: 15_000 },
+    );
+
+    // Clear session to simulate the next login; verify 2FA challenge is required
+    await page.context().clearCookies();
+    await page.goto(PATH_LOGIN);
+    await expect(page.getByText('Sign In', { exact: true }).first()).toBeVisible({ timeout: 15_000 });
+
+    // Sign-in is two-phase: fill email → Continue → fill password → Sign In
+    await signIn(page, auth.email, auth.password);
+
+    // After password-only sign-in, should redirect to 2FA challenge page (no totpURI param)
+    await page.waitForURL(
+      (url) => url.pathname.startsWith('/auth/two-factor'),
+      { timeout: 15_000 },
+    );
+    expect(new URL(page.url()).searchParams.has('totpURI')).toBe(false);
+
+    // Complete the 2FA login with a fresh TOTP code
+    const loginCode = await createTotpCode(totpURI);
+    const loginOtpInput = page.locator('input[autocomplete="one-time-code"]');
+    await expect(loginOtpInput).toBeVisible({ timeout: 5_000 });
+    await loginOtpInput.fill(loginCode);
+    await page.getByRole('button', { name: /^verify$/i }).click();
+
+    // Should redirect away from 2FA page (fully logged in)
+    await page.waitForURL(
+      (url) => !url.pathname.startsWith('/auth/two-factor'),
+      { timeout: 15_000 },
+    );
+
+    // Cleanup: disable 2FA so this worker's account doesn't affect other tests
     await page.goto(`${PATH_ACCOUNT}/security`);
-    await expect(
-      page.getByRole('button', { name: /disable two-factor/i }),
-    ).toBeVisible();
+    await expect(page.getByRole('button', { name: /disable two-factor/i })).toBeVisible({ timeout: 30_000 });
     await ensureTwoFactorDisabled(page, auth.password);
   });
 
-  test('hides two-factor card when disabled', async ({ page, request }) => {
+  test('hides two-factor card when disabled', async ({ page }) => {
     await updateConfigAndRestart(false);
-
-    const configStatusRes = await request.get(API_CONFIG_STATUS);
-    expect(configStatusRes.ok()).toBeTruthy();
-    const configStatus = await configStatusRes.json();
-    expect(configStatus.twoFactor).toBe(false);
 
     await page.goto(`${PATH_ACCOUNT}/security`);
     await expect(page.getByText('Two-Factor', { exact: true })).toHaveCount(0);

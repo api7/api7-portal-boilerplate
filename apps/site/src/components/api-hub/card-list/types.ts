@@ -1,4 +1,3 @@
-import type { PaginationProps } from '@/components/ui-legacy/paginate';
 import type { FC, ReactNode } from 'react';
 
 export type CardItemProps<T> = {
@@ -17,6 +16,7 @@ export type CardListProps<T extends object> = {
   helperText?: string | ReactNode;
   showSearch?: boolean;
   defaultSearch?: string;
+  searchPrefix?: ReactNode;
   className?: string;
   onParamsChange?: (params: TableParams) => void;
   reload: () => void;
@@ -40,6 +40,7 @@ export type CardListProps<T extends object> = {
         pageSize: number;
         total?: number;
         goToPage: (pageIndex: number) => void;
-      } & Partial<Pick<PaginationProps, 'text'>>;
+        text?: { results?: string; of?: string };
+      };
     }
 );

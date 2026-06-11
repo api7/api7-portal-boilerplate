@@ -10,7 +10,7 @@ import { getDefaultApplicationId } from '../req/common';
 import { getLastEmail } from '../req/email';
 import { BetterAuthLogin } from '../req/type';
 
-const getOrgScopedPath = (page: Page, path: string) => {
+export const getOrgScopedPath = (page: Page, path: string) => {
   const pathname = new URL(page.url()).pathname;
   const firstSegment = pathname.split('/').filter(Boolean)[0];
 
@@ -20,6 +20,67 @@ const getOrgScopedPath = (page: Page, path: string) => {
 
   return `/${firstSegment}${path}`;
 };
+
+export const uiGetMoreOptionsButton = (row: Locator) =>
+  row.locator('button[aria-label="More Options"]').first();
+
+export const uiClickCellButton = async (cell: Locator, name?: string) => {
+  const button = name
+    ? cell.getByRole('button', { name }).first()
+    : cell.getByRole('button').first();
+  await expect(button).toBeVisible();
+  await button.click();
+};
+
+export const uiSelectComboboxItem = async (
+  page: Page,
+  container: Locator,
+  optionText: string,
+) => {
+  const combobox = container.locator('[data-slot="combobox-chips"]').first();
+  await expect(combobox).toBeVisible();
+
+  // Focus the input inside the chips to open the popup. base-ui Combobox opens
+  // the dropdown on input focus; clicking the outer chips shell may not trigger it.
+  // Use fill() so Playwright focuses the element and dispatches focus events that
+  // base-ui listens to, then type the option text to filter the list and ensure
+  // the popup renders matching items.
+  const chipInput = combobox
+    .locator('[data-slot="combobox-chip-input"]')
+    .first();
+  if (await chipInput.isVisible().catch(() => false)) {
+    // fill() focuses the input which opens the popup, then filters items by text
+    await chipInput.fill(optionText);
+    const option = page
+      .locator('[data-slot="combobox-item"]')
+      .filter({ hasText: optionText })
+      .first();
+    await expect(option).toBeVisible({ timeout: 10_000 });
+    // Use keyboard to select: page overlays (e.g. BareBlurPlaneButton z-100) can
+    // block mouse clicks on the portal-rendered popup (z-50), but keyboard events
+    // sent to the focused input are unaffected.
+    await chipInput.press('ArrowDown');
+    await chipInput.press('Enter');
+  } else {
+    await combobox.click({ force: true });
+    const option = page
+      .locator('[data-slot="combobox-item"]')
+      .filter({ hasText: optionText })
+      .first();
+    await expect(option).toBeVisible({ timeout: 10_000 });
+    await option.click({ force: true });
+  }
+};
+
+export const uiGetOAuthAlert = (page: Page, title: string) =>
+  page.getByRole('alert').filter({ hasText: title });
+
+export const uiGetOAuthAlertInput = (page: Page, label: string) =>
+  page
+    .locator('[data-slot="input-group"]')
+    .filter({ hasText: label })
+    .locator('input')
+    .first();
 
 export const uiVerifyToast = async (
   page: Page,
@@ -41,35 +102,42 @@ export const uiLogin = async (
   { onetime = false, goToLogin = false, assertAccount = true } = {},
 ) => {
   if (goToLogin) await page.goto(PATH_LOGIN);
+  // Wait for React hydration to complete before interacting with the form.
+  // The sign-in form is SSR'd; hydration briefly detaches DOM elements.
+  await page.waitForLoadState('networkidle');
   await page.getByRole('textbox', { name: 'Email' }).fill(auth.email);
+  await page.getByRole('button', { name: 'Continue' }).click();
   await page.getByRole('textbox', { name: 'Password' }).fill(auth.password);
-  await page.getByRole('button', { name: 'Login' }).click();
+  await page.getByRole('button', { name: 'Sign In' }).click();
   if (!assertAccount) return;
   await page.getByRole('button', { name: 'Account' }).click();
-  await expect(page.getByRole('link', { name: 'Sign Out' })).toBeVisible();
+  await expect(page.getByRole('menuitem', { name: /sign out/i })).toBeVisible();
   // click to close user menu
   await page.locator('html').click();
 };
 export const uiLogout = async (page: Page) => {
   const accountBtn = page.getByRole('button', { name: 'Account' });
   await accountBtn.click();
-  await page.getByRole('link', { name: 'Sign Out' }).click();
+  await page.getByRole('menuitem', { name: /sign out/i }).click();
 
   // Ensure deterministic sign-out state for tests even when UI redirect is flaky.
   await page.context().clearCookies();
   await page.goto(PATH_LOGIN);
   await expect(
-    page.getByRole('button', { name: 'Login', exact: true }),
+    page.getByRole('button', { name: 'Continue' }),
   ).toBeVisible({
     timeout: 10_000,
   });
 };
 
 export const uiDeleteCredential = async (page: Page, nameCell: Locator) => {
-  const moreMenuBtn = nameCell
-    .locator('xpath=..')
-    .locator('button.ant-dropdown-trigger');
+  // Read the name before opening modal: aria-modal="true" on dialog hides
+  // background elements from the accessibility tree, making nameCell unreachable.
+  const confirmText = await nameCell.innerText();
+  const row = nameCell.locator('xpath=ancestor::tr[1]');
+  const moreMenuBtn = uiGetMoreOptionsButton(row);
 
+  await expect(moreMenuBtn).toBeVisible();
   await moreMenuBtn.click();
   const deleteBtn = page.getByRole('menuitem', {
     name: 'Delete',
@@ -79,11 +147,11 @@ export const uiDeleteCredential = async (page: Page, nameCell: Locator) => {
   // delete modal should show
   const deleteTitle = page.getByText('Delete Credential', { exact: true });
   await expect(deleteTitle).toBeVisible();
-  // confirm button should be disabled before fill confirm input
-  const confirmBtn = page.getByRole('button', { name: 'Confirm' });
+  // scope button to the dialog so we don't accidentally find other Save buttons
+  const deleteDialog = page.getByRole('dialog', { name: 'Delete Credential' });
+  const confirmBtn = deleteDialog.getByRole('button', { name: 'Save' });
   await expect(confirmBtn).toBeDisabled();
   // fill confirm input
-  const confirmText = await nameCell.innerText();
   const confirmInput = page.getByPlaceholder(confirmText);
   await confirmInput.fill(confirmText);
   // confirm btn should be enabled
@@ -114,15 +182,8 @@ export const uiSubscribeProductProduct = async (
   const modal = page.getByRole('dialog', {
     name: 'Subscribe to New API Product',
   });
-  await expect(modal.getByText('Search')).toBeVisible();
-  await page.waitForTimeout(1000);
-  const searchEl = modal.locator('.ant-select');
-  // cause this is a div
-  await searchEl.click({ force: true });
-  await page.waitForTimeout(1000);
-  const productOption = page.getByTestId(`option-${productName}`);
-  await expect(productOption).toBeVisible();
-  await productOption.click({ force: true, position: { x: 20, y: 0 } });
+  await expect(modal.getByText('API Product', { exact: true })).toBeVisible();
+  await uiSelectComboboxItem(page, modal, productName);
   // click dialog title to close the dropdown
   await modal.getByText('Subscribe to New API Product').click();
   await modal.getByRole('button', { name: 'Subscribe', exact: true }).click();
@@ -144,25 +205,21 @@ export const uiSubscribeProductApplication = async (
     name: 'Subscribe Application to API Product',
   });
   await expect(dialog).toBeVisible();
-  await expect(
-    dialog.getByText('Search and select applications'),
-  ).toBeVisible();
-  await page.waitForTimeout(1000);
-  const searchEl = dialog.locator('.ant-select');
-  // cause this is a div
-  await searchEl.click({ force: true });
-  await page.waitForTimeout(1000);
-  const option = page.getByTestId(`option-${applicationName}`);
-  await expect(option).toBeVisible();
-  await option.click({ force: true, position: { x: 20, y: 0 } });
-  // close dropdown
-  await dialog.getByText('Subscribe Application to API Product').click();
+  await expect(dialog.getByText('Applications', { exact: true })).toBeVisible();
+  await uiSelectComboboxItem(page, dialog, applicationName);
+  // close dropdown (force: true — BareBlurPlaneButton overlay with z-100 may
+  // intercept pointer events on the dialog title)
+  await dialog
+    .getByText('Subscribe Application to API Product')
+    .click({ force: true });
   const confirmSubscribeBtn = dialog.getByRole('button', {
     name: 'Subscribe',
     exact: true,
   });
   await expect(confirmSubscribeBtn).toBeEnabled();
-  await confirmSubscribeBtn.click();
+  // force: true — BareBlurPlaneButton (z-100) sits above the dialog (z-50)
+  // and intercepts pointer events; the button itself is functional.
+  await confirmSubscribeBtn.click({ force: true });
   await uiVerifyToast(page, {
     hasText: 'Subscribe Application to API Product Successfully',
   });
@@ -178,15 +235,16 @@ export const uiSubscribeProductInAPIHub = async (
   const { applicationName, productId } = params;
 
   await page.waitForTimeout(1000);
-  // First enter API Hub index so auth/org routing can resolve the correct slugged base path.
-  await page.goto(PATH_API_HUB, { waitUntil: 'domcontentloaded' });
+  // Navigate to /applications first — server redirects to /{slug}/applications,
+  // so getOrgScopedPath can resolve the correct org-scoped api-hub base path.
+  await page.goto(PATH_APPLICATIONS, { waitUntil: 'domcontentloaded' });
   const resolvedApiHubBasePath = getOrgScopedPath(page, PATH_API_HUB);
 
-  await page.goto(`${resolvedApiHubBasePath}/detail?id=${productId}`, {
+  await page.goto(`${resolvedApiHubBasePath}/${productId}`, {
     waitUntil: 'domcontentloaded',
   });
   const subscriptionsTab = page.getByRole('tab', { name: 'Subscriptions' });
-  const loginButton = page.getByRole('button', { name: 'Login', exact: true });
+  const loginButton = page.getByRole('button', { name: 'Continue' });
 
   await Promise.race([
     subscriptionsTab.waitFor({ state: 'visible', timeout: 20000 }),
@@ -212,16 +270,16 @@ export const uiUnsubscribeProductInAPIHub = async (
   params: UISubscribeProductParams,
 ) => {
   const { applicationName, productId } = params;
-  await page.goto(PATH_API_HUB, { waitUntil: 'domcontentloaded' });
+  await page.goto(PATH_APPLICATIONS, { waitUntil: 'domcontentloaded' });
   const resolvedApiHubBasePath = getOrgScopedPath(page, PATH_API_HUB);
-  await page.goto(`${resolvedApiHubBasePath}/detail?id=${productId}`, {
+  await page.goto(`${resolvedApiHubBasePath}/${productId}`, {
     waitUntil: 'domcontentloaded',
   });
   await page.getByRole('tab', { name: 'Subscriptions' }).click();
   const row = page
     .getByRole('cell', { name: applicationName })
     .locator('xpath=..');
-  const moreMenuBtn = row.getByTestId('more');
+  const moreMenuBtn = uiGetMoreOptionsButton(row);
   await moreMenuBtn.click();
   const unsubscribeBtn = page.getByRole('menuitem', { name: 'Unsubscribe' });
   await expect(unsubscribeBtn).toBeVisible();
@@ -232,7 +290,7 @@ export const uiUnsubscribeProductInAPIHub = async (
   await expect(unsubscribeModal).toBeVisible();
   const confirmInput = page.getByPlaceholder(applicationName);
   await confirmInput.fill(applicationName);
-  const confirmBtn = page.getByRole('button', { name: 'Confirm' });
+  const confirmBtn = page.getByRole('button', { name: 'Save' });
   await expect(confirmBtn).toBeEnabled();
   await confirmBtn.click();
   await uiVerifyToast(page, {
@@ -255,9 +313,8 @@ export const uiShowNotFound = async (page: Page) => {
   await expect(page.getByRole('button', { name: 'Go Back' })).toBeVisible();
 };
 export const uiShowLogin = async (page: Page) => {
-  await page.waitForTimeout(1000); // Wait 1 second
-  const loginBtn = page.getByRole('button', { name: 'Login', exact: true });
-  await expect(loginBtn).toBeVisible();
+  const loginBtn = page.getByRole('button', { name: 'Continue' });
+  await expect(loginBtn).toBeVisible({ timeout: 10_000 });
 };
 export const uiAPIHubSearchProduct = async (
   page: Page,
@@ -280,7 +337,7 @@ const uiOpenDefaultApplicationDetail = async (page: Page) => {
 
   if (await defaultApp.isVisible().catch(() => false)) {
     await defaultApp
-      .locator('a[href*="/applications/detail?id="]')
+      .locator('a[href*="/applications/"]')
       .first()
       .click();
   } else {
@@ -294,7 +351,7 @@ const uiOpenDefaultApplicationDetail = async (page: Page) => {
       });
       await expect(createdDefaultApp).toBeVisible();
       await createdDefaultApp
-        .locator('a[href*="/applications/detail?id="]')
+        .locator('a[href*="/applications/"]')
         .first()
         .click();
     } else {
@@ -309,14 +366,14 @@ const uiOpenDefaultApplicationDetail = async (page: Page) => {
         });
         await expect(createdDefaultApp).toBeVisible();
         await createdDefaultApp
-          .locator('a[href*="/applications/detail?id="]')
+          .locator('a[href*="/applications/"]')
           .first()
           .click();
       }
     }
   }
 
-  await page.waitForURL(new RegExp(`${PATH_APPLICATIONS}/detail\\?id=.*`));
+  await page.waitForURL(new RegExp(`${PATH_APPLICATIONS}/[^/]+$`));
 };
 
 /**
@@ -329,11 +386,23 @@ export const uiGoToAPICredentials = async (
   applicationId?: string,
 ) => {
   if (applicationId) {
-    await page.goto(`${PATH_APPLICATIONS}/detail?id=${applicationId}`);
+    // If the current page already has an org slug, preserve it; otherwise
+    // navigate to /applications first to let the server redirect add the slug.
+    const scoped = getOrgScopedPath(page, `${PATH_APPLICATIONS}/${applicationId}`);
+    if (scoped !== `${PATH_APPLICATIONS}/${applicationId}`) {
+      await page.goto(scoped);
+    } else {
+      await page.goto(PATH_APPLICATIONS, { waitUntil: 'domcontentloaded' });
+      await page.goto(getOrgScopedPath(page, `${PATH_APPLICATIONS}/${applicationId}`));
+    }
   } else {
     try {
-      const appId = await getDefaultApplicationId(page.request);
-      await page.goto(`${PATH_APPLICATIONS}/detail?id=${appId}`);
+      // Navigate to /applications — server redirects to /{slug}/applications,
+      // giving us the org slug needed for the portal API call.
+      await page.goto(PATH_APPLICATIONS, { waitUntil: 'domcontentloaded' });
+      const orgSlug = getOrgScopedPath(page, '').replace(/^\/|\/$/g, '') || undefined;
+      const appId = await getDefaultApplicationId(page.request, orgSlug);
+      await page.goto(getOrgScopedPath(page, `${PATH_APPLICATIONS}/${appId}`));
     } catch {
       await uiOpenDefaultApplicationDetail(page);
     }
@@ -356,7 +425,7 @@ export const uiAddAPIKeyCredential = async (
   await button.click();
   await page.locator('#name').fill(name);
   await page
-    .locator('.ant-drawer-footer')
+    .getByTestId('drawer-footer')
     .locator('button:has-text("Add")')
     .click();
   await page.waitForTimeout(1000);
@@ -375,16 +444,21 @@ export const uiGetCredentialKeyAuth = async (
   // should exist default key auth (use .first() to handle duplicate rows from retries)
   const nameCell = page.getByRole('cell', { name }).first();
   await expect(nameCell).toBeVisible();
-  // click name will show credential detail
-  await nameCell.locator('a').click();
-  const detailTitle = page.getByText('Key Authentication Credential Detail');
-  await expect(detailTitle).toBeVisible();
-  // mask and copy button should be visible
-  const keyMask = page.getByText('********');
-  await expect(keyMask).toBeVisible();
-  const copyBtn = page.locator('#copy-img').first();
+  const row = nameCell.locator('xpath=ancestor::tr[1]');
+
+  // The key is view-once and is not shown after creation. Regenerate it to
+  // reveal a fresh key, which is surfaced once in a copyable alert.
+  const moreMenuBtn = uiGetMoreOptionsButton(row);
+  await expect(moreMenuBtn).toBeVisible();
+  await moreMenuBtn.click();
+  await page.getByRole('menuitem', { name: 'Rotate' }).click();
+  // ValidateModal requires typing the credential name to confirm.
+  await page.getByPlaceholder(name).fill(name);
+  await page.getByRole('button', { name: 'Confirm' }).click();
+
+  // The regenerated key is revealed once in an alert with a copy button.
+  const copyBtn = page.getByRole('button', { name: 'Copy' }).first();
   await expect(copyBtn).toBeVisible();
-  // click copy btn and check copied key
   await copyBtn.click();
   await expect
     .poll(async () => page.evaluate(() => navigator.clipboard.readText()), {
@@ -399,7 +473,9 @@ export const uiGetCredentialKeyAuth = async (
  * @param page - Playwright page
  */
 export const uiGoToApplications = async (page: Page) => {
-  await page.goto(PATH_APPLICATIONS);
+  await page.goto(getOrgScopedPath(page, PATH_APPLICATIONS), {
+    waitUntil: 'domcontentloaded',
+  });
   const table = page.getByTestId('application-table');
   if (await table.isVisible().catch(() => false)) {
     return;
@@ -411,7 +487,7 @@ export const uiGoToApplications = async (page: Page) => {
   if (await myApplicationsLink.isVisible().catch(() => false)) {
     await myApplicationsLink.click();
   } else {
-    await page.goto('/applications');
+    await page.goto(PATH_APPLICATIONS, { waitUntil: 'domcontentloaded' });
   }
   await expect(table).toBeVisible();
 };
@@ -446,16 +522,20 @@ export const uiAddApplication = async (
 
   // Add labels if provided
   if (appData.labels || appData.label) {
-    const labels = appData.labels || [appData.label];
+    const labels = appData.labels ?? (appData.label ? [appData.label] : []);
     for (let i = 0; i < labels.length; i++) {
-      await page.getByRole('button', { name: 'plus Add' }).click();
-      await page.locator(`#labels_${i}_key`).fill(labels[i].key);
-      await page.locator(`#labels_${i}_value`).fill(labels[i].value);
+      const label = labels[i];
+      if (!label) {
+        continue;
+      }
+      await page.getByTestId('add-label-btn').click();
+      await page.locator(`#labels_${i}_key`).fill(label.key);
+      await page.locator(`#labels_${i}_value`).fill(label.value);
     }
   }
 
   // Submit
-  const addSubmit = page.getByRole('button', { name: 'Add', exact: true });
+  const addSubmit = page.getByTestId('drawer-footer').getByRole('button', { name: 'Add', exact: true });
   await addSubmit.click();
 
   await uiVerifyToast(page, {
@@ -478,8 +558,8 @@ export const uiDeleteApplicationInList = async (
   });
   await expect(nameCell).toBeVisible();
 
-  const row = nameCell.locator('xpath=..');
-  const moreMenuBtn = row.getByTestId('more');
+  const row = nameCell.locator('xpath=ancestor::tr[1]');
+  const moreMenuBtn = uiGetMoreOptionsButton(row);
   await moreMenuBtn.click();
 
   const deleteBtn = page.getByRole('menuitem', { name: 'Delete' });
@@ -492,7 +572,7 @@ export const uiDeleteApplicationInList = async (
   const confirmInput = page.getByPlaceholder(applicationName);
   await confirmInput.fill(applicationName);
 
-  const confirmBtn = page.getByRole('button', { name: 'Confirm' });
+  const confirmBtn = page.getByRole('button', { name: 'Save' });
   await confirmBtn.click();
 
   await uiVerifyToast(page, {

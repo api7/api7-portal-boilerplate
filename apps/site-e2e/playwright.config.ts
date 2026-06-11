@@ -1,5 +1,7 @@
-import { defineConfig, devices } from '@playwright/test';
 import { config } from 'dotenv';
+
+import { defineConfig, devices } from '@playwright/test';
+
 import { E2E_TARGET_URL } from './constant';
 
 config({
@@ -52,12 +54,17 @@ export default defineConfig({
   outputDir: './test-results',
   projects: [
     {
+      name: 'unit',
+      testMatch: /unit\/.*\.spec\.ts/,
+    },
+    {
       name: 'setup',
       testMatch: /global\.setup\.ts/,
     },
     {
       name: 'chromium',
       dependencies: ['setup'],
+      testIgnore: /unit\/.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1920, height: 1080 },
@@ -65,8 +72,7 @@ export default defineConfig({
         launchOptions: {
           args: [
             '--ignore-certificate-errors',
-            // Mapping hosts in the k8s cluster to browser dns
-            // TODO: We'd better use ingress to solve portforward and mapping issues like this
+            // Map docker container hostnames to localhost so the browser can reach them
             '--host-resolver-rules=MAP api7ee3-keycloak 127.0.0.1',
           ],
         },

@@ -3,8 +3,8 @@
 import { toast } from 'sonner';
 
 import ValidateModal from '@/components/slices/modal/ValidateModal';
-import { portalClient } from '@/lib/portal-sdk/client';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
+import { portalClient } from '@/lib/portal-sdk/client';
 
 type UnsubscribeModalProps = UseDisclosureReturn & {
   id?: string;
@@ -29,7 +29,7 @@ const UnsubscribeModal = (props: UnsubscribeModalProps) => {
       confirmText={name}
       targetText="the API product name"
       alertProps={{
-        message:
+        description:
           'After unsubscribing, you will no longer be able to access this API product using your application credentials.',
       }}
       onOk={handleUnsubscribe}

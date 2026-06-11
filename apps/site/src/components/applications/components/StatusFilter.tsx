@@ -1,39 +1,36 @@
+import type { ColumnDef } from '@tanstack/react-table';
+
 import A7Label from '@/components/api7/api7-label';
-import { useTableColWithFilterOption } from '@/components/slices/table-col/labels';
 import type { SubscriptionStatus } from '@/types/portal-sdk';
 
 export const PRODUCT_STATUS_CONFIG = {
   subscribed: {
     color: 'green',
     text: 'Subscribed',
-    label: 'Subscribed',
     value: 'subscribed',
   },
   wait_for_approval: {
-    color: 'gray',
+    color: 'orange',
     text: 'Wait For Approval',
-    label: 'Wait For Approval',
     value: 'wait_for_approval',
   },
   unsubscribed: {
     color: 'gray',
     text: 'Unsubscribed',
-    label: 'Unsubscribed',
     value: 'unsubscribed',
   },
 } as const;
 
-type Props = {
+type StatusConfig = Record<string, { color: string; text: string; value: string }>;
+
+type StatusDisplayProps = {
   status: SubscriptionStatus;
-  statusConfig: Record<
-    string,
-    { color: string; text: string; label: string; value: string }
-  >;
+  statusConfig: StatusConfig;
 };
 
-const StatusDisplay = (props: Props) => {
-  const { status, statusConfig } = props;
+const StatusDisplay = ({ status, statusConfig }: StatusDisplayProps) => {
   const config = statusConfig[status];
+  if (!config) return null;
   return (
     <div className="w-fit">
       <A7Label isStatus color={config.color}>
@@ -43,27 +40,17 @@ const StatusDisplay = (props: Props) => {
   );
 };
 
-export const useStatusCol = <T,>(
-  props: {
-    onParamsChange: (params: object) => void;
-  } & Pick<Props, 'statusConfig'>
-) => {
-  const { onParamsChange, statusConfig } = props;
-  const statusFilters = Object.values(statusConfig).map((config) => ({
-    text: config.label,
-    value: config.value,
-  }));
-
-  const statusCol = useTableColWithFilterOption<T>({
-    title: 'Status',
-    dataIndex: 'status',
-    render: (status: SubscriptionStatus) => (
-      <StatusDisplay status={status} statusConfig={statusConfig} />
+export function statusCol<T>(statusConfig: StatusConfig): ColumnDef<T> {
+  return {
+    id: 'status',
+    header: 'Status',
+    accessorKey: 'status',
+    enableSorting: false,
+    cell: ({ getValue }) => (
+      <StatusDisplay
+        status={getValue() as SubscriptionStatus}
+        statusConfig={statusConfig}
+      />
     ),
-    onParamsChange,
-    filters: statusFilters,
-    hideKey: true,
-  });
-
-  return statusCol;
-};
+  } as ColumnDef<T>;
+}

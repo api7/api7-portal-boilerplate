@@ -40,7 +40,7 @@ export const produceToAPILabels = produce((draft) => {
   } else {
     unset(draft, 'labels');
   }
-}) as (draft: ToFormLabel<{}>) => ToAPILabel<{}>;
+}) as (draft: ToFormLabel<object>) => ToAPILabel<object>;
 
 export const produceToFormLabels = produce((draft) => {
   if (noNilEmpty(draft.labels)) {
@@ -48,5 +48,5 @@ export const produceToFormLabels = produce((draft) => {
   } else {
     unset(draft, 'labels');
   }
-}) as (draft: ToAPILabel<{}>) => ToFormLabel<{}>;
+}) as (draft: ToAPILabel<object>) => ToFormLabel<object>;
 

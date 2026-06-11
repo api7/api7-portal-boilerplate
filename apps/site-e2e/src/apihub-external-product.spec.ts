@@ -94,7 +94,7 @@ test.describe('Test API Hub with External Product', () => {
       ).not.toBeAttached();
 
       const title = page.getByTestId('meta-name').getByText(productName);
-      await expect(title).toBeVisible();
+      await expect(title).toBeVisible({ timeout: 15000 });
       const getOperationLink = page
         .locator('.scalar-app')
         .getByRole('button', { name: /\/get\b.*\bGET\b/i })
@@ -183,7 +183,7 @@ test.describe('Test API Hub with External Product', () => {
     page,
   }) => {
     const id = 'not_exist_id';
-    const url = `/api-hub/detail/?id=${id}`;
+    const url = `/api-hub/${id}`;
     await page.goto(url);
     expect(page.url()).toContain(id);
     await uiShowNotFound(page);

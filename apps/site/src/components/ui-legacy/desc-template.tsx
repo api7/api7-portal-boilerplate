@@ -1,29 +1,27 @@
 'use client';
 
-import { type DescriptionsProps, Descriptions } from 'antd';
-import type { DescriptionsItemType } from 'antd/es/descriptions';
-
-type DescTemplateProps = Omit<DescriptionsProps, 'items'> & {
-  items?: (DescriptionsItemType & {
-    hidden?: boolean;
-  })[];
+type DescItem = {
+  key: string;
+  label: React.ReactNode;
+  children?: React.ReactNode;
+  hidden?: boolean;
 };
 
-export const DescTemplate = (props: DescTemplateProps) => {
-  const { items, ...rest } = props;
-  return (
-    <Descriptions
-      bordered
-      labelStyle={{
-        backgroundColor: '#F6F7F9',
-        width: '160px',
-        padding: '12px 16px',
-      }}
-      contentStyle={{
-        padding: '8px',
-      }}
-      items={items?.filter((o) => !o.hidden)}
-      {...rest}
-    />
-  );
+type DescTemplateProps = {
+  items?: DescItem[];
 };
+
+export const DescTemplate = ({ items = [] }: DescTemplateProps) => (
+  <dl className="divide-y divide-border rounded border text-sm">
+    {items
+      .filter((o) => !o.hidden)
+      .map((item) => (
+        <div key={item.key} className="grid grid-cols-[160px_1fr]">
+          <dt className="bg-muted/60 px-4 py-3 font-medium text-muted-foreground">
+            {item.label}
+          </dt>
+          <dd className="px-3 py-2">{item.children}</dd>
+        </div>
+      ))}
+  </dl>
+);

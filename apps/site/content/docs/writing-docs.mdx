@@ -1,0 +1,85 @@
+---
+title: Writing documentation
+description: How to add, organize, and style the Markdown pages under /docs.
+order: 3
+---
+
+# Writing documentation
+
+All docs pages are Markdown (MDX) files under **`apps/site/content/docs/`**.
+Drop a file in, and it appears automatically — there is no registry to update.
+
+## Add a page
+
+Create an `.mdx` file with a frontmatter block:
+
+```mdx
+---
+title: My Page
+description: A short summary used for SEO and search.
+order: 10
+---
+
+# My Page
+
+Write **Markdown** here. Tables, lists, and code blocks all work.
+```
+
+The file's location maps to its URL:
+
+```text
+content/docs/my-page.mdx          →  /docs/my-page
+content/docs/guides/auth.mdx      →  /docs/guides/auth
+```
+
+<Callout type="warning" title="Frontmatter is validated">
+  <code>title</code> is required. If a field is missing or has the wrong type,
+  the build fails with the file name and the exact problem — so broken pages are
+  caught early, not in production.
+</Callout>
+
+## Organize the sidebar
+
+The sidebar mirrors the folder structure. **Sub-folders become nested,
+collapsible sections** (any depth):
+
+```text
+content/docs/
+  getting-started.mdx          →  top-level item
+  guides/
+    auth.mdx                   →  under a "Guides" section
+    advanced/
+      caching.mdx              →  under "Guides › Advanced"
+```
+
+- `order` (lower = higher) sorts items among their siblings.
+- The section containing the current page expands automatically.
+
+## Frontmatter fields
+
+| Field | Required | Purpose |
+| --- | --- | --- |
+| `title` | yes | Page title, sidebar label, search |
+| `description` | no | SEO + search preview |
+| `order` | no | Sort order among siblings (default 100) |
+
+## Styling helpers
+
+Fenced code blocks are syntax-highlighted automatically:
+
+```ts
+export function greet(name: string) {
+  return `Hello, ${name}`;
+}
+```
+
+Use callouts for asides:
+
+```mdx
+<Callout type="tip" title="Heads up">Useful aside.</Callout>
+```
+
+<Callout type="note">
+  Search (press <code>⌘K</code> / <code>Ctrl+K</code>) indexes every page's
+  title, headings, and text — new pages are searchable with no extra work.
+</Callout>

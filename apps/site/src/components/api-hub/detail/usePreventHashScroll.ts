@@ -14,5 +14,5 @@ export const usePreventHashScroll = () => {
     window.addEventListener('hashchange', preventScroll, true);
     if (window.location.hash) preventScroll(new Event('hashchange'));
     return () => window.removeEventListener('hashchange', preventScroll, true);
-  }, [window.location.hash]);
+  }, []);
 };

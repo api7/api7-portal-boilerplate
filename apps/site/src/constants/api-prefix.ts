@@ -1,6 +1,5 @@
 export const API_PREFIX = '/api';
 export const AUTH_BASE_PATH = '/api/auth';
-export const API_CONFIG_STATUS = '/api/config-status';
 export const API_PRODUCTS = `${API_PREFIX}/api_products`;
 export const API_APPLICATIONS = `${API_PREFIX}/applications`;
 export const API_CREDENTIALS = `${API_PREFIX}/credentials`;

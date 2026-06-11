@@ -1,0 +1,121 @@
+"use client"
+
+import {
+  type OrganizationAuthClient,
+  useAuth,
+  useAuthPlugin,
+  useCreateOrganization
+} from "@better-auth-ui/react"
+import { Briefcase } from "lucide-react"
+import { type SyntheticEvent, useState } from "react"
+
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
+import { Field, FieldError } from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Spinner } from "@/components/ui/spinner"
+import { organizationPlugin } from "@/lib/auth/organization-plugin"
+
+function generateSlug(): string {
+  const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
+  const bytes = new Uint8Array(8)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => chars[b % chars.length]).join("")
+}
+
+/** Props for the `CreateOrganizationDialog` component. */
+export type CreateOrganizationDialogProps = {
+  open: boolean
+  onOpenChange: (open: boolean) => void
+}
+
+export function CreateOrganizationDialog({
+  open,
+  onOpenChange
+}: CreateOrganizationDialogProps) {
+  const { authClient, localization } = useAuth()
+  const { localization: organizationLocalization } =
+    useAuthPlugin(organizationPlugin)
+
+  const [name, setName] = useState("")
+
+  const { mutate: createOrganization, isPending: isCreating } =
+    useCreateOrganization(authClient as OrganizationAuthClient, {
+      onSuccess: () => onOpenChange(false)
+    })
+
+  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    createOrganization({ name, slug: generateSlug() })
+  }
+
+  const handleOpenChange = (next: boolean) => {
+    if (!next) setName("")
+    onOpenChange(next)
+  }
+
+  return (
+    <AlertDialog open={open} onOpenChange={handleOpenChange}>
+      <AlertDialogContent>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <Briefcase />
+            </AlertDialogMedia>
+
+            <AlertDialogTitle>
+              {organizationLocalization.createOrganization}
+            </AlertDialogTitle>
+
+            <AlertDialogDescription>
+              {organizationLocalization.organizationsDescription}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="flex flex-col gap-4">
+            <Field>
+              <Label htmlFor="create-organization-name">
+                {organizationLocalization.name}
+              </Label>
+
+              <Input
+                id="create-organization-name"
+                name="name"
+                autoFocus
+                required
+                placeholder={organizationLocalization.namePlaceholder}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={isCreating}
+              />
+
+              <FieldError />
+            </Field>
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isCreating}>
+              {localization.settings.cancel}
+            </AlertDialogCancel>
+
+            <Button type="submit" disabled={isCreating}>
+              {isCreating && <Spinner />}
+
+              {organizationLocalization.createOrganization}
+            </Button>
+          </AlertDialogFooter>
+        </form>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}

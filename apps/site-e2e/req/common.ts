@@ -1,6 +1,6 @@
 import { APIRequest, expect, request } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { API_APPLICATIONS, AUTH_BASE_PATH } from '@site/constants/api-prefix';
+import { API_APPLICATIONS, API_PREFIX, AUTH_BASE_PATH } from '@site/constants/api-prefix';
 import { PATH_LANDING, PATH_ORGANIZATION } from '@site/constants/path-prefix';
 
 import { E2E_TARGET_URL } from '../constant';
@@ -167,12 +167,14 @@ export const register = async (
   return res.json();
 };
 
-export const deleteAllApplications = async (ctx: Ctx) => {
-  const applications = await ctx.get(API_APPLICATIONS);
+export const deleteAllApplications = async (ctx: Ctx, orgSlug?: string) => {
+  const slug = orgSlug ?? await getActiveOrganizationSlug(ctx);
+  const url = `${API_PREFIX}/${slug}/applications`;
+  const applications = await ctx.get(url);
   expect(applications.status()).toBe(200);
   const applicationsData = await applications.json();
   for (const application of applicationsData.list || []) {
-    await ctx.delete(`${API_APPLICATIONS}/${application.id}`);
+    await ctx.delete(`${url}/${application.id}`);
   }
 };
 
@@ -193,12 +195,13 @@ export const deleteAllOrganizations = async (ctx: Ctx) => {
     });
   }
 };
-export const getDefaultApplicationId = async (ctx: Ctx): Promise<string> => {
+export const getDefaultApplicationId = async (ctx: Ctx, orgSlug?: string): Promise<string> => {
+  const url = orgSlug ? `${API_PREFIX}/${orgSlug}/applications` : API_APPLICATIONS;
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < maxRequestRetries; attempt++) {
     try {
-      const res = await ctx.get(API_APPLICATIONS, {
+      const res = await ctx.get(url, {
         failOnStatusCode: false,
         timeout: 30000,
       });
@@ -243,8 +246,10 @@ export const getDefaultApplicationId = async (ctx: Ctx): Promise<string> => {
 export const createApplication = async (
   ctx: Ctx,
   data: { name: string; desc?: string },
+  orgSlug?: string,
 ) => {
-  const res = await ctx.post(API_APPLICATIONS, {
+  const url = orgSlug ? `${API_PREFIX}/${orgSlug}/applications` : API_APPLICATIONS;
+  const res = await ctx.post(url, {
     data,
     failOnStatusCode: false,
   });
@@ -272,7 +277,7 @@ export const createOrganization = async (ctx: Ctx, name: string) => {
   const sessionRes = await getSession(ctx);
   const sessionBody = await sessionRes.json();
   expect(sessionBody.session.activeOrganizationId).toBe(body.id);
-  await createApplication(ctx, { name: 'default' });
+  await createApplication(ctx, { name: 'default' }, body.slug);
   return body;
 };
 
@@ -333,8 +338,31 @@ export const getActiveOrganizationId = async (ctx: Ctx): Promise<string> => {
   const res = await getSession(ctx);
   const body = await res.json();
   const orgId = body?.session?.activeOrganizationId;
-  expect(orgId).toBeTruthy();
-  return orgId;
+  if (orgId) {
+    return orgId as string;
+  }
+
+  const fullOrgRes = await ctx.get(
+    `${AUTH_BASE_PATH}/organization/get-full-organization`,
+    {
+      failOnStatusCode: false,
+    },
+  );
+  if (fullOrgRes.status() === 200) {
+    const fullOrgBody = await fullOrgRes.json();
+    if (fullOrgBody?.id) {
+      return fullOrgBody.id as string;
+    }
+  }
+
+  const listRes = await ctx.get(`${AUTH_BASE_PATH}/organization/list`, {
+    failOnStatusCode: false,
+  });
+  expect(listRes.status()).toBe(200);
+  const orgList = await listRes.json();
+  const fallbackOrgId = orgList?.[0]?.id;
+  expect(fallbackOrgId).toBeTruthy();
+  return fallbackOrgId as string;
 };
 
 export const getActiveOrganizationSlug = async (ctx: Ctx): Promise<string> => {

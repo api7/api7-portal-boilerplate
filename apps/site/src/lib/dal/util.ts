@@ -1,6 +1,6 @@
 import 'server-only';
 
-import { PATH_LANDING, PATH_LOGIN } from '@/constants/path-prefix';
+import { PATH_AUTH, PATH_LANDING, PATH_LOGIN } from '@/constants/path-prefix';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
@@ -37,7 +37,13 @@ export const verifySession = cache(
       .catch(() => null);
 
     if (!session && options.redirect) {
-      redirect(PATH_LOGIN);
+      const hdrs = await headers();
+      const pathname = hdrs.get('x-pathname');
+      const loginURL =
+        pathname && !pathname.startsWith(PATH_AUTH)
+          ? `${PATH_LOGIN}?redirect=${encodeURIComponent(pathname)}`
+          : PATH_LOGIN;
+      redirect(loginURL);
     }
 
     return session;

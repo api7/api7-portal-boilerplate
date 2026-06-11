@@ -2,7 +2,9 @@ import { expect } from '@playwright/test';
 
 import { test } from '../fixture';
 import {
+  uiClickCellButton,
   uiDeleteCredential,
+  uiGetMoreOptionsButton,
   uiGoToAPICredentials,
   uiVerifyToast,
 } from '../utils/ui';
@@ -13,6 +15,11 @@ test.describe('Test Basic Auth Credential CRUD', () => {
   const defaultBasicAuthPass = 'default-pass';
 
   test('can CRUD basic auth credential', async ({ page }) => {
+    const seed = (+Date.now()).toString();
+    const basicAuthName = `${defaultBasicAuth}-${seed}`;
+    const basicAuthUser = `${defaultBasicAuthUser}-${seed}`;
+    const basicAuthPass = `${defaultBasicAuthPass}-${seed}`;
+
     await uiGoToAPICredentials(page);
     // switch to Basic Authentication tab
     await page.getByRole('tab', { name: 'Basic Authentication' }).click();
@@ -30,16 +37,12 @@ test.describe('Test Basic Auth Credential CRUD', () => {
       await expect(addTitle).toBeVisible();
 
       // fill form
-      await page.locator('input#name').fill(defaultBasicAuth);
-      await page
-        .locator('input#basic-auth_username')
-        .fill(defaultBasicAuthUser);
-      await page
-        .locator('input#basic-auth_password')
-        .fill(defaultBasicAuthPass);
+      await page.locator('input#name').fill(basicAuthName);
+      await page.locator('input#basic-auth_username').fill(basicAuthUser);
+      await page.locator('input#basic-auth_password').fill(basicAuthPass);
 
       // submit
-      const addSubmit = page.getByRole('button', { name: 'Add', exact: true });
+      const addSubmit = page.getByTestId('drawer-footer').getByRole('button', { name: 'Add', exact: true });
       await addSubmit.click();
       await uiVerifyToast(page, {
         hasText: 'Add Basic Authentication Credential Successfully',
@@ -48,44 +51,38 @@ test.describe('Test Basic Auth Credential CRUD', () => {
     });
 
     // should exist basic auth
-    const nameCell = page.getByRole('cell', { name: defaultBasicAuth });
+    const nameCell = page.getByRole('cell', { name: basicAuthName });
     await expect(nameCell).toBeVisible();
-    const defaultRow = nameCell.locator('xpath=..');
+    const defaultRow = nameCell.locator('xpath=ancestor::tr[1]');
 
     await test.step('check detail drawer', async () => {
       // click name will show credential detail
-      await nameCell.locator('a').click();
+      await uiClickCellButton(nameCell, basicAuthName);
       const detailTitle = page.getByText(
         'Basic Authentication Credential Detail',
       );
       await expect(detailTitle).toBeVisible();
 
       // username should be visible
-      await expect(page.getByText(defaultBasicAuthUser)).toBeVisible();
+      await expect(page.getByText(basicAuthUser)).toBeVisible();
 
-      // password should be masked and have copy button
-      const passwordMask = page.getByText('********');
-      await expect(passwordMask).toBeVisible();
-      const copyBtn = passwordMask.locator('xpath=..').locator('button');
-      await expect(copyBtn).toBeVisible();
-
-      // click copy btn and check copied password
-      await copyBtn.click();
-      const oldCopiedPassword = await page.evaluate(() =>
-        navigator.clipboard.readText(),
-      );
-      expect(oldCopiedPassword).toBe(defaultBasicAuthPass);
+      // the password is view-once: the detail shows a notice instead of the value
+      await expect(page.getByText(/only shown once/i)).toBeVisible();
+      await expect(page.getByText('********')).toBeHidden();
 
       // close detail drawer
       await page
-        .locator('.ant-drawer-footer')
+        .getByTestId('drawer-footer')
         .getByRole('button', { name: 'Close' })
         .click();
       await expect(detailTitle).toBeHidden();
     });
 
     await test.step('check rotate credentials', async () => {
-      const rotateBtn = defaultRow.getByRole('button', { name: 'Rotate' });
+      const moreMenuBtn = uiGetMoreOptionsButton(defaultRow);
+      await expect(moreMenuBtn).toBeVisible();
+      await moreMenuBtn.click();
+      const rotateBtn = page.getByRole('menuitem', { name: 'Rotate' });
       await expect(rotateBtn).toBeVisible();
       await rotateBtn.click();
 
@@ -120,7 +117,8 @@ test.describe('Test Basic Auth Credential CRUD', () => {
       await expect(rotateTitle).toBeHidden();
     });
 
-    const moreMenuBtn = defaultRow.locator('button.ant-dropdown-trigger');
+    const editBtn = defaultRow.getByRole('button', { name: 'Edit' });
+    const moreMenuBtn = uiGetMoreOptionsButton(defaultRow);
     const nameInput = page.locator('input#name');
     const editBasicsTitle = page.getByText(
       'Edit Basic Authentication Credential',
@@ -128,11 +126,8 @@ test.describe('Test Basic Auth Credential CRUD', () => {
     );
 
     const openEditBasicsDrawer = async () => {
-      await expect(moreMenuBtn).toBeVisible();
-      await moreMenuBtn.click();
-      const editBasicsBtn = page.getByRole('menuitem', { name: 'Edit Basics' });
-      await expect(editBasicsBtn).toBeVisible();
-      await editBasicsBtn.click();
+      await expect(editBtn).toBeVisible();
+      await editBtn.click();
       await expect(editBasicsTitle).toBeVisible();
     };
 
@@ -146,10 +141,10 @@ test.describe('Test Basic Auth Credential CRUD', () => {
 
     await test.step('edit basics', async () => {
       await openEditBasicsDrawer();
-      await expect(nameInput).toHaveValue(defaultBasicAuth);
+      await expect(nameInput).toHaveValue(basicAuthName);
 
       // add labels
-      const labelAddBtn = page.getByRole('button', { name: 'plus Add' });
+      const labelAddBtn = page.getByTestId('add-label-btn');
       await labelAddBtn.click();
       await page.locator('input#labels_0_key').fill('env');
       await page.locator('input#labels_0_value').fill('prod');
@@ -189,7 +184,7 @@ test.describe('Test Basic Auth Credential CRUD', () => {
       await expect(addTitle).toBeVisible();
 
       // click add directly, should show validation errors
-      const addSubmit = page.getByRole('button', { name: 'Add', exact: true });
+      const addSubmit = page.getByTestId('drawer-footer').getByRole('button', { name: 'Add', exact: true });
       await expect(addSubmit).toBeVisible();
       await addSubmit.click();
 

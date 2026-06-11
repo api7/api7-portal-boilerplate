@@ -1,7 +1,6 @@
 import { test } from '../fixture';
 import { expect } from '@playwright/test';
-import { PATH_APPLICATIONS } from '@site/constants/path-prefix';
-import { API_APPLICATIONS, API_CONFIG_STATUS } from '@site/constants/api-prefix';
+import { API_PREFIX } from '@site/constants/api-prefix';
 import { createApplication } from '../req/common';
 import { restartDevPortal } from '../utils/shell';
 import { ConfigMapData } from '@site/lib/config/schema';
@@ -19,6 +18,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
   test.setTimeout(600_000); // 10 minutes in milliseconds
 
   let testAppId: string;
+  let testOrgSlug: string;
   const testApp = {
     name: `Test App Config ${Date.now()}`,
     desc: 'Test application for tabs configuration testing',
@@ -54,9 +54,10 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     await restartDevPortal();
   }
 
-  test.beforeAll(async ({ ctx }) => {
+  test.beforeAll(async ({ ctx, auth }) => {
     // Create a test application
-    const app = await createApplication(ctx, testApp);
+    testOrgSlug = auth.organization;
+    const app = await createApplication(ctx, testApp, testOrgSlug);
     testAppId = app.id;
 
     // Backup default config
@@ -65,8 +66,8 @@ test.describe('Test Application Detail Tabs Configuration', () => {
 
   test.afterAll(async ({ ctx }) => {
     // Clean up test application
-    if (testAppId) {
-      await ctx.delete(`${API_APPLICATIONS}/${testAppId}`);
+    if (testAppId && testOrgSlug) {
+      await ctx.delete(`${API_PREFIX}/${testOrgSlug}/applications/${testAppId}`);
     }
 
     // Restore default config if it was backed up
@@ -77,7 +78,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
   });
 
   test('should show all tabs by default', async ({ page }) => {
-    await page.goto(`${PATH_APPLICATIONS}/detail?id=${testAppId}`);
+    await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
 
     // All main tabs should be visible
     await expect(
@@ -108,7 +109,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
       credentialsTabs: allCredentialsTabs,
     });
 
-    await page.goto(`${PATH_APPLICATIONS}/detail?id=${testAppId}`);
+    await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
     await expect(page.getByRole('tab', { name: 'Subscriptions' })).not.toBeVisible();
     await expect(page.getByRole('tab', { name: 'Authentication Type' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Usage' })).toBeVisible();
@@ -121,7 +122,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
       credentialsTabs: allCredentialsTabs,
     });
 
-    await page.goto(`${PATH_APPLICATIONS}/detail?id=${testAppId}`);
+    await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
     await expect(page.getByRole('tab', { name: 'Usage' })).not.toBeVisible();
     await expect(page.getByRole('tab', { name: 'Subscriptions' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Authentication Type' })).toBeVisible();
@@ -134,7 +135,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
       credentialsTabs: { keyAuth: false, basicAuth: true, oauth: true },
     });
 
-    await page.goto(`${PATH_APPLICATIONS}/detail?id=${testAppId}`);
+    await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
     await page.getByRole('tab', { name: 'Authentication Type' }).click();
     await expect(page.getByRole('tab', { name: 'Key Authentication' })).not.toBeVisible();
     await expect(page.getByRole('tab', { name: 'Basic Authentication' })).toBeVisible();
@@ -148,7 +149,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
       credentialsTabs: { keyAuth: true, basicAuth: false, oauth: true },
     });
 
-    await page.goto(`${PATH_APPLICATIONS}/detail?id=${testAppId}`);
+    await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
     await page.getByRole('tab', { name: 'Authentication Type' }).click();
     await expect(page.getByRole('tab', { name: 'Basic Authentication' })).not.toBeVisible();
     await expect(page.getByRole('tab', { name: 'Key Authentication' })).toBeVisible();
@@ -162,7 +163,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
       credentialsTabs: { keyAuth: true, basicAuth: true, oauth: false },
     });
 
-    await page.goto(`${PATH_APPLICATIONS}/detail?id=${testAppId}`);
+    await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
     await page.getByRole('tab', { name: 'Authentication Type' }).click();
     await expect(page.getByRole('tab', { name: 'OAuth' })).not.toBeVisible();
     await expect(page.getByRole('tab', { name: 'Key Authentication' })).toBeVisible();
@@ -184,7 +185,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     });
     await restartDevPortal();
 
-    await page.goto(`${PATH_APPLICATIONS}/detail?id=${testAppId}`);
+    await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
 
     // Authentication Type tab should not be visible when all sub-tabs are disabled
     await expect(
@@ -213,7 +214,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     });
     await restartDevPortal();
 
-    await page.goto(`${PATH_APPLICATIONS}/detail?id=${testAppId}`);
+    await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
 
     // Authentication Type tab should be visible when at least one sub-tab is enabled
     await expect(
@@ -223,12 +224,14 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     // Click on Authentication Type tab
     await page.getByRole('tab', { name: 'Authentication Type' }).click();
 
-    // Only enabled sub-tab should be visible
+    // Only the enabled sub-tab content should be visible.
+    // When only one credential type is enabled, the switcher is hidden;
+    // verify by checking the Add button for the enabled type.
     await expect(
-      page.getByRole('tab', { name: 'Key Authentication' })
+      page.getByRole('button', { name: 'Add Key Authentication Credential' })
     ).toBeVisible();
 
-    // Disabled sub-tabs should not be visible
+    // Disabled sub-tab switcher buttons should not be present
     await expect(
       page.getByRole('tab', { name: 'Basic Authentication' })
     ).not.toBeVisible();
@@ -248,7 +251,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     });
     await restartDevPortal();
 
-    await page.goto(`${PATH_APPLICATIONS}/detail?id=${testAppId}`);
+    await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
 
     // Hidden tabs should not be visible
     await expect(
@@ -264,9 +267,11 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     // Click on Authentication Type tab
     await page.getByRole('tab', { name: 'Authentication Type' }).click();
 
-    // Only basicAuth sub-tab should be visible
+    // Only the enabled sub-tab content should be visible.
+    // When only one credential type is enabled, the switcher is hidden;
+    // verify by checking the Add button for the enabled type.
     await expect(
-      page.getByRole('tab', { name: 'Basic Authentication' })
+      page.getByRole('button', { name: 'Add Basic Authentication Credential' })
     ).toBeVisible();
     await expect(
       page.getByRole('tab', { name: 'Key Authentication' })
@@ -274,26 +279,4 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     await expect(page.getByRole('tab', { name: 'OAuth' })).not.toBeVisible();
   });
 
-  test('should verify config API returns correct structure', async ({ ctx }) => {
-    const configResponse = await ctx.get(API_CONFIG_STATUS);
-    expect(configResponse.status()).toBe(200);
-    const config = await configResponse.json();
-
-    expect(config).toHaveProperty('applicationDetail');
-    const { applicationDetail } = config;
-    expect(applicationDetail).toHaveProperty('subscriptions');
-    expect(applicationDetail).toHaveProperty('usage');
-    expect(applicationDetail).toHaveProperty('credentialsTabs');
-
-    const { credentialsTabs } = applicationDetail;
-    expect(credentialsTabs).toHaveProperty('keyAuth');
-    expect(credentialsTabs).toHaveProperty('basicAuth');
-    expect(credentialsTabs).toHaveProperty('oauth');
-
-    expect(typeof applicationDetail.subscriptions).toBe('boolean');
-    expect(typeof applicationDetail.usage).toBe('boolean');
-    expect(typeof credentialsTabs.keyAuth).toBe('boolean');
-    expect(typeof credentialsTabs.basicAuth).toBe('boolean');
-    expect(typeof credentialsTabs.oauth).toBe('boolean');
-  });
 });

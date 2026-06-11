@@ -1,38 +1,62 @@
-import { CheckOutlined, CopyOutlined } from '@ant-design/icons';
-import { ProFormText } from '@ant-design/pro-components';
-import { useClipboard } from '@chakra-ui/react';
+'use client';
+
 import { useBoolean } from 'ahooks';
-import { Tooltip, Typography } from 'antd';
+import { useEffect } from 'react';
+import { CheckIcon, CopyIcon } from 'lucide-react';
 
-import Form from '../form/Form';
+import { useForm, useStore } from '@tanstack/react-form';
+import type { AnyFieldApi } from '@tanstack/react-form';
+
 import { type AlertProps } from '@/components/ui-legacy/alert';
-import A7Modal, { type A7ModalProps } from '@/components/ui-legacy/modal';
+import Modal, { type ModalProps } from '@/components/base/modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
+import { useClipboard } from '@chakra-ui/react';
 
-type Props = A7ModalProps &
+type Props = ModalProps &
   UseDisclosureReturn & {
     confirmText: string;
     targetText: string;
     alertProps?: AlertProps;
   };
 
-type FormType = {
-  inputText: string;
-};
-
 const ValidateModal = (props: Props) => {
   const { confirmText, targetText, alertProps, ...rest } = props;
   const [okDisabled, okDisabledOp] = useBoolean(true);
   const clipboard = useClipboard(confirmText);
+
+  const form = useForm({
+    defaultValues: { inputText: '' },
+    onSubmit: async () => {},
+  });
+
+  const inputText = useStore(form.store, (s) => s.values.inputText);
+
+  useEffect(() => {
+    if (rest.open) {
+      okDisabledOp.setTrue();
+      form.reset();
+    }
+  }, [rest.open, form, okDisabledOp]);
+
+  useEffect(() => {
+    if (confirmText && inputText !== undefined) {
+      okDisabledOp.set(inputText.trim() !== confirmText.trim());
+    }
+  }, [inputText, confirmText, okDisabledOp]);
+
   return (
-    <A7Modal
-      width={576}
-      okText="Confirm"
+    <Modal
       okButtonProps={{
         disabled: okDisabled,
         className:
           'rounded-md disabled:!text-white disabled:!bg-red-500 disabled:opacity-40',
-        danger: true,
       }}
       {...rest}
       afterClose={() => {
@@ -40,59 +64,59 @@ const ValidateModal = (props: Props) => {
         okDisabledOp.setTrue();
       }}
       alertProps={{
-        type: 'error',
+        variant: 'destructive',
         ...alertProps,
       }}
     >
-      <Typography.Paragraph className="!mb-2 text-base text-gray-800">
-        Enter {targetText}{' '}
-        <span className="inline-flex max-w-full min-w-0 items-center gap-1 rounded bg-gray-100 px-1.5 py-0.5">
-          <strong className="min-w-0 break-all !font-bold">
-            {confirmText}
-          </strong>
-          <Tooltip
-            title={clipboard.hasCopied ? 'Copied' : 'Copy to clipboard'}
-            trigger={['hover', 'focus']}
-          >
-            <button
-              type="button"
-              onClick={() => clipboard.onCopy()}
-              className="inline-flex shrink-0 cursor-pointer items-center border-0 bg-transparent p-0 text-gray-400 hover:text-gray-600"
-              aria-label={
-                clipboard.hasCopied ? 'Copied' : 'Copy to clipboard'
-              }
-            >
-              {clipboard.hasCopied ? (
-                <CheckOutlined className="text-green-500" />
-              ) : (
-                <CopyOutlined />
-              )}
-            </button>
-          </Tooltip>
-        </span>{' '}
-        to confirm.
-      </Typography.Paragraph>
-      <Form<FormType>
-        onValuesChange={(_, values) => {
-          if (confirmText && values.inputText) {
-            okDisabledOp.set(values.inputText.trim() !== confirmText.trim());
-          }
-        }}
-        submitter={false}
-        autoFocusFirstInput={false}
-      >
-        <ProFormText
-          name="inputText"
-          placeholder={confirmText}
-          formItemProps={{ className: 'mb-0' }}
-          fieldProps={{
-            className: 'border-red-500 shadow-red-500 shadow-[0_0_0_1px]',
-          }}
-        />
-      </Form>
-    </A7Modal>
+      <div>
+        <p className="mb-2! text-base text-foreground">
+          Enter {targetText}{' '}
+          <span className="inline-flex max-w-full min-w-0 items-center gap-1 rounded bg-muted px-1.5 py-0.5">
+            <strong className="min-w-0 break-all font-bold!">
+              {confirmText}
+            </strong>
+            <Tooltip>
+              <TooltipTrigger
+                delay={0}
+                render={
+                  <Button
+                    className="h-4 inline-flex shrink-0 cursor-pointer items-center border-0 bg-transparent p-0 text-muted-foreground hover:text-foreground"
+                    aria-label={
+                      clipboard.hasCopied ? 'Copied' : 'Copy to clipboard'
+                    }
+                    variant="ghost"
+                    onClick={() => clipboard.onCopy()}
+                  >
+                    {clipboard.hasCopied ? (
+                      <CheckIcon className="text-green-500" />
+                    ) : (
+                      <CopyIcon />
+                    )}
+                  </Button>
+                }
+              />
+              <TooltipContent>
+                <p>{clipboard.hasCopied ? 'Copied' : 'Copy to clipboard'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </span>{' '}
+          to confirm.
+        </p>
+        <form.Field name="inputText">
+          {(field: AnyFieldApi) => (
+            <Input
+              id="inputText"
+              placeholder={confirmText}
+              value={field.state.value ?? ''}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
+              className="border-red-500 shadow-red-500 shadow-[0_0_0_1px]"
+            />
+          )}
+        </form.Field>
+      </div>
+    </Modal>
   );
 };
 
 export default ValidateModal;
-

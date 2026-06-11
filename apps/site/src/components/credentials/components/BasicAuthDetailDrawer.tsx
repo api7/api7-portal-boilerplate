@@ -1,8 +1,8 @@
 'use client';
 
-import MaskCopyTextItem from './MaskCopyTextItem';
+import Alert from '@/components/ui-legacy/alert';
 import { DescTemplate } from '@/components/ui-legacy/desc-template';
-import A7Drawer from '@/components/ui-legacy/drawer';
+import Drawer from '@/components/base/drawer';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import type {
   BasicAuthCredential,
@@ -17,32 +17,33 @@ const BasicAuthDetailDrawer = (props: Props) => {
   const { open, oldData, ...rest } = props;
 
   return (
-    <A7Drawer
+    <Drawer
       open={open}
       title={'Basic Authentication Credential Detail'}
       {...rest}
       cancelText="Close"
     >
       <DescTemplate
-        column={1}
         items={[
           {
             key: 'username',
             label: 'Username',
-            children: (oldData?.['basic-auth'] as BasicAuthPluginValue)?.username,
+            children: (oldData?.['basic-auth'] as BasicAuthPluginValue)
+              ?.username,
           },
           {
             key: 'password',
             label: 'Password',
             children: (
-              <MaskCopyTextItem
-                value={(oldData?.['basic-auth'] as BasicAuthPluginValue)?.password}
+              <Alert
+                variant="info"
+                description="For security reasons, the password is only shown once when the credential is created or regenerated. Regenerate the credential to set a new password."
               />
             ),
           },
         ]}
       />
-    </A7Drawer>
+    </Drawer>
   );
 };
 

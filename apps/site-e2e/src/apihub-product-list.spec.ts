@@ -31,17 +31,23 @@ test.describe('Test API Hub with Product List Pagination', () => {
     await expect(apihub).toBeVisible();
     await apihub.click();
 
-    const pageSizeSelector = page.locator('.ant-select');
+    const pageSizeSelector = page
+      .locator('[data-slot="select-trigger"]')
+      .filter({ hasText: /\/\s*page/ })
+      .last();
+    await expect(pageSizeSelector).toBeVisible();
     await pageSizeSelector.click();
 
     // Assert and click "20 / page" option
-    const option20 = page.getByTitle('20 / page');
+    const option20 = page
+      .locator('[data-slot="select-item"]')
+      .filter({ hasText: '20 / page' })
+      .first();
     await expect(option20).toBeVisible();
     await option20.click();
 
     // check page size is 20 and page have 2 pages, 20 products per page
-    const pageSizeValue = page.getByText(/\b20\s*\/\s*page\b/);
-    await expect(pageSizeValue).toBeVisible();
+    await expect(pageSizeSelector).toContainText('20 / page');
     const httpbinElements = page.getByText('httpbin');
     await expect(httpbinElements).toHaveCount(20);
 
@@ -53,7 +59,7 @@ test.describe('Test API Hub with Product List Pagination', () => {
     expect(page.url()).toContain('/api-hub');
 
     // click next page
-    const nextPage = page.getByLabel('Next page').locator('img');
+    const nextPage = page.getByLabel('Next page');
     await nextPage.click();
 
     expect(page.url()).toContain('/api-hub');
@@ -75,14 +81,17 @@ test.describe('Test API Hub with Product List Pagination', () => {
     await expect(page).toHaveURL(/.*\/api-hub/);
 
     // Optional: verify pagination shows page size 10
-    const pageSizeValue = page.getByText(/\b10\s*\/\s*page\b/);
-    await expect(pageSizeValue).toBeVisible();
-    await expect(page.getByText('1-10 of 21')).toBeVisible();
+    const pageSizeSelector = page
+      .locator('[data-slot="select-trigger"]')
+      .filter({ hasText: /\/\s*page/ })
+      .last();
+    await expect(pageSizeSelector).toContainText('10 / page');
+    await expect(page.getByTestId('result-text')).toContainText('1-10 of 21');
   });
 
   test('invalid page should be reset to the last page', async ({ page }) => {
     await page.goto(`${PATH_ROOT}api-hub?page=3&page_size=20`);
     await expect(page).toHaveURL(/.*\/api-hub/);
-    await expect(page.getByText('1-10 of 21')).toBeVisible();
+    await expect(page.getByTestId('result-text')).toContainText('1-20 of 21');
   });
 });

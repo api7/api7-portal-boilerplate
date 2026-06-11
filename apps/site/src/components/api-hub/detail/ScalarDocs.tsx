@@ -1,11 +1,11 @@
-import { useRef, type CSSProperties, type FC } from 'react';
-import '@scalar/api-reference-react/style.css';
+import { useMount, useUnmount } from 'ahooks';
+import { type CSSProperties, type FC, useRef } from 'react';
 
 import {
-  ApiReferenceReact,
   type AnyApiReferenceConfiguration,
+  ApiReferenceReact,
 } from '@scalar/api-reference-react';
-import { useMount, useUnmount } from 'ahooks';
+import '@scalar/api-reference-react/style.css';
 
 // Use to removes spaces when pasting in the api testing page.
 const trimPasteContentEvent = (event: ClipboardEvent) => {
@@ -38,7 +38,7 @@ const trimPasteContentEvent = (event: ClipboardEvent) => {
     inputOrTextarea.value = newValue;
     inputOrTextarea.setSelectionRange(
       start + pasteText.length,
-      start + pasteText.length
+      start + pasteText.length,
     );
     inputOrTextarea.dispatchEvent(inputEvent);
   } else if (target.isContentEditable) {
@@ -93,6 +93,7 @@ const ScalarDocs: FC<{ configuration: AnyApiReferenceConfiguration }> = ({
   configuration,
 }) => {
   const isEventAdded = useRef(false);
+  const keydownHandlerRef = useRef<EventListener | null>(null);
   const apiTestModalSelector = '.scalar-api-reference';
 
   useMount(() => {
@@ -102,17 +103,15 @@ const ScalarDocs: FC<{ configuration: AnyApiReferenceConfiguration }> = ({
         target?.addEventListener(
           'paste',
           trimPasteContentEvent as EventListener,
-          true
+          true,
         );
-        target?.addEventListener(
-          'keydown',
-          ((e: Event) => {
-            if ((e as KeyboardEvent).key === 'Enter') {
-              preventEmptyPasswordEnter(e as KeyboardEvent);
-            }
-          }) as EventListener,
-          true
-        );
+        const onKeyDown = ((e: Event) => {
+          if ((e as KeyboardEvent).key === 'Enter') {
+            preventEmptyPasswordEnter(e as KeyboardEvent);
+          }
+        }) as EventListener;
+        keydownHandlerRef.current = onKeyDown;
+        target?.addEventListener('keydown', onKeyDown, true);
       }, 0);
       isEventAdded.current = true;
     }
@@ -129,17 +128,11 @@ const ScalarDocs: FC<{ configuration: AnyApiReferenceConfiguration }> = ({
     target?.removeEventListener(
       'paste',
       trimPasteContentEvent as EventListener,
-      true
+      true,
     );
-    target?.removeEventListener(
-      'keydown',
-      ((e: Event) => {
-        if ((e as KeyboardEvent).key === 'Enter') {
-          preventEmptyPasswordEnter(e as KeyboardEvent);
-        }
-      }) as EventListener,
-      true
-    );
+    if (keydownHandlerRef.current) {
+      target?.removeEventListener('keydown', keydownHandlerRef.current, true);
+    }
   });
   // Offset Scalar's sticky elements (e.g. the left sidebar) by the app
   // Header height so the sidebar doesn't get covered by the sticky Header.
@@ -153,7 +146,9 @@ const ScalarDocs: FC<{ configuration: AnyApiReferenceConfiguration }> = ({
 
   return (
     <div style={scalarHeaderOffsetStyle} className="contents">
-      <ApiReferenceReact configuration={configuration} />
+      <ApiReferenceReact
+        configuration={{ ...configuration, agent: { disabled: true } }}
+      />
     </div>
   );
 };

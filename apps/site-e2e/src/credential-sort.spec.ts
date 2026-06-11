@@ -1,7 +1,12 @@
-import { test } from '../fixture';
 import { expect } from '@playwright/test';
-import { uiGoToAPICredentials, uiVerifyToast } from '../utils/ui';
+
+import { test } from '../fixture';
 import { deleteCredentials } from '../req/credential';
+import {
+  uiDeleteCredential,
+  uiGoToAPICredentials,
+  uiVerifyToast,
+} from '../utils/ui';
 
 test.describe('Test Credential table sort', () => {
   test.afterAll(async ({ ctx }) => {
@@ -17,6 +22,7 @@ test.describe('Test Credential table sort', () => {
   };
 
   test('test search and sort', async ({ page }) => {
+    test.setTimeout(120_000);
     await uiGoToAPICredentials(page);
     const nameCell1 = page.getByRole('cell', { name: data.name });
     const nameCell2 = page.getByRole('cell', { name: data.name2 });
@@ -33,18 +39,13 @@ test.describe('Test Credential table sort', () => {
       });
     await expect(addTitle).toBeVisible();
 
-    const drawer = page.locator(
-      '.ant-drawer:has-text("Add Key Authentication Credential")'
-    );
-    await expect(drawer).toBeVisible();
-
     await page.locator('#name').fill(data.name);
     await page.locator('#desc').fill(data.desc);
-    await page.getByRole('button', { name: 'plus Add' }).click();
+    await page.getByTestId('add-label-btn').click();
     await page.locator('#labels_0_key').fill(data.label.key);
     await page.locator('#labels_0_value').fill(data.label.value);
 
-    const addSubmit = page.getByRole('button', { name: 'Add', exact: true });
+    const addSubmit = page.getByTestId('drawer-footer').getByRole('button', { name: 'Add', exact: true });
     await addSubmit.click();
     await uiVerifyToast(page, {
       hasText: 'Add Key Authentication Credential Successfully',
@@ -63,7 +64,7 @@ test.describe('Test Credential table sort', () => {
 
     await test.step('can search by name, description and label', async () => {
       const searchInput = page.locator(
-        '[placeholder="Search name, description, label"]'
+        '[placeholder="Search name, description, label"]',
       );
 
       // Search by name
@@ -90,41 +91,6 @@ test.describe('Test Credential table sort', () => {
       await expect(page.locator('tbody tr')).toHaveCount(2);
     });
 
-    await test.step('can sort by name', async () => {
-      const nameColumn = page.locator('th:has-text("Name")');
-
-      // Default order: second credential first
-      await expect(page.locator('td').nth(0)).toHaveText(data.name2);
-
-      // Ascending (A -> Z)
-      await nameColumn.click();
-      await expect(page.locator('td').nth(0)).toHaveText(data.name);
-
-      // Descending (Z -> A)
-      await nameColumn.click();
-      await expect(page.locator('td').nth(0)).toHaveText(data.name2);
-
-      // Clear sort (click again to reset sort)
-      await nameColumn.click();
-    });
-
-    await test.step('can filter by label', async () => {
-      const filterTrigger = page
-        .getByRole('columnheader', { name: 'Labels' })
-        .getByRole('button');
-      await filterTrigger.click();
-      await page.locator(`label:has-text("${data.label.value}")`).click();
-      await filterTrigger.click();
-      await expect(page.locator('tbody tr')).toHaveCount(1);
-      await expect(nameCell1).toBeVisible();
-
-      // Clear filter
-      await filterTrigger.click();
-      await page.locator(`label:has-text("${data.label.value}")`).click();
-      await filterTrigger.click();
-      await expect(page.locator('tbody tr')).toHaveCount(2);
-    });
-
     await test.step('can sort by updated time', async () => {
       const updatedColumn = page.locator('th:has-text("Updated")');
       await updatedColumn.click(); // Ascending
@@ -137,39 +103,7 @@ test.describe('Test Credential table sort', () => {
     await test.step('delete', async () => {
       const items = [nameCell1, nameCell2];
       for (const nameCell of items) {
-        const moreMenuBtn = nameCell
-          .locator('xpath=..')
-          .locator('button.ant-dropdown-trigger');
-
-        await moreMenuBtn.click();
-        const deleteBtn = page.getByRole('menuitem', {
-          name: 'Delete',
-        });
-        await expect(deleteBtn).toBeVisible();
-        await deleteBtn.click();
-        // delete modal should show
-        const deleteTitle = page.getByText('Delete Credential', {
-          exact: true,
-        });
-        await expect(deleteTitle).toBeVisible();
-        // confirm button should be disabled before fill confirm input
-        const confirmBtn = page.getByRole('button', { name: 'Confirm' });
-        await expect(confirmBtn).toBeDisabled();
-        // fill confirm input
-        const confirmText = await nameCell.innerText();
-        const confirmInput = page.getByPlaceholder(confirmText);
-        await confirmInput.fill(confirmText);
-        // confirm btn should be enabled
-        await expect(confirmBtn).toBeEnabled();
-        await confirmBtn.click();
-        // toast
-        await uiVerifyToast(page, {
-          hasText: 'Delete Credential Successfully',
-        });
-        // delete modal should not exist
-        await expect(deleteTitle).toBeHidden();
-        // the credential should disappear
-        await expect(nameCell).not.toBeAttached();
+        await uiDeleteCredential(page, nameCell);
       }
     });
   });

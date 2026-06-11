@@ -19,6 +19,9 @@ import {
 } from '../req/dashboard/service';
 import { a7UIChangeProductVisibility } from '../utils/a7UI';
 import {
+  getOrgScopedPath,
+  uiAddApplication,
+  uiGoToApplications,
   uiLogin,
   uiLogout,
   uiSubscribeProductApplication,
@@ -142,10 +145,21 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
 
   test('can naviagte to application detail page in subscribe product modal', async ({
     page,
-    context,
   }) => {
-    const application = 'default';
-    await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
+    const application = `subscribe-app-${Date.now()}`;
+
+    await uiGoToApplications(page);
+    await uiAddApplication(page, {
+      name: application,
+      desc: 'subscription test',
+    });
+    const applicationDetailPath = await page
+      .getByRole('link', { name: application })
+      .getAttribute('href');
+    expect(applicationDetailPath).toMatch(/\/applications\/[^/]+$/);
+    const applicationId = applicationDetailPath?.split('/applications/')[1] ?? '';
+
+    await page.goto(getOrgScopedPath(page, `${PATH_API_HUB}/${productId}`));
     const subscribeBtn = page.getByRole('button', {
       name: 'Subscribe To Unlock',
     });
@@ -155,31 +169,44 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
       name: 'Subscribe Application to API Product',
     });
     await expect(dialog).toBeVisible();
-    await expect(
-      dialog.getByText('Search and select applications'),
-    ).toBeVisible();
-    await page.waitForTimeout(500);
-    const searchEl = dialog.locator('.ant-select');
-    // cause this is a div
-    await searchEl.click({ force: true });
-    await page.waitForTimeout(500);
-    const option = page.getByTestId(`option-${application}`);
-    await expect(option).toBeVisible();
+    await expect(dialog.getByText('Applications')).toBeVisible();
+    await page.evaluate(() => {
+      const openCalls: Array<[string | undefined, string | undefined]> = [];
+      window.open = ((url?: string | URL, target?: string) => {
+        openCalls.push([url?.toString(), target]);
+        return null;
+      }) as typeof window.open;
+      (
+        window as typeof window & {
+          __portalOpenCalls?: Array<[string | undefined, string | undefined]>;
+        }
+      ).__portalOpenCalls = openCalls;
+    });
+    const searchInput = dialog
+      .locator('[data-slot="combobox-chip-input"]')
+      .first();
+    await expect(searchInput).toBeVisible();
+    await searchInput.fill(application);
     const navigateToApplication = page.getByTestId(
       `navigate-to-application-${application}`,
     );
     await expect(navigateToApplication).toBeVisible();
-    // Need to listen simultaneously to make sure nothing is missed.
-    const [newPage] = await Promise.all([
-      context.waitForEvent('page'),
-      navigateToApplication.click(),
-    ]);
-    await newPage.waitForLoadState();
-    await expect(newPage.getByText(application)).toBeVisible();
-    await expect(
-      newPage.getByText('Subscribe to New API Product'),
-    ).toBeVisible();
-    await expect(newPage.getByText('Authentication Type')).toBeVisible();
+    await navigateToApplication.evaluate((button) => {
+      if (button instanceof HTMLElement) {
+        button.click();
+      }
+    });
+
+    const openCalls = await page.evaluate(
+      () =>
+        (
+          window as typeof window & {
+            __portalOpenCalls?: Array<[string | undefined, string | undefined]>;
+          }
+        ).__portalOpenCalls ?? [],
+    );
+    expect(openCalls[0]?.[0]).toContain(`/applications/${applicationId}`);
+    expect(openCalls[0]?.[1]).toBe('_blank');
   });
 
   test('subscription to the can view detail product and auto approval product', async ({
@@ -189,7 +216,11 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
     a7Ctx,
   }) => {
     test.slow();
-    await page.goto(PATH_API_HUB);
+    // Navigate to /applications first so the server redirect gives us the org slug,
+    // then derive the org-scoped API Hub base path for all subsequent navigations.
+    await uiGoToApplications(page);
+    const orgScopedApiHub = getOrgScopedPath(page, PATH_API_HUB);
+    await page.goto(orgScopedApiHub);
     const link = page.getByRole('link', { name: product.name }).first();
     const link2 = page.getByRole('link', { name: product2.name }).first();
     // test auto approval and can view unsubscribed product status
@@ -203,7 +234,7 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
     await page.waitForTimeout(2000);
 
     // Navigate to API Hub
-    await page.goto(PATH_API_HUB);
+    await page.goto(orgScopedApiHub);
     await page
       .getByRole('main')
       .getByRole('complementary')
@@ -240,7 +271,7 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
 
     // test filter product
     await test.step('Filter product by status', async () => {
-      await page.goto(PATH_API_HUB);
+      await page.goto(orgScopedApiHub);
       await expect(link).toBeVisible();
       await expect(link2).toBeVisible();
       await page
@@ -288,7 +319,7 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
       await a7UIPage.getByRole('button', { name: 'Reject' }).first().click();
 
       // developer can re subscribe the product
-      await page.goto(PATH_API_HUB);
+      await page.goto(orgScopedApiHub);
       await page.reload();
       await expect(waitApprovalProduct).toBeVisible();
       await waitApprovalProduct.click();
@@ -313,7 +344,7 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
       await a7UIPage.getByRole('button', { name: 'Accept' }).first().click();
 
       // developer can see the detail
-      await page.goto(PATH_API_HUB);
+      await page.goto(orgScopedApiHub);
       await expect(waitApprovalProduct).toBeVisible();
       await waitApprovalProduct.click();
       await expect(BlurPlaneButton).toBeHidden();
@@ -338,18 +369,20 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
         a7Ctx,
       );
       // logout
-      await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
+      await page.goto(`${orgScopedApiHub}/${productId}`);
       await uiLogout(page);
-      // go to product detail page
-      await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
+      // guest: slug route redirects unauthenticated users to /api-hub list,
+      // so use the non-scoped URL to land directly on the product detail page.
+      await page.goto(`${PATH_API_HUB}/${productId}`);
       // when user is not logged in, the subscribe button should be visible
       const loginThenSubscribe = page.getByRole('button', {
         name: 'Login Then Subscribe To Unlock',
       });
       await expect(loginThenSubscribe).toBeVisible({ timeout: 10000 });
-      // login and check if subscribe button is hidden and test request button is visible
-      await uiLogin(page, auth, { goToLogin: true, assertAccount: false });
-      await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
+      // Wait for Account button (session cookie confirmed in browser) before
+      // navigating to the org-scoped URL, which requires a valid session server-side.
+      await uiLogin(page, auth, { goToLogin: true });
+      await page.goto(`${orgScopedApiHub}/${productId}`);
       await expect(
         page.getByRole('button', { name: 'Login', exact: true }),
       ).toBeHidden();

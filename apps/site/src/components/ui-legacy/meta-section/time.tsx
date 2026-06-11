@@ -1,6 +1,7 @@
-import { Divider } from 'antd';
+'use client';
 
 import TimeFormatWithPrefix from '@/components/slices/time-format/TimeFormatWithPrefix';
+import { Separator } from '@/components/ui/separator';
 
 export type TimeProps = {
   created_at?: Date | number;
@@ -13,20 +14,14 @@ export const Time = (props: TimeProps) => {
 
   return (
     <div className="flex items-center gap-0">
-      <Divider
-        type="vertical"
-        style={{ margin: '0 10px', borderColor: '#E0E0E0' }}
-      />
+      <Separator orientation="vertical" className="mx-[10px]" />
       <TimeFormatWithPrefix
         fromNow
         time={created_at}
         isLoading={isLoading}
         prefix="Created"
       />
-      <Divider
-        type="vertical"
-        style={{ margin: '0 10px', borderColor: '#E0E0E0' }}
-      />
+      <Separator orientation="vertical" className="mx-[10px]" />
       <TimeFormatWithPrefix
         fromNow
         time={updated_at}
@@ -38,4 +33,3 @@ export const Time = (props: TimeProps) => {
 };
 
 export default Time;
-

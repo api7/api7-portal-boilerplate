@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 export const BareBlurPlaneButton = (
   props: React.ButtonHTMLAttributes<HTMLButtonElement>
 ) => (
-  <div className="w-full h-full z-100 absolute left-0 top-0 flex justify-center items-center">
+  <div className="w-full h-full z-40 absolute left-0 top-0 flex justify-center items-center">
     <button
       {...props}
       className={cn(
@@ -33,7 +33,7 @@ export const LoginThenSubscribeToUnlock = () => {
 export const WaitingForApproval = () => (
   <BareBlurPlaneButton
     className={cn(
-      'cursor-not-allowed bg-gray-100 border-solid border-[1px] border-gray-500 text-gray-600 hover:bg-gray-200 focus:ring-gray-300 shadow-gray-300'
+      'cursor-not-allowed bg-muted border-solid border-[1px] border-border text-muted-foreground hover:bg-muted/80 focus:ring-muted shadow-muted-foreground/20'
     )}
     disabled
   >

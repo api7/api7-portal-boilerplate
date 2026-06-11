@@ -1,6 +1,6 @@
 import { expect, request } from '@playwright/test';
 import { API_PRODUCTS, API_SUBSCRIPTIONS } from '@site/constants/api-prefix';
-import { PATH_API_HUB } from '@site/constants/path-prefix';
+import { PATH_API_HUB, PATH_LOGIN } from '@site/constants/path-prefix';
 import type { ProductListRes } from '@site/types/portal-sdk';
 
 import { E2E_TARGET_URL, HTTPBIN_URL } from '../../constant';
@@ -25,15 +25,15 @@ import {
 } from '../../utils/a7UI';
 import { randomId } from '../../utils/helper';
 import {
-  k8DeployA7Gateway,
-  k8HelmUninstall,
-  k8PortForward,
+  deployGatewayContainer,
+  removeGatewayContainer,
+  waitForGatewayPort,
 } from '../../utils/shell';
 import {
   uiAPIHubSearchProduct,
   uiAddAPIKeyCredential,
   uiGetCredentialKeyAuth,
-  uiShowNotFound,
+  uiShowLogin,
   uiSubscribeProductInAPIHub,
 } from '../../utils/ui';
 
@@ -46,8 +46,8 @@ test.describe(
     tag: ['@user-story', '@gateway'],
   },
   async () => {
-    test.describe.configure({ timeout: 300_000 });
-    test.setTimeout(300_000);
+    test.describe.configure({ timeout: 120_000 });
+    test.setTimeout(120_000);
 
     const gatewayProduct = 'guest-gateway-product',
       gateway = randomId(`${gatewayProduct}-gateway`),
@@ -59,10 +59,10 @@ test.describe(
       serviceId: string,
       routeId: string;
     test.beforeAll(async ({ a7UIPage, a7Ctx }) => {
-      test.setTimeout(300_000);
+      test.setTimeout(120_000);
       // clear env
       await a7DeleteProductList(a7Ctx);
-      await k8HelmUninstall();
+      await removeGatewayContainer();
 
       // Step 1: Create gateway group
       const res = await a7PostGateway(a7Ctx, {
@@ -71,8 +71,8 @@ test.describe(
       gatewayId = res.value.id;
 
       // Step 2: Deploy gateway and wait for it to be ready (sequential)
-      await k8DeployA7Gateway(a7Ctx, { gateway_group_id: gatewayId });
-      await k8PortForward('svc/api7-ee-3-gateway-gateway', '9080:80');
+      await deployGatewayContainer(a7Ctx, { gateway_group_id: gatewayId });
+      await waitForGatewayPort('svc/api7-ee-3-gateway-gateway', '9080:80');
 
       // Step 3: Create service, route
       const serviceRes = await a7PostPublishedService(a7Ctx, gatewayId, {
@@ -153,8 +153,8 @@ test.describe(
     });
 
     test.afterAll(async ({ a7Ctx }) => {
-      test.setTimeout(300_000);
-      await k8HelmUninstall();
+      test.setTimeout(30_000);
+      await removeGatewayContainer();
       await a7DeleteProductList(a7Ctx, [gatewayProductId]);
       await a7DeletePublishedRoute(a7Ctx, routeId, gatewayId);
       await a7DeleteService(a7Ctx, serviceId, gatewayId);
@@ -175,10 +175,10 @@ test.describe(
       });
       await expect(page.getByText(productName)).toBeHidden();
 
-      // cannot see product detail, but 404 not found
-      await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
-      await uiShowNotFound(page);
-      await expect(page.getByText(productName)).toBeHidden();
+      // cannot see product detail — redirected to login
+      await page.goto(`${PATH_API_HUB}/${productId}`);
+      await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`));
+      await uiShowLogin(page);
     });
 
     test('can see the gateway product, which is visibility=public,can_view_unsubscribed=false', async ({
@@ -251,7 +251,7 @@ test.describe(
       });
 
       // Visit product detail page as guest
-      await page.goto(`${PATH_API_HUB}/detail?id=${gatewayProductId}`);
+      await page.goto(`${PATH_API_HUB}/${gatewayProductId}`);
       await page.waitForSelector('.scalar-app', { state: 'attached' });
 
       // Verify no subscription requests were made
@@ -265,7 +265,7 @@ test.describe(
       workerStorageState,
       a7Ctx,
     }) => {
-      test.setTimeout(180_000);
+      test.setTimeout(60_000);
       // reuse the same product, change visibility to public
       await a7UIChangeProductVisibility(
         a7UIPage,

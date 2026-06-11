@@ -2,66 +2,76 @@
 
 import { useEffect } from 'react';
 
-import { ProForm } from '@ant-design/pro-components';
+import { useForm } from '@tanstack/react-form';
 import { toast } from 'sonner';
 
 import Form from '@/components/slices/form/Form';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
-import A7Drawer from '@/components/ui-legacy/drawer';
-import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { pipeProduce } from '@/helper/utils/form-producer/common';
+import Drawer from '@/components/base/drawer';
 import {
-  produceToAPILabels,
-  produceToFormLabels,
+  transformAPILabelToForm,
+  transformFormLabelToAPI,
 } from '@/helper/utils/form-producer/labels';
+import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
 import type {
-  CreateDeveloperApplicationReq,
   DeveloperApplication,
 } from '@api7/portal-sdk/unstable-types';
+import type { FormLabel } from '@/types/utils';
 
 const ApplicationEditDrawer = (
-  props: UseDisclosureReturn & { data?: DeveloperApplication }
+  props: UseDisclosureReturn & { data?: DeveloperApplication },
 ) => {
   const { data, open, onClose, onOk, ...rest } = props;
-  const [form] = ProForm.useForm();
 
-  useEffect(() => form.resetFields(), [form, open]);
+  const form = useForm({
+    defaultValues: {
+      name: data?.name ?? '',
+      desc: data?.desc ?? '',
+      labels: transformAPILabelToForm(data?.labels) as FormLabel,
+    },
+    onSubmit: async ({ value }) => {
+      await portalClient.application.update(data!.id, {
+        name: value.name,
+        desc: value.desc || undefined,
+        labels: transformFormLabelToAPI(value.labels),
+      });
+      onOk?.();
+      toast.success('Edit Application Successfully');
+      onClose();
+    },
+  });
 
-  const submitEdit = (formData: CreateDeveloperApplicationReq) => {
-    return portalClient.application
-      .update(data!.id, pipeProduce(produceToAPILabels)(formData))
-      .then(() => {
-        onOk?.();
-        toast.success('Edit Application Successfully');
-      })
-      .then(onClose);
-  };
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: data?.name ?? '',
+        desc: data?.desc ?? '',
+        labels: transformAPILabelToForm(data?.labels) as FormLabel,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   return (
-    <A7Drawer
+    <Drawer
       title="Edit Application Basics"
       open={open}
       onClose={onClose}
-      onOk={form.submit}
+      onOk={() => form.handleSubmit()}
+      loading={form.state.isSubmitting}
       okText="Save"
-      destroyOnHidden
       {...rest}
     >
-      <Form
-        form={form}
-        onFinish={submitEdit}
-        submitter={false}
-        initialValues={produceToFormLabels(data || {})}
-      >
+      <Form onSubmit={() => form.handleSubmit()}>
         <FormPartBasics
+          form={form}
           labelProps={{ resourceType: 'developer_application' }}
           isChunk={false}
         />
       </Form>
-    </A7Drawer>
+    </Drawer>
   );
 };
 
 export default ApplicationEditDrawer;
-

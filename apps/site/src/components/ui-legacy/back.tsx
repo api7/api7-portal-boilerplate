@@ -1,6 +1,6 @@
-import { Button } from 'antd';
+import { ArrowLeftIcon } from 'lucide-react';
 
-import { BareIconImage } from './icon-image';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 type BackProps = Pick<React.HTMLAttributes<HTMLDivElement>, 'className'> & {
@@ -13,23 +13,15 @@ const Back: React.FC<BackProps> = (props) => {
   return (
     <div className={cn('mb-2', className)}>
       <Button
-        variant="text"
-        size="small"
-        color="default"
+        variant="ghost"
+        size="sm"
         className="gap-1"
         onClick={() => {
           if (onClick) return onClick();
           history.back();
         }}
-        icon={
-          <BareIconImage
-            src="/icons/arrow.svg"
-            size={10}
-            className="rotate-180 mr-1"
-            alt="arrow"
-          />
-        }
       >
+        <ArrowLeftIcon />
         Back
       </Button>
     </div>

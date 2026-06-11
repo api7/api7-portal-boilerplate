@@ -1,28 +1,75 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-
 import { useCreation, useMemoizedFn } from 'ahooks';
-import { Button, Select, Checkbox } from 'antd';
+import { InfoIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import IconImage from '@/components/ui-legacy/icon-image';
-import A7Modal from '@/components/ui-legacy/modal';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  useComboboxAnchor,
+} from '@/components/ui/combobox';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Field, FieldGroup } from '@/components/ui/field';
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/ui/item';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import useProductList from '@/lib/query/useProductList';
 import { portalClient } from '@/lib/portal-sdk/client';
+import useProductList from '@/lib/query/useProductList';
+import { ProductListRes } from '@/types/portal-sdk';
 
-type SubscribeAPIProductModalProps = UseDisclosureReturn & {
+type Option = {
+  value: string;
+  label: string;
+  disabled: boolean;
+  product: ProductListRes['list'][number];
+};
+
+type Props = UseDisclosureReturn & {
   applicationId?: string;
   onSuccess?: () => void;
 };
 
-const SubscribeAPIProductModal = (props: SubscribeAPIProductModalProps) => {
+const SubscribeAPIProductModal = (props: Props) => {
   const { open, onClose, applicationId, onSuccess } = props;
   const apiHubBasePath = useApiHubBasePath();
-  const [selectedProducts, setSelectedProducts] = useState<string[]>([]);
+  const [selected, setSelected] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [prevKey, setPrevKey] = useState({ open, applicationId });
+  if (prevKey.open !== open || prevKey.applicationId !== applicationId) {
+    setPrevKey({ open, applicationId });
+    if (open) {
+      setSelected([]);
+      setIsSubmitting(false);
+    }
+  }
 
   // Get products list with search and pagination
   const productListQuery = useProductList({
@@ -31,165 +78,158 @@ const SubscribeAPIProductModal = (props: SubscribeAPIProductModalProps) => {
 
   useEffect(() => {
     if (!open) return;
-    setSelectedProducts([]);
-    setIsSubmitting(false);
     productListQuery.refetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, applicationId]);
 
-  // Handle search
-  const handleSearch = useMemoizedFn((value: string) => {
-    productListQuery.onParamsChange({ search: value.trim() });
-  });
-
-  // Handle scroll loading
-  const handlePopupScroll = useMemoizedFn(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      const { target } = e;
-      const element = target as HTMLDivElement;
-      if (element.scrollTop + element.offsetHeight === element.scrollHeight) {
-        // Load more when scrolled to bottom
-        if (
-          productListQuery.data &&
-          productListQuery.pagination.total > productListQuery.data.length
-        ) {
-          const nextPage = productListQuery.pagination.page + 1;
-          productListQuery.pagination.goToPage(nextPage);
-        }
-      }
-    }
-  );
-
   // Handle subscription
   const handleSubscribe = useMemoizedFn(async () => {
-    if (!applicationId || selectedProducts.length === 0) return;
+    if (!applicationId || selected.length === 0) return;
     setIsSubmitting(true);
-    portalClient.subscription
-      .bulkSubscribe({
-        api_products: selectedProducts,
+    try {
+      await portalClient.subscription.bulkSubscribe({
+        api_products: selected.map((item) => item.value),
         applications: [applicationId],
-      })
-      .then(() => {
-        toast.success('Subscribed to API Product Successfully');
-        onSuccess?.();
-        onClose?.();
-      })
-      .finally(() => {
-        setIsSubmitting(false);
       });
+      toast.success('Subscribed to API Product Successfully');
+      onSuccess?.();
+      onClose?.();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg || 'Failed to subscribe to API product');
+    } finally {
+      setIsSubmitting(false);
+    }
   });
 
   // Handle navigation to product detail
   const handleNavigateToProduct = useMemoizedFn((productId: string) => {
-    window.open(`${apiHubBasePath}/detail?id=${productId}`, '_blank');
+    const newWin = window.open(
+      `${apiHubBasePath}/${productId}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
+    if (newWin) newWin.opener = null;
   });
 
   // Prepare options for Select component
   const selectOptions = useCreation(() => {
-    return productListQuery.data?.map((product) => ({
-      value: product.id,
-      label: product.name,
-      disabled: product.subscription_status !== 'unsubscribed',
-      product,
-    }));
+    return (
+      productListQuery.data
+        ?.map((product) => ({
+          value: product.id,
+          label: product.name,
+          disabled: product.subscription_status !== 'unsubscribed',
+          product,
+        }))
+        .filter((product) => product.product.type === 'gateway') ?? []
+    );
   }, [productListQuery.data]);
 
+  const anchor = useComboboxAnchor();
+
   return (
-    <A7Modal
-      title="Subscribe to New API Product"
-      open={open}
-      onCancel={onClose}
-      onOk={handleSubscribe}
-      okText="Subscribe"
-      okButtonProps={{
-        disabled: selectedProducts.length === 0 || isSubmitting,
-        loading: isSubmitting,
-      }}
-      width={600}
-      destroyOnHidden
-    >
-      <label className="block text-sm font-medium mb-2">API Product</label>
-      <Select
-        mode="multiple"
-        showSearch
-        placeholder="Search and select API products..."
-        className="w-full"
-        value={selectedProducts}
-        onChange={setSelectedProducts}
-        onSearch={handleSearch}
-        onPopupScroll={handlePopupScroll}
-        filterOption={false}
-        loading={productListQuery.isLoading}
-        maxTagCount="responsive"
-        options={selectOptions}
-        classNames={{ popup: { root: 'subscription-select-popup' } }}
-        menuItemSelectedIcon={null}
-        optionRender={(option) => {
-          const { product, disabled } = option.data || {};
-          if (!product) return option.label;
-          const isSelected = selectedProducts.includes(product.id);
-          const status = product.subscription_status;
-          const statusText =
-            (status === 'wait_for_approval' && 'Pending Approval') ||
-            (product.type === 'gateway' &&
-              !product.can_view_unsubscribed &&
-              status === 'unsubscribed' &&
-              'This API product requires approval') ||
-            (status === 'subscribed' && 'Subscribed') ||
-            '';
-          return (
-            <div className="flex w-full items-center justify-between py-2">
-              <div
-                className="flex min-w-0 flex-1 items-center gap-3"
-                data-testid={`option-${product.name}`}
-              >
-                <div className="flex h-5 w-6 shrink-0 items-center justify-center [&_.ant-checkbox]:top-0!">
-                  <Checkbox
-                    checked={isSelected}
-                    disabled={disabled}
-                    onClick={(e) => e.stopPropagation()}
-                  />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="truncate text-sm font-medium leading-5 text-primary-content">
-                    {product.name}
-                  </div>
-                  {statusText && (
-                    <div className="mt-1 flex items-center space-x-2">
-                      <span className="text-xs font-normal text-[#A0ABC5]">
-                        {statusText}
-                      </span>
-                    </div>
+    <Dialog open={open} onOpenChange={(open) => !open && onClose?.()}>
+      <DialogTrigger />
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Subscribe to New API Product</DialogTitle>
+        </DialogHeader>
+        <FieldGroup>
+          <Field>
+            <Label htmlFor="api_products">API Product</Label>
+            <Combobox
+              multiple
+              autoHighlight
+              items={selectOptions}
+              value={selected}
+              onValueChange={setSelected}
+            >
+              <ComboboxChips ref={anchor} className="w-full">
+                <ComboboxValue>
+                  {(items) => (
+                    <>
+                      {items.map((item: Option) => (
+                        <ComboboxChip key={item.value}>
+                          {item.label}
+                        </ComboboxChip>
+                      ))}
+                      <ComboboxChipsInput />
+                    </>
                   )}
-                </div>
-              </div>
-              <Button
-                type="text"
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleNavigateToProduct(product.id);
-                }}
-                className="ml-3 shrink-0"
-              >
-                <IconImage
-                  type="down-arrow"
-                  size={24}
-                  className="rotate-[-90deg]"
-                />
-              </Button>
-            </div>
-          );
-        }}
-        notFoundContent={
-          productListQuery.isLoading ? (
-            <div className="text-center py-2">Loading...</div>
-          ) : (
-            <div className="text-center py-2">No API products found</div>
-          )
-        }
-      />
-    </A7Modal>
+                </ComboboxValue>
+              </ComboboxChips>
+              <ComboboxContent anchor={anchor}>
+                <ComboboxEmpty>
+                  No API products are available for subscribing.
+                </ComboboxEmpty>
+                <ComboboxList>
+                  {(item: Option) => (
+                    <>
+                      <ComboboxItem
+                        className="pr-1 [&>span[data-selected]]:hidden"
+                        key={item.value}
+                        value={item}
+                        disabled={item.disabled}
+                      >
+                        <Item size="xs" className="p-0">
+                          <ItemMedia
+                            variant="image"
+                            className="flex items-center justify-center p-2"
+                          >
+                            <Checkbox
+                              className="text-primary-foreground! **:text-primary-foreground! isolate"
+                              checked={selected.some(
+                                (s: Option) => s.value === item.value,
+                              )}
+                            />
+                          </ItemMedia>
+                          <ItemContent>
+                            <ItemTitle className="w-62 text-ellipsis">
+                              {item.label}
+                            </ItemTitle>
+                            <ItemDescription className="w-62 text-ellipsis">
+                              {item.value}
+                            </ItemDescription>
+                          </ItemContent>
+                          <ItemActions>
+                            <Button
+                              data-testid={`navigate-to-product-${item.label}`}
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleNavigateToProduct(item.value);
+                              }}
+                              className="ml-3 shrink-0"
+                            >
+                              <InfoIcon color="grey" />
+                            </Button>
+                          </ItemActions>
+                        </Item>
+                      </ComboboxItem>
+                    </>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
+          </Field>
+        </FieldGroup>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" onClick={onClose} />}>
+            Cancel
+          </DialogClose>
+          <Button
+            type="button"
+            onClick={handleSubscribe}
+            disabled={selected.length === 0 || isSubmitting}
+          >
+            {isSubmitting && <Spinner data-icon="inline-start" />}
+            Subscribe
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

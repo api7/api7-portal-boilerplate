@@ -1,10 +1,6 @@
 import { Page, expect } from '@playwright/test';
 import { API_DEVELOPERS, AUTH_BASE_PATH } from '@site/constants/api-prefix';
-import {
-  PATH_ACCOUNT,
-  PATH_ORGANIZATION,
-  PATH_ROOT,
-} from '@site/constants/path-prefix';
+import { PATH_ACCOUNT, PATH_ROOT } from '@site/constants/path-prefix';
 
 import { test } from '../fixture';
 import { a7DefaultPortalID, a7DeveloperExists } from '../req/dashboard/common';
@@ -18,45 +14,44 @@ const uiCreateOrganization = async (page: Page, orgName: string) => {
   await page.goto(`${PATH_ACCOUNT}/organizations`);
   await page.getByRole('button', { name: 'Create Organization' }).click();
 
-  const dialog = page.getByRole('dialog');
+  const dialog = page.getByRole('alertdialog');
   await dialog.locator('input[name="name"]').fill(orgName);
-  const slug = orgName.toLowerCase();
-  await dialog.locator('input[name="slug"]').fill(slug);
   await dialog.getByRole('button', { name: 'Create Organization' }).click();
 
+  // Slug is auto-generated server-side; wait for dialog to close then look up
+  // the new org by name from the organizations list.
+  await expect(dialog).not.toBeVisible({ timeout: 10_000 });
+
+  const listRes = await page.request.get(
+    `${AUTH_BASE_PATH}/organization/list`,
+  );
+  expect(listRes.status()).toBe(200);
+  const orgs: Array<{ id: string; name: string; slug: string }> = await listRes.json();
+  const newOrg = orgs.find((o) => o.name === orgName);
+  expect(newOrg).toBeTruthy();
+  const { id, slug } = newOrg!;
+
+  await page.goto(`/${slug}/applications`);
   await page.waitForURL(
     (url) =>
-      url.pathname === `/${slug}` ||
       url.pathname === `/${slug}/applications` ||
       url.pathname.startsWith(`/${slug}/applications/`),
+    { timeout: 15_000 },
   );
 
-  const response = await page.request.get(
-    `${AUTH_BASE_PATH}/organization/get-full-organization`,
-    { failOnStatusCode: false },
-  );
-  expect(response.status()).toBe(200);
-  const body = await response.json();
-  expect(body.slug).toBe(slug);
+  await page.waitForTimeout(500);
 
-  // Wait for dialog to close and reset pointer-events leaked by Radix Dialog
-  await expect(dialog).not.toBeVisible({ timeout: 5000 });
-  await page.evaluate(() => {
-    document.body.style.pointerEvents = '';
-    document.documentElement.style.pointerEvents = '';
-  });
-  await page.waitForTimeout(1000);
-
-  return { id: body.id, slug };
+  return { id, slug };
 };
 
 const uiDeleteOrganization = async (page: Page, orgSlug: string) => {
-  await page.goto(`/${orgSlug}${PATH_ORGANIZATION}/settings`);
+  await page.goto(`/${orgSlug}/settings`);
   await page.getByRole('button', { name: 'Delete Organization' }).click();
+  // DeleteOrganizationDialog has no slug confirmation input — just a submit button.
   await page
-    .getByRole('textbox', { name: 'Enter the organization slug' })
-    .fill(orgSlug);
-  await page.getByRole('button', { name: 'Delete Organization' }).click();
+    .getByRole('alertdialog')
+    .getByRole('button', { name: 'Delete Organization' })
+    .click();
 };
 
 test.describe('Organization and Developer Sync', () => {
@@ -64,6 +59,7 @@ test.describe('Organization and Developer Sync', () => {
     a7Ctx,
     page,
   }) => {
+    test.setTimeout(90_000);
     const testId = `org-ui-create-${Date.now()}`;
     const orgName = `TestOrg${testId}`;
     // Get portal ID for checking developers
@@ -90,6 +86,7 @@ test.describe('Organization and Developer Sync', () => {
     a7Ctx,
     page,
   }) => {
+    test.setTimeout(90_000);
     const testId = `org-dev-deleted-${Date.now()}`;
     const orgName = `TestOrg${testId}`;
     const portalId = await a7DefaultPortalID(a7Ctx);

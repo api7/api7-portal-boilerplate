@@ -1,8 +1,12 @@
 import { type FC, type ReactNode, useMemo } from 'react';
 
-import { Button, Popover } from 'antd';
-
-import { CopyBtn } from '@/components/api-hub/CopyBtn';
+import { CopyButton } from '@/components/api-hub/CopyButton';
+import { Button } from '@/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
 
 export type IDProps = {
   id: string;
@@ -21,7 +25,7 @@ export const ID: FC<IDProps> = (props) => {
         <div className="font-medium mr-1 inline-block">{label ?? 'ID'}:</div>{' '}
         {id}
       </div>
-      <CopyBtn content={id}></CopyBtn>
+      <CopyButton content={id}></CopyButton>
     </div>
   );
 };
@@ -46,19 +50,25 @@ export const ViewID: FC<ViewIDProps> = (props) => {
           style={{ marginBottom: index === data.length - 1 ? '0' : '8px' }}
         />
       )),
-    [data]
+    [data],
   );
 
   return (
     <div className="flex items-center justify-center">
       {data?.length > 0 ? (
-        <Popover content={IDList} trigger="click">
-          <Button type="link" className="p-0.5 h-5 text-xs leading-none">
-            {viewText}
-          </Button>
+        <Popover>
+          <PopoverTrigger
+            render={
+              <Button variant="link" className="p-0.5 h-5 text-xs leading-none">
+                {viewText}
+              </Button>
+            }
+          />
+          <PopoverContent align="center" side="top" className="w-100 text-xl">
+            {IDList}
+          </PopoverContent>
         </Popover>
       ) : null}
     </div>
   );
 };
-

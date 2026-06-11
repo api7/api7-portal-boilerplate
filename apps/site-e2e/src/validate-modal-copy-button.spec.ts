@@ -1,8 +1,12 @@
-import { test } from '../fixture';
 import { expect } from '@playwright/test';
-import { PATH_APPLICATIONS } from '@site/constants/path-prefix';
-import { uiAddApplication } from '../utils/ui';
+
+import { test } from '../fixture';
 import { deleteAllApplications } from '../req/common';
+import {
+  uiAddApplication,
+  uiGetMoreOptionsButton,
+  uiGoToApplications,
+} from '../utils/ui';
 
 test.describe('ValidateModal Copy Button', () => {
   const appName = `copy-btn-test-${+Date.now()}`;
@@ -18,7 +22,7 @@ test.describe('ValidateModal Copy Button', () => {
     // Grant clipboard permissions
     await context.grantPermissions(['clipboard-read', 'clipboard-write']);
 
-    await page.goto(PATH_APPLICATIONS);
+    await uiGoToApplications(page);
 
     await test.step('create test application', async () => {
       await uiAddApplication(page, { name: appName, desc: 'test app' });
@@ -31,15 +35,15 @@ test.describe('ValidateModal Copy Button', () => {
       });
       await expect(nameCell).toBeVisible();
 
-      const row = nameCell.locator('xpath=..');
-      const moreMenuBtn = row.getByTestId('more');
+      const row = nameCell.locator('xpath=ancestor::tr[1]');
+      const moreMenuBtn = uiGetMoreOptionsButton(row);
       await moreMenuBtn.click();
 
       const deleteBtn = page.getByRole('menuitem', { name: 'Delete' });
       await deleteBtn.click();
 
       await expect(
-        page.getByText('Delete Application', { exact: true })
+        page.getByText('Delete Application', { exact: true }),
       ).toBeVisible();
     });
 
@@ -55,13 +59,11 @@ test.describe('ValidateModal Copy Button', () => {
 
       // After click, aria-label changes to "Copied" — re-query
       const copiedBtn = page.getByRole('button', { name: 'Copied' });
-      await expect(copiedBtn.locator('.anticon-check')).toBeVisible();
+      await expect(copiedBtn).toBeVisible();
 
       // Verify clipboard content after the copy action has completed
       await expect
-        .poll(async () =>
-          page.evaluate(() => navigator.clipboard.readText())
-        )
+        .poll(async () => page.evaluate(() => navigator.clipboard.readText()))
         .toBe(appName);
     });
 
@@ -71,7 +73,7 @@ test.describe('ValidateModal Copy Button', () => {
       // Paste from clipboard
       await page.keyboard.press('ControlOrMeta+v');
 
-      const confirmBtn = page.getByRole('button', { name: 'Confirm' });
+      const confirmBtn = page.getByRole('button', { name: 'Save' });
       await expect(confirmBtn).toBeEnabled();
     });
   });

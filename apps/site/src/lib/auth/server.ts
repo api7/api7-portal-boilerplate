@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { nextCookies } from 'better-auth/next-js';
@@ -14,13 +16,15 @@ import {
 import { AUTH_BASE_PATH } from '../../constants/api-prefix';
 import { getConfig } from '../config';
 import { db } from '../db';
-import { ac, roles } from './permissions';
+import { getOrganizationPluginOptions } from './organization';
 
 const config = getConfig();
 
 export const getGenericOAuthConfigs = (): GenericOAuthConfig[] => {
-  if (process.env.NEXT_PUBLIC_TESTING !== 'true') return [];
+  const configProviders = config.auth.genericOAuthProviders ?? [];
+  if (process.env.NEXT_PUBLIC_TESTING !== 'true') return configProviders;
   return [
+    ...configProviders,
     {
       providerId: 'keycloak',
       clientId: 'devportal-oidc',
@@ -30,6 +34,12 @@ export const getGenericOAuthConfigs = (): GenericOAuthConfig[] => {
       scopes: ['openid', 'profile', 'email'],
     },
   ];
+};
+
+const getGenericOAuthPlugin = () => {
+  const configs = getGenericOAuthConfigs();
+  if (configs.length === 0) return [];
+  return [genericOAuth({ config: configs })] as const;
 };
 
 const getTestingConfig = () => {
@@ -58,9 +68,6 @@ const getTestingConfig = () => {
         });
       },
     }),
-    genericOAuth({
-      config: getGenericOAuthConfigs(),
-    }),
   ] as const;
 };
 
@@ -72,11 +79,44 @@ const getTwoFactorConfig = () => {
   return [twoFactor()] as const;
 };
 
+// Extract hostnames from trustedOrigins to allow dynamic baseURL resolution.
+// This lets better-auth derive redirect_uri from the incoming request's host
+// instead of a single hardcoded value, supporting multi-domain deployments.
+const allowedHosts = (config.app.trustedOrigins ?? []).flatMap((origin) => {
+  try {
+    return [new URL(origin).host];
+  } catch (e) {
+    console.warn(`[auth] Skipping malformed trustedOrigin "${origin}": ${(e as Error).message}`);
+    return [];
+  }
+});
+
+// Derive the expected protocol from the fallback baseURL. better-auth's
+// getProtocolFromSource() may return "https" as its final fallback even for
+// plain-HTTP environments (e.g. CI/Docker), which would mark session cookies
+// as Secure and cause them to be omitted on subsequent HTTP requests (→ 401).
+// Providing an explicit protocol overrides that heuristic.
+const fallbackProtocol = (() => {
+  try {
+    const p = new URL(config.app.baseURL!).protocol;
+    return p === 'http:' ? ('http' as const) : ('https' as const);
+  } catch {
+    return undefined;
+  }
+})();
+
 export const auth = betterAuth({
   appName: config.app.name,
-  baseURL: config.app.baseURL,
+  baseURL: allowedHosts.length > 0
+    ? { allowedHosts, fallback: config.app.baseURL, protocol: fallbackProtocol }
+    : config.app.baseURL,
   trustedOrigins: config.app.trustedOrigins,
   basePath: AUTH_BASE_PATH,
+  // In testing, many parallel workers share the same IP, easily hitting the
+  // default 100 req/10s limit and causing 429s that break test fixtures.
+  ...(process.env.NEXT_PUBLIC_TESTING === 'true' && {
+    rateLimit: { enabled: false },
+  }),
   database: drizzleAdapter(db, {
     provider: 'pg',
     usePlural: true,
@@ -96,11 +136,12 @@ export const auth = betterAuth({
       impersonationSessionDuration: 60 * 60,
     }),
     ...getTwoFactorConfig(),
-    organization({
-      ac,
-      roles,
-      requireEmailVerificationOnInvitation: false,
-    }),
+    organization(
+      getOrganizationPluginOptions(
+        config.auth.emailAndPassword.requireEmailVerification,
+      ),
+    ),
+    ...getGenericOAuthPlugin(),
     ...getTestingConfig(),
     nextCookies(),
   ],

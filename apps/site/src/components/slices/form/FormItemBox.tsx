@@ -1,14 +1,9 @@
 import { memo } from 'react';
 
-import { useCreation } from 'ahooks';
-import { Image, Tooltip } from 'antd';
-import { Fragment } from 'react/jsx-runtime';
-
 import { cn } from '@/lib/utils';
 
 type Props = React.PropsWithChildren & {
   label?: React.ReactNode;
-  tooltip?: string;
   optional?: boolean;
   isChunk?: boolean;
   custom?: React.ReactNode;
@@ -35,7 +30,6 @@ const BoxLabel = ({ children }: React.PropsWithChildren) => (
 const FormItemBox = (props: Props) => {
   const {
     label,
-    tooltip,
     optional,
     isChunk = true,
     custom,
@@ -43,11 +37,6 @@ const FormItemBox = (props: Props) => {
     showChildren = true,
     ...rootProps
   } = props;
-  const Wrapper = useCreation(
-    () => (isChunk ? ChunkWrapper : Fragment),
-    [isChunk]
-  );
-
   return (
     <div className={cn(isChunk && 'w-full mb-6')} {...rootProps}>
       <div className="flex justify-between">
@@ -60,25 +49,10 @@ const FormItemBox = (props: Props) => {
               )}
             </BoxLabel>
           )}
-          {tooltip && (
-            <Tooltip
-              arrow
-              title={tooltip}
-              placement="top"
-              className="bg-primary-content"
-            >
-              <Image
-                src="/icons/info.svg"
-                preview={false}
-                className="ml-1 size-[14px]"
-                data-cy="labelTooltip"
-              />
-            </Tooltip>
-          )}
         </div>
         {custom}
       </div>
-      {showChildren && <Wrapper>{children}</Wrapper>}
+      {showChildren && (isChunk ? <ChunkWrapper>{children}</ChunkWrapper> : <>{children}</>)}
     </div>
   );
 };

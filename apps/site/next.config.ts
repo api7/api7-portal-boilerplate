@@ -9,6 +9,13 @@ const nextConfig: NextConfig = {
   // Transpile packages if needed
   transpilePackages: [],
   serverExternalPackages: ['drizzle-orm', 'pg'],
+  // Docs content is read with fs at request time. Ensure those files are
+  // bundled into the standalone output.
+  outputFileTracingIncludes: {
+    '/docs': ['./content/**/*'],
+    '/docs/[...slug]': ['./content/**/*'],
+    '/docs-search': ['./content/**/*'],
+  },
   // Turbopack configuration
   turbopack: {
     resolveAlias: {

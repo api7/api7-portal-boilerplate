@@ -1,0 +1,63 @@
+---
+title: Running the project
+description: Install dependencies, configure the app, and start the dev server.
+order: 2
+---
+
+# Running the project
+
+## Prerequisites
+
+| Requirement | Version            |
+| ----------- | ------------------ |
+| Node.js     | 20.9+ (22/24 LTS)  |
+| pnpm        | 11                 |
+| PostgreSQL  | any recent release |
+
+## Install
+
+From the repository root:
+
+```bash
+pnpm install
+```
+
+## Configure
+
+Configuration lives in `apps/site/config.yaml`. Copy the example and fill it in:
+
+```bash
+cd apps/site
+cp config.yaml.example config.yaml
+```
+
+At minimum set `portal.url`, `portal.token`, `db.url`, and a 32+ character
+`auth.secret`. Values support `${ENV_VAR}` substitution.
+
+<Callout type="warning" title="config.yaml is required">
+  The app reads <code>config.yaml</code> at startup (and at build time), so it
+  must exist before you run <code>dev</code> or <code>build</code>.
+</Callout>
+
+## Migrate the database
+
+```bash
+pnpm db:migrate
+```
+
+## Start the dev server
+
+```bash
+pnpm dev
+```
+
+Open the local URL Next.js prints. The docs are at `/docs`.
+
+## Common commands
+
+| Command | What it does |
+| --- | --- |
+| `pnpm dev` | Start the dev server |
+| `pnpm build` | Production build |
+| `pnpm tsc` | Type-check (`apps/site`) |
+| `pnpm db:studio` | Open Drizzle Studio |

@@ -1,17 +1,48 @@
-import { useEffect, useState } from 'react';
-
 import { useCreation, useMemoizedFn } from 'ahooks';
-import { Button, Select, Checkbox } from 'antd';
+import { InfoIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import IconImage from '@/components/ui-legacy/icon-image';
-import A7Modal from '@/components/ui-legacy/modal';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxItem,
+  ComboboxList,
+  ComboboxValue,
+  useComboboxAnchor,
+} from '@/components/ui/combobox';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '@/components/ui/dialog';
+import { Field, FieldGroup } from '@/components/ui/field';
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemMedia,
+  ItemTitle,
+} from '@/components/ui/item';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
+import { useActiveOrganizationId } from '@/lib/hooks/useActiveOrganizationId';
+import { portalClient } from '@/lib/portal-sdk/client';
 import useApplicationList from '@/lib/query/useApplicationList';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
-import { portalClient } from '@/lib/portal-sdk/client';
 import type {
   ApplicationListItem,
   SubscriptionStatus,
@@ -24,61 +55,6 @@ type Option = {
   disabled: boolean;
   status: SubscriptionStatus;
 };
-type OptionRenderProps = {
-  option: Option;
-  navigateToProduct: (productId: string) => void;
-  isSelected: (applicationId: string) => boolean;
-};
-
-const OptionRender = (props: OptionRenderProps) => {
-  const { option, navigateToProduct, isSelected } = props;
-  const { data, disabled, status } = option;
-  if (!data) return null;
-  const statusText =
-    (status === 'wait_for_approval' && 'Pending Approval') ||
-    (status === 'subscribed' && 'Subscribed') ||
-    '';
-  return (
-    <div className="flex w-full items-center justify-between py-2">
-      <div
-        className="flex min-w-0 flex-1 items-center gap-3"
-        data-testid={`option-${data.name}`}
-      >
-        <div className="flex h-5 w-6 shrink-0 items-center justify-center [&_.ant-checkbox]:top-0!">
-          <Checkbox
-            checked={isSelected(data.id)}
-            disabled={disabled}
-            onClick={(e) => e.stopPropagation()}
-          />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="truncate text-sm font-medium leading-5 text-primary-content">
-            {data.name}
-          </div>
-          {statusText && (
-            <div className="mt-1 flex items-center space-x-2">
-              <span className="text-xs font-normal text-[#A0ABC5]">
-                {statusText}
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-      <Button
-        data-testid={`navigate-to-application-${data.name}`}
-        type="text"
-        size="small"
-        onClick={(e) => {
-          e.stopPropagation();
-          navigateToProduct(data.id);
-        }}
-        className="ml-3 shrink-0"
-      >
-        <IconImage type="down-arrow" alt="down-arrow" size={24} className="-rotate-90" />
-      </Button>
-    </div>
-  );
-};
 
 type Props = UseDisclosureReturn & {
   onSuccess?: () => void;
@@ -87,9 +63,16 @@ type Props = UseDisclosureReturn & {
 
 const SubscribeAPIProductModalApplication = (props: Props) => {
   const { open, onClose, productId, onSuccess } = props;
-  const orgSlug = useOrganizationSlug();
-  const [selected, setSelected] = useState<string[]>([]);
+  const { orgs } = useActiveOrganizationId();
+  const orgSlug = orgs?.[0]?.slug ?? null;
+  const [selected, setSelected] = useState<Option[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [prevResetKey, setPrevResetKey] = useState({ open, productId });
+  if (prevResetKey.open !== open || prevResetKey.productId !== productId) {
+    setPrevResetKey({ open, productId });
+    setSelected([]);
+    setIsSubmitting(false);
+  }
 
   // Get products list with search and pagination
   const appsReq = useApplicationList();
@@ -103,128 +86,170 @@ const SubscribeAPIProductModalApplication = (props: Props) => {
     status: ['wait_for_approval'],
   });
 
-  // clear state and refetch when open or productId changes
+  // refetch when open or productId changes; query objects are unstable refs so omitted from deps
   useEffect(() => {
-    setSelected([]);
-    setIsSubmitting(false);
     appsReq.refetch();
     subscribedAppsReq.refetch();
     waitingForApprovalAppsReq.refetch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, productId]);
-
-  // Handle search
-  const handleSearch = useMemoizedFn((value: string) => {
-    appsReq.onParamsChange({ search: value.trim() });
-  });
-
-  // Handle scroll loading
-  const handlePopupScroll = useMemoizedFn(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      const { target } = e;
-      const element = target as HTMLDivElement;
-      if (element.scrollTop + element.offsetHeight === element.scrollHeight) {
-        // Load more when scrolled to bottom
-        if (appsReq.data && appsReq.pagination.total > appsReq.data.length) {
-          const nextPage = appsReq.pagination.page + 1;
-          appsReq.pagination.goToPage(nextPage);
-        }
-      }
-    }
-  );
 
   // Handle subscription
   const handleSubscribe = useMemoizedFn(async () => {
     if (!productId || selected.length === 0) return;
     setIsSubmitting(true);
-    portalClient.subscription
-      .bulkSubscribe({
+    try {
+      await portalClient.subscription.bulkSubscribe({
         api_products: [productId],
-        applications: selected,
-      })
-      .then(() => {
-        toast.success('Subscribe Application to API Product Successfully');
-        onSuccess?.();
-        onClose?.();
-      })
-      .finally(() => {
-        setIsSubmitting(false);
+        applications: selected.map((item) => item.value),
       });
+      toast.success('Subscribe Application to API Product Successfully');
+      onSuccess?.();
+      onClose?.();
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      toast.error(msg || 'Failed to subscribe application to API product');
+    } finally {
+      setIsSubmitting(false);
+    }
   });
 
-  // Handle navigation to product detail
+  // Handle navigation to application detail
   const handleNavigateToApplication = useMemoizedFn((applicationId: string) => {
-    const href = orgSlug
-      ? `/${orgSlug}${PATH_APPLICATIONS}/detail?id=${applicationId}`
-      : `${PATH_APPLICATIONS}/detail?id=${applicationId}`;
-    window.open(href, '_blank');
+    if (!orgSlug) return;
+    const newWin = window.open(
+      `/${orgSlug}${PATH_APPLICATIONS}/${applicationId}`,
+      '_blank',
+      'noopener,noreferrer',
+    );
+    if (newWin) newWin.opener = null;
   });
 
   // Prepare options for Select component
   const selectOptions = useCreation(() => {
-    return appsReq.data?.map((data) => {
-      const isSubscribed = subscribedAppsReq.data?.find(
-        (a) => a.application_id === data.id
-      );
-      const isWaitingForApproval = waitingForApprovalAppsReq.data?.find(
-        (a) => a.application_id === data.id
-      );
-      return {
-        value: data.id,
-        label: data.name,
-        data,
-        disabled: !!isSubscribed || !!isWaitingForApproval,
-        status: 'unsubscribed',
-        ...(isWaitingForApproval && { status: 'wait_for_approval' }),
-        ...(isSubscribed && { status: 'subscribed' }),
-      } satisfies Option;
-    });
+    return (
+      appsReq.data
+        ?.map((data) => {
+          const isSubscribed = subscribedAppsReq.data?.find(
+            (a) => a.application_id === data.id,
+          );
+          const isWaitingForApproval = waitingForApprovalAppsReq.data?.find(
+            (a) => a.application_id === data.id,
+          );
+          if (isSubscribed || isWaitingForApproval) return;
+
+          return {
+            value: data.id,
+            label: data.name,
+            data,
+            disabled: !!isSubscribed || !!isWaitingForApproval,
+            status: 'unsubscribed',
+          } satisfies Option;
+        })
+        .filter((item) => !!item) ?? []
+    );
   }, [appsReq.data, subscribedAppsReq.data, waitingForApprovalAppsReq.data]);
 
+  const anchor = useComboboxAnchor();
+
   return (
-    <A7Modal
-      title="Subscribe Application to API Product"
-      open={open}
-      onCancel={onClose}
-      onOk={handleSubscribe}
-      okText="Subscribe"
-      okButtonProps={{
-        disabled: selected.length === 0 || isSubmitting,
-        loading: isSubmitting,
-      }}
-      width={600}
-      destroyOnHidden
-    >
-      <label className="block text-sm font-medium mb-2">Applications</label>
-      <Select
-        mode="multiple"
-        placeholder="Search and select applications..."
-        className="w-full"
-        value={selected}
-        onChange={setSelected}
-        showSearch={{
-          onSearch: handleSearch,
-          filterOption: false,
-        }}
-        onPopupScroll={handlePopupScroll}
-        loading={appsReq.isLoading}
-        maxTagCount="responsive"
-        options={selectOptions}
-        classNames={{ popup: { root: 'subscription-select-popup' } }}
-        menuItemSelectedIcon={null}
-        optionRender={(option) => (
-          <OptionRender
-            option={option.data}
-            navigateToProduct={handleNavigateToApplication}
-            isSelected={(applicationId) => selected.includes(applicationId)}
-          />
-        )}
-        notFoundContent={
-          <div className="text-center py-2">
-            {appsReq.isLoading ? 'Loading...' : 'No applications found'}
-          </div>
-        }
-      />
-    </A7Modal>
+    <Dialog open={open} onOpenChange={(open) => !open && onClose?.()}>
+      <DialogTrigger />
+      <DialogContent className="sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Subscribe Application to API Product</DialogTitle>
+        </DialogHeader>
+        <FieldGroup>
+          <Field>
+            <Label htmlFor="applications">Applications</Label>
+            <Combobox
+              multiple
+              autoHighlight
+              items={selectOptions}
+              value={selected}
+              onValueChange={setSelected}
+            >
+              <ComboboxChips ref={anchor} className="w-full">
+                <ComboboxValue>
+                  {(items) => (
+                    <>
+                      {items.map((item: Option) => (
+                        <ComboboxChip key={item.value}>
+                          {item.label}
+                        </ComboboxChip>
+                      ))}
+                      <ComboboxChipsInput />
+                    </>
+                  )}
+                </ComboboxValue>
+              </ComboboxChips>
+              <ComboboxContent anchor={anchor}>
+                <ComboboxEmpty>
+                  No apps are available for subscribing.
+                </ComboboxEmpty>
+                <ComboboxList>
+                  {(item: Option) => (
+                    <>
+                      <ComboboxItem
+                        className="pr-1 [&>span[data-selected]]:hidden"
+                        key={item.value}
+                        value={item}
+                        disabled={item.disabled}
+                      >
+                        <Item size="xs" className="p-0">
+                          <ItemMedia
+                            variant="image"
+                            className="flex items-center justify-center p-2"
+                          >
+                            <Checkbox
+                              className="text-primary-foreground! **:text-primary-foreground! isolate"
+                              checked={selected.some(
+                                (s: Option) => s.value === item.value,
+                              )}
+                            />
+                          </ItemMedia>
+                          <ItemContent>
+                            <ItemTitle>{item.label}</ItemTitle>
+                            <ItemDescription>{item.value}</ItemDescription>
+                          </ItemContent>
+                          <ItemActions>
+                            <Button
+                              data-testid={`navigate-to-application-${item.label}`}
+                              variant="ghost"
+                              size="icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleNavigateToApplication(item.value);
+                              }}
+                              className="ml-3 shrink-0"
+                            >
+                              <InfoIcon color="grey" />
+                            </Button>
+                          </ItemActions>
+                        </Item>
+                      </ComboboxItem>
+                    </>
+                  )}
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
+          </Field>
+        </FieldGroup>
+        <DialogFooter>
+          <DialogClose render={<Button variant="outline" onClick={onClose} />}>
+            Cancel
+          </DialogClose>
+          <Button
+            type="button"
+            onClick={handleSubscribe}
+            disabled={selected.length === 0 || isSubmitting}
+          >
+            {isSubmitting && <Spinner data-icon="inline-start" />}
+            Subscribe
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };
 

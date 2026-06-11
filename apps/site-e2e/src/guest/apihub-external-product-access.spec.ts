@@ -1,13 +1,13 @@
 import { expect } from '@playwright/test';
 import { API_PRODUCTS } from '@site/constants/api-prefix';
-import { PATH_API_HUB } from '@site/constants/path-prefix';
+import { PATH_API_HUB, PATH_LOGIN } from '@site/constants/path-prefix';
 import type { ProductListRes } from '@site/types/portal-sdk';
-import { HTTPBIN_URL } from 'apps/site-e2e/constant';
 
+import { HTTPBIN_URL } from '../../constant';
 import { test } from '../../fixture';
 import { a7DeleteProductList } from '../../req/dashboard/product';
 import { a7UICreateExternalProduct } from '../../utils/a7UI';
-import { uiAPIHubSearchProduct, uiShowNotFound } from '../../utils/ui';
+import { uiAPIHubSearchProduct, uiShowLogin } from '../../utils/ui';
 
 // Reset storage state for this file to avoid being authenticated
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -67,7 +67,7 @@ test.describe(
       await link.click();
 
       const title = page.getByTestId('meta-name').getByText(productName);
-      await expect(title).toBeVisible();
+      await expect(title).toBeVisible({ timeout: 15000 });
       const getOperationLink = page
         .locator('.scalar-app')
         .getByRole('button', { name: /\/get\b.*\bGET\b/i })
@@ -118,10 +118,10 @@ test.describe(
       });
       await expect(page.getByText(productName)).toBeHidden();
 
-      // cannot see product detail, but 404 not found
-      await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
-      await uiShowNotFound(page);
-      await expect(page.getByText(productName)).toBeHidden();
+      // cannot see product detail — redirected to login
+      await page.goto(`${PATH_API_HUB}/${productId}`);
+      await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`));
+      await uiShowLogin(page);
     });
   },
 );

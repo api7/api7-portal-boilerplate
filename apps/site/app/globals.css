@@ -1,21 +1,33 @@
 @import "tw-animate-css";
 @import "tailwindcss";
-@import "@daveyplate/better-auth-ui/css";
 @import "shadcn/tailwind.css";
+
+@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 
 .nav {
-  @apply relative transition-all px-2 py-0.5 text-gray-400;
+  @apply relative transition-all px-2 py-0.5 text-muted-foreground;
 }
 
-.nav:hover,
+.nav:hover {
+  @apply text-foreground;
+}
+
 .nav.active {
-  @apply text-gray-800;
+  @apply text-foreground font-medium;
+}
+
+.nav.active::after {
+  content: '';
+  @apply absolute bottom-0 h-0.5 rounded-full;
+  left: 6px;
+  right: 6px;
+  background-color: currentcolor;
 }
 
 .nav > div {
-  @apply h-full w-full rounded absolute bg-gray-100 left-0 top-0 -z-10 ease-in-out animate-in;
+  @apply h-full w-full rounded absolute bg-muted left-0 top-0 -z-10 ease-in-out animate-in;
 }
 
 .nav > div.forward {
@@ -37,7 +49,7 @@
 
 .card-container {
   box-shadow: 0 4px 16px 0 rgba(149, 157, 165, 0.05);
-  @apply p-4 rounded-md bg-white mb-4 w-full;
+  @apply p-4 rounded-md bg-card mb-4 w-full;
 }
 
 /**
@@ -174,6 +186,73 @@
 }
 /** end of add by shadcn/ui */
 
+/**
+ * Docs (/docs) prose theming.
+ *
+ * Map @tailwindcss/typography (`prose`) tokens onto the shadcn design tokens
+ * so Markdown content matches the rest of the UI. Because the shadcn tokens
+ * themselves flip under `.dark`, prose adapts to dark mode automatically —
+ * no `prose-invert` needed. Forks recolor docs by editing the `:root`/`.dark`
+ * tokens above; this block is the single bridge to typography.
+ */
+/* Unlayered on purpose: the @tailwindcss/typography plugin emits its rules in a
+   cascade layer, so an @layer base override would lose to it. Unlayered rules
+   beat layered ones, so these reliably win. */
+.prose {
+  --tw-prose-body: var(--foreground);
+  --tw-prose-headings: var(--foreground);
+  --tw-prose-lead: var(--muted-foreground);
+  --tw-prose-links: var(--primary);
+  --tw-prose-bold: var(--foreground);
+  --tw-prose-counters: var(--muted-foreground);
+  --tw-prose-bullets: var(--border);
+  --tw-prose-hr: var(--border);
+  --tw-prose-quotes: var(--muted-foreground);
+  --tw-prose-quote-borders: var(--border);
+  --tw-prose-captions: var(--muted-foreground);
+  --tw-prose-code: var(--foreground);
+  --tw-prose-pre-code: var(--foreground);
+  --tw-prose-pre-bg: var(--muted);
+  --tw-prose-th-borders: var(--border);
+  --tw-prose-td-borders: var(--border);
+}
+
+/* Tailwind Typography wraps inline `code` in literal backtick quotes via
+   ::before/::after — drop them; our pill styling already marks inline code. */
+.prose code::before,
+.prose code::after {
+  content: "" !important;
+}
+
+/**
+ * Code blocks highlighted by rehype-pretty-code + Shiki (dual themes). Shiki
+ * emits per-token `--shiki-light` / `--shiki-dark` custom properties (no inline
+ * color), so we apply the light value by default and swap to the dark value
+ * under `.dark` — syntax highlighting then tracks the app theme.
+ */
+[data-rehype-pretty-code-figure] code span {
+  color: var(--shiki-light);
+  font-style: var(--shiki-light-font-style);
+  font-weight: var(--shiki-light-font-weight);
+  text-decoration: var(--shiki-light-text-decoration);
+}
+
+.dark [data-rehype-pretty-code-figure] pre {
+  background-color: var(--shiki-dark-bg) !important;
+}
+
+.dark [data-rehype-pretty-code-figure] code span {
+  color: var(--shiki-dark) !important;
+  font-style: var(--shiki-dark-font-style) !important;
+  font-weight: var(--shiki-dark-font-weight) !important;
+  text-decoration: var(--shiki-dark-text-decoration) !important;
+}
+
+[data-rehype-pretty-code-figure] [data-line] {
+  display: inline-block;
+  width: 100%;
+}
+
 /* Ant Design Table header styles - make title, filter icon, and sorter icon close together */
 .ant-table-wrapper .ant-table-column-sorters {
   justify-content: flex-start;
@@ -225,4 +304,10 @@
 
 .subscription-select-popup .ant-select-item-option-disabled {
   color: rgba(0, 0, 0, 0.35);
+}
+
+/* Admin layout: sidebar starts below the top navbar */
+[data-admin-layout] [data-slot="sidebar-container"] {
+  top: var(--app-header-height);
+  height: calc(100svh - var(--app-header-height));
 }

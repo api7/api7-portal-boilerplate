@@ -1,115 +1,202 @@
 'use client';
 
-import {
-  pickControlPropsWithId,
-  ProForm,
-  ProFormItemRender,
-  ProFormText,
-} from '@ant-design/pro-components';
-import { Button, Input, Space, type FormInstance } from 'antd';
 import { nanoid } from 'nanoid';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 
-import { useApplicationId } from '../hook';
+import Drawer from '@/components/base/drawer';
 import Form from '@/components/slices/form/Form';
-import { portalClient } from '@/lib/portal-sdk/client';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
-import A7Drawer from '@/components/ui-legacy/drawer';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { transformFormLabelToAPI } from '@/helper/utils/form-producer/labels';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { pipeProduce } from '@/helper/utils/form-producer/common';
-import { produceToAPILabels } from '@/helper/utils/form-producer/labels';
+import { portalClient } from '@/lib/portal-sdk/client';
 import type {
+  BasicAuthCredential,
   BasicAuthPluginValue,
-  CreateApplicationCredentialReq,
-  CredentialForm,
 } from '@/types/portal-sdk';
+import type { FormLabel } from '@/types/utils';
+import { useForm } from '@tanstack/react-form';
+import type {
+  AnyFieldApi,
+  FormAsyncValidateOrFn,
+  FormValidateOrFn,
+  ReactFormExtendedApi,
+} from '@tanstack/react-form';
 
-export const FormItemBasicAuth = ({ form }: { form: FormInstance }) => {
+import { useApplicationId } from '../hook';
+
+// Minimal form values required by FormItemBasicAuth (shared with RotateModal)
+type BasicAuthSubFormValues = {
+  basicAuth: { username: string; password: string };
+};
+type SubV = FormValidateOrFn<BasicAuthSubFormValues> | undefined;
+type SubVA = FormAsyncValidateOrFn<BasicAuthSubFormValues> | undefined;
+export type BasicAuthSubForm = ReactFormExtendedApi<
+  BasicAuthSubFormValues,
+  SubV,
+  SubV,
+  SubVA,
+  SubV,
+  SubVA,
+  SubV,
+  SubVA,
+  SubV,
+  SubVA,
+  SubVA,
+  unknown
+>;
+
+const FieldError = ({ errors }: { errors: (string | undefined)[] }) => {
+  const msg = errors.find(Boolean);
+  if (!msg) return null;
   return (
-    <>
-      <ProFormText
-        label="Username"
-        name={['basic-auth', 'username']}
-        placeholder="johndoe"
-        tooltip="The username is a unique identifier used in conjunction with a password to verify a user's identity during API calls."
-        rules={[{ required: true }]}
-      />
-      <ProFormItemRender
-        label="Password"
-        name={['basic-auth', 'password']}
-        rules={[{ required: true }]}
-        help="Enter a custom password or click 'Generate' to create a random one."
-      >
-        {(props) => (
-          <Space.Compact style={{ width: '100%' }}>
-            <Input.Password {...pickControlPropsWithId(props)} placeholder="" />
-            <Button
-              onClick={() => {
-                form.setFieldValue(
-                  ['basic-auth', 'password'],
-                  nanoid()
-                );
-              }}
-              style={{
-                width: '100px',
-                borderTopLeftRadius: 0,
-                borderBottomLeftRadius: 0,
-              }}
-            >
-              Generate
-            </Button>
-          </Space.Compact>
-        )}
-      </ProFormItemRender>
-    </>
+    <p className="text-sm text-destructive mt-1" role="alert">
+      {msg}
+    </p>
   );
 };
 
-const BasicAuthAddDrawer = (props: UseDisclosureReturn) => {
-  const { open, onClose, onOk, ...rest } = props;
-  const [form] = ProForm.useForm();
-  const applicationId = useApplicationId();
-  const submitAdd = (form: CredentialForm) => {
-    const { username, password } = form?.['basic-auth'] as BasicAuthPluginValue;
+export const FormItemBasicAuth = ({ form }: { form: BasicAuthSubForm }) => (
+  <>
+    <form.Field
+      name="basicAuth.username"
+      validators={{
+        onChange: ({ value }: { value: string }) =>
+          !value?.trim() ? 'Please enter Username' : undefined,
+        onSubmit: ({ value }: { value: string }) =>
+          !value?.trim() ? 'Please enter Username' : undefined,
+      }}
+    >
+      {(field: AnyFieldApi) => (
+        <div className="flex flex-col gap-1.5 mb-4">
+          <label htmlFor="basic-auth_username" className="text-sm font-medium">
+            Username{' '}
+            <span className="text-muted-foreground text-xs">(Required)</span>
+          </label>
+          <Input
+            id="basic-auth_username"
+            placeholder="johndoe"
+            value={field.state.value ?? ''}
+            onChange={(e) => field.handleChange(e.target.value)}
+            onBlur={field.handleBlur}
+            aria-invalid={field.state.meta.errors.length > 0}
+          />
+          <FieldError errors={field.state.meta.errors} />
+        </div>
+      )}
+    </form.Field>
 
-    return portalClient.application.credential
-      .create(applicationId, {
-        ...(pipeProduce(produceToAPILabels)(form) as CredentialForm),
+    <form.Field
+      name="basicAuth.password"
+      validators={{
+        onChange: ({ value }: { value: string }) =>
+          !value?.trim() ? 'Please enter Password' : undefined,
+        onSubmit: ({ value }: { value: string }) =>
+          !value?.trim() ? 'Please enter Password' : undefined,
+      }}
+    >
+      {(field: AnyFieldApi) => (
+        <div className="flex flex-col gap-1.5 mb-4">
+          <label htmlFor="basic-auth_password" className="text-sm font-medium">
+            Password{' '}
+            <span className="text-muted-foreground text-xs">(Required)</span>
+          </label>
+          <p className="text-muted-foreground text-xs">
+            Enter a custom password or click &apos;Generate&apos; to create a
+            random one.
+          </p>
+          <div className="flex gap-2">
+            <Input
+              id="basic-auth_password"
+              type="password"
+              value={field.state.value ?? ''}
+              onChange={(e) => field.handleChange(e.target.value)}
+              onBlur={field.handleBlur}
+              aria-invalid={field.state.meta.errors.length > 0}
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="w-24"
+              onClick={() => field.handleChange(nanoid())}
+            >
+              Generate
+            </Button>
+          </div>
+          <FieldError errors={field.state.meta.errors} />
+        </div>
+      )}
+    </form.Field>
+  </>
+);
+
+type BasicAuthAddDrawerProps = UseDisclosureReturn & {
+  // Surfaces the username/password once, right after creation. The password is
+  // never returned again on read paths, so the table reveals it via a one-time
+  // alert.
+  setAlertData?: (data: BasicAuthPluginValue) => void;
+};
+
+const BasicAuthAddDrawer = (props: BasicAuthAddDrawerProps) => {
+  const { open, onClose, onOk, setAlertData, ...rest } = props;
+  const applicationId = useApplicationId();
+
+  const form = useForm({
+    defaultValues: {
+      name: '',
+      desc: '',
+      labels: [] as FormLabel,
+      basicAuth: { username: '', password: '' },
+    },
+    onSubmit: async ({ value }) => {
+      const payload: Parameters<
+        typeof portalClient.application.credential.create
+      >[1] = {
+        name: value.name,
+        desc: value.desc || undefined,
+        labels: transformFormLabelToAPI(value.labels),
         type: 'basic-auth',
         'basic-auth': {
-          username,
-          password,
+          username: value.basicAuth.username,
+          password: value.basicAuth.password,
         },
-      } as CreateApplicationCredentialReq)
-      .then(() => {
-        onOk?.();
-        toast.success('Add Basic Authentication Credential Successfully');
-      })
-      .then(onClose);
-  };
+      };
+      const res = (await portalClient.application.credential.create(
+        applicationId,
+        payload,
+      )) as BasicAuthCredential;
+      setAlertData?.(res['basic-auth'] as BasicAuthPluginValue);
+      onOk?.();
+      toast.success('Add Basic Authentication Credential Successfully');
+      onClose();
+    },
+  });
+
+  useEffect(() => {
+    if (open) form.reset();
+  }, [open, form]);
 
   return (
-    <A7Drawer
-      title={'Add Basic Authentication Credential'}
+    <Drawer
+      title="Add Basic Authentication Credential"
       open={open}
       onClose={onClose}
-      onOk={form.submit}
-      destroyOnHidden
+      onOk={() => form.handleSubmit()}
+      loading={form.state.isSubmitting}
       {...rest}
     >
-      <Form<CredentialForm>
-        form={form}
-        onFinish={submitAdd}
-        submitter={false}
-        preserve={false}
-      >
+      <Form onSubmit={() => form.handleSubmit()}>
         <FormPartBasics
-          title={'Credential Basics'}
+          title="Credential Basics"
+          form={form}
           labelProps={{ resourceType: 'developer_credential' }}
         />
-        <FormItemBasicAuth form={form} />
+        <FormItemBasicAuth form={form as unknown as BasicAuthSubForm} />
       </Form>
-    </A7Drawer>
+    </Drawer>
   );
 };
 

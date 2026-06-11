@@ -1,41 +1,31 @@
 'use client';
 
-import { AuthUIProvider } from '@daveyplate/better-auth-ui';
-import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { type ReactNode, useCallback, useEffect, useRef } from 'react';
-import {
-  QueryClientProvider,
-  useQuery,
-} from '@tanstack/react-query';
-
+import { ThemeProvider } from 'next-themes';
+import { AuthProvider } from '@/components/auth/auth-provider';
+import { organizationPlugin } from '@/lib/auth/organization-plugin';
+import type { ConfigStatus } from '@/lib/config/config-status';
+import { ConfigStatusProvider } from '@/lib/config/config-status-context';
 import { authClient } from '@/lib/auth/client';
 import { useActiveOrganizationSlug } from '@/lib/hooks/useActiveOrganizationSlug';
-import { AntdRegistry } from '@ant-design/nextjs-registry';
-import { ConfigProvider } from 'antd';
 import { queryClient } from '@/lib/req';
-import { configStatusQueryOptions } from '@/apis/query-option';
-import enUS from 'antd/locale/en_US';
-import { CircleHelpIcon } from 'lucide-react';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@daveyplate/better-auth-ui';
+import { magicLinkPlugin } from '@better-auth-ui/core/plugins';
+import { twoFactorPlugin } from '@/lib/auth/two-factor-plugin';
+import { providerIcons } from '@better-auth-ui/react';
+import type { SocialProvider } from 'better-auth/social-providers';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
 
-const authLocalization = {
-  ORGANIZATIONS_INSTRUCTIONS:
-    'Create an organization to collaborate with other members',
-  ORGANIZATION_SLUG: 'URL',
-  ORGANIZATION_SLUG_PLACEHOLDER: '',
-  ORGANIZATION_SLUG_DESCRIPTION: `This is your organization's URL namespace on developer portal. Within it, your team members can inspect their applications, or configure settings to their liking.`,
-};
 
-function AuthUIProviderWrapper({ children }: { children: ReactNode }) {
+function AuthProviderWrapper({
+  children,
+  initialConfigStatus,
+}: {
+  children: ReactNode;
+  initialConfigStatus: ConfigStatus;
+}) {
   const router = useRouter();
-  const { data: configStatus } = useQuery(configStatusQueryOptions);
-  const domainPrefix =
-    typeof window === 'undefined' ? '' : `${window.location.host}/`;
   const activeOrgSlug = useActiveOrganizationSlug();
 
   // When the active org's slug changes (e.g. user renames it in settings),
@@ -50,7 +40,6 @@ function AuthUIProviderWrapper({ children }: { children: ReactNode }) {
     prevActiveOrgSlugRef.current = activeOrgSlug;
     if (!prevSlug || prevSlug === activeOrgSlug) return;
 
-    // Only redirect when the current URL actually starts with the old slug.
     if (typeof window === 'undefined') return;
     const currentPath = window.location.pathname;
     if (currentPath.startsWith(`/${prevSlug}/`)) {
@@ -59,88 +48,92 @@ function AuthUIProviderWrapper({ children }: { children: ReactNode }) {
     }
   }, [activeOrgSlug, router]);
 
-  const handleSessionChange = useCallback(() => {
-    router.refresh();
-  }, [router]);
+  const navigate = useCallback(
+    ({ to, replace }: { to: string; replace?: boolean }) => {
+      if (replace) router.replace(to);
+      else router.push(to);
+    },
+    [router],
+  );
+
+  const plugins = useMemo(() => {
+    const list = [
+      organizationPlugin({
+        slug: activeOrgSlug ?? null,
+        localization: {
+          slug: 'URL',
+          slugPlaceholder: '',
+        },
+        viewPaths: {
+          settings: { organizations: 'organizations' },
+          organization: { settings: 'settings', people: 'members' },
+        },
+      }),
+    ];
+
+    if (initialConfigStatus.magicLink) {
+      list.push(magicLinkPlugin() as never);
+    }
+
+    if (initialConfigStatus.twoFactor) {
+      list.push(twoFactorPlugin() as never);
+    }
+
+    return list;
+  }, [activeOrgSlug, initialConfigStatus.magicLink, initialConfigStatus.twoFactor]);
+
+  // Patch providerIcons for any generic OAuth provider that lacks a built-in icon,
+  // so <ProviderButton> doesn't crash on "React.createElement: type is invalid".
+  // Includes ssoOnly providers because they appear in Phase 2 of the sign-in form.
+  // Run directly (not in useMemo) — this is an idempotent side effect, not a
+  // computed value, and initialConfigStatus is stable for the lifetime of the app.
+  initialConfigStatus.genericOAuthProviders.forEach(({ provider }) => {
+    (providerIcons as Record<string, unknown>)[provider] ??= () => null;
+  });
+
+  // Merge configured social and generic OAuth providers into a single list.
+  // ssoOnly providers are excluded — they're triggered via email domain policy,
+  // not shown as buttons on the main sign-in page.
+  const socialProviders = useMemo<SocialProvider[] | undefined>(() => {
+    const providers: string[] = [
+      ...(initialConfigStatus.socialProviders ?? []),
+      ...initialConfigStatus.genericOAuthProviders
+        .filter((p) => !p.ssoOnly)
+        .map((p) => p.provider),
+    ];
+    return providers.length > 0 ? (providers as SocialProvider[]) : undefined;
+  }, [initialConfigStatus.socialProviders, initialConfigStatus.genericOAuthProviders]);
 
   return (
-    <AuthUIProvider
-      authClient={authClient}
-      navigate={router.push}
-      replace={router.replace}
-      onSessionChange={handleSessionChange}
-      Link={Link as never}
-      localization={authLocalization}
-      organization={{
-        pathMode: 'slug',
-        slug: activeOrgSlug ?? undefined,
-        basePath: activeOrgSlug ? `/${activeOrgSlug}` : '',
-        viewPaths: {
-          SETTINGS: 'organization/settings',
-          MEMBERS: 'organization/members',
-          TEAMS: 'organization/teams',
-          API_KEYS: 'organization/api-keys',
-        },
-        slugField: {
-          prefix: domainPrefix,
-          labelInfo: (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button type="button" className="text-muted-foreground">
-                  <CircleHelpIcon className="size-4" />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent className="max-w-xs text-wrap">
-                {authLocalization.ORGANIZATION_SLUG_DESCRIPTION}
-              </TooltipContent>
-            </Tooltip>
-          ),
-        },
-      }}
-      account
-      // need config it first in auth/server.ts and auth/client.ts
-      // ref: https://www.better-auth.com/docs/plugins/magic-link
-      magicLink={configStatus?.magicLink}
-      // need config it first in config.yaml or auth/server.ts
-      // ref: https://www.better-auth.com/docs/reference/options#socialproviders
-      {...(configStatus?.socialProviders?.length && {
-        social: {
-          providers: configStatus.socialProviders,
-        },
-      })}
-      // need config it first in auth/server.ts
-      // ref: https://www.better-auth.com/docs/plugins/generic-oauth
-      {...(configStatus?.genericOAuthProviders?.length && {
-        genericOAuth: {
-          providers: configStatus.genericOAuthProviders,
-        },
-      })}
-      {...(configStatus?.twoFactor && {
-        twoFactor: ['totp'],
-      })}
-    >
-      {children}
-    </AuthUIProvider>
+    <ConfigStatusProvider value={initialConfigStatus}>
+      <AuthProvider
+        authClient={authClient}
+        navigate={navigate}
+        Link={Link as never}
+        basePaths={{ auth: '/auth', settings: '/account', organization: '' }}
+        viewPaths={{ settings: { account: 'settings', security: 'security' } }}
+        plugins={plugins}
+        {...(socialProviders && { socialProviders })}
+        {...(initialConfigStatus.twoFactor && { twoFactor: ['totp'] as ['totp'] })}
+      >
+        {children}
+      </AuthProvider>
+    </ConfigStatusProvider>
   );
 }
 
-export function Providers({ children }: { children: ReactNode }) {
+export function Providers({
+  children,
+  initialConfigStatus,
+}: {
+  children: ReactNode;
+  initialConfigStatus: ConfigStatus;
+}) {
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthUIProviderWrapper>
-        <AntdRegistry layer>
-          <ConfigProvider
-            locale={enUS}
-            theme={{
-              token: {
-                colorPrimary: '#000000',
-              },
-            }}
-          >
-            {children}
-          </ConfigProvider>
-        </AntdRegistry>
-      </AuthUIProviderWrapper>
+      <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <AuthProviderWrapper initialConfigStatus={initialConfigStatus}>{children}</AuthProviderWrapper>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 }

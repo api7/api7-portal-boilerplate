@@ -41,7 +41,7 @@ export const Meta: FC<MetaProps> = (props) => {
               <div className="flex items-center mb-1">
                 {/* name */}
                 <div
-                  className="font-semibold text-lg text-gray-800 leading-none h-fit"
+                  className="font-semibold text-lg text-foreground leading-none h-fit"
                   data-cy="meta-name"
                 >
                   {isLoading ? (
@@ -58,7 +58,7 @@ export const Meta: FC<MetaProps> = (props) => {
               </div>
 
               {/* description */}
-              <div className="text-gray-400 text-xs w-full" data-cy="meta-desc">
+              <div className="text-muted-foreground text-xs w-full" data-cy="meta-desc">
                 {isLoading ? <Skeleton className="w-72 h-6" /> : description}
               </div>
             </div>

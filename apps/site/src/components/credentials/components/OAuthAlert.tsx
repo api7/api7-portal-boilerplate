@@ -1,8 +1,17 @@
 'use client';
 
-import { CheckOutlined, CopyOutlined } from '@ant-design/icons';
+import { CheckIcon, CopyIcon, InfoIcon } from 'lucide-react';
+
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupText,
+} from '@/components/ui/input-group';
 import { useClipboard } from '@chakra-ui/react';
-import { Alert as AntdAlert, Input, Space, Button } from 'antd';
+
 type OAuthAlertProps = {
   clientID: string;
   clientSecret: string;
@@ -14,63 +23,49 @@ export const OAuthAlert = (props: OAuthAlertProps) => {
   const clientIDClipboard = useClipboard(props.clientID);
   const clientSecretClipboard = useClipboard(props.clientSecret);
   return (
-    <div className="pt-35px">
-      <AntdAlert
-        title={props.title ?? 'OAuth Client Created'}
-        description={
-          props.description ??
-          'Please copy and save it immediately, you will not be able to view Client Secret again.'
-        }
-        type="info"
-        showIcon
-      />
+    <div className="w-175 pt-[35px]">
+      <Alert>
+        <InfoIcon />
+        <AlertTitle>{props.title ?? 'OAuth Client Created'}</AlertTitle>
+        <AlertDescription>
+          {props.description ??
+            'Please copy and save it immediately, you will not be able to view Client Secret again.'}
+        </AlertDescription>
+      </Alert>
 
-      <Space
-        direction="vertical"
-        size="small"
-        className="gap-1"
-        style={{ width: '700px', marginTop: '10px' }}
-      >
-        <Space.Compact style={{ width: '100%' }}>
-          <Input
-            addonBefore={<div style={{ minWidth: '150px' }}>Client ID</div>}
-            value={props.clientID}
-            addonAfter={
-              <Button
-                type="text"
-                onClick={() => clientIDClipboard.onCopy()}
-                size="small"
-              >
-                {clientIDClipboard.hasCopied ? (
-                  <CheckOutlined />
-                ) : (
-                  <CopyOutlined />
-                )}
-              </Button>
-            }
-          />
-        </Space.Compact>
+      <InputGroup className="mt-2">
+        <InputGroupInput value={props.clientID} readOnly />
+        <InputGroupAddon align="inline-start" className="min-w-37.5 border-e">
+          <InputGroupText>Client ID</InputGroupText>
+        </InputGroupAddon>
+        <InputGroupAddon align="inline-end">
+          <InputGroupButton
+            aria-label="Copy"
+            title="Copy"
+            size="icon-xs"
+            onClick={() => clientIDClipboard.onCopy()}
+          >
+            {clientIDClipboard.hasCopied ? <CheckIcon /> : <CopyIcon />}
+          </InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>
 
-        <Space.Compact style={{ width: '100%' }}>
-          <Input
-            addonBefore={<div style={{ minWidth: '150px' }}>Client Secret</div>}
-            value={props.clientSecret}
-            addonAfter={
-              <Button
-                type="text"
-                onClick={() => clientSecretClipboard.onCopy()}
-                size="small"
-              >
-                {clientSecretClipboard.hasCopied ? (
-                  <CheckOutlined />
-                ) : (
-                  <CopyOutlined />
-                )}
-              </Button>
-            }
-          />
-        </Space.Compact>
-      </Space>
+      <InputGroup className="mt-2">
+        <InputGroupInput value={props.clientSecret} readOnly />
+        <InputGroupAddon align="inline-start" className="min-w-37.5 border-e">
+          <InputGroupText>Client Secret</InputGroupText>
+        </InputGroupAddon>
+        <InputGroupAddon align="inline-end">
+          <InputGroupButton
+            aria-label="Copy"
+            title="Copy"
+            size="icon-xs"
+            onClick={() => clientSecretClipboard.onCopy()}
+          >
+            {clientSecretClipboard.hasCopied ? <CheckIcon /> : <CopyIcon />}
+          </InputGroupButton>
+        </InputGroupAddon>
+      </InputGroup>
     </div>
   );
 };

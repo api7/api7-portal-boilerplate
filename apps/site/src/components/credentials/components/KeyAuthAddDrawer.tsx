@@ -1,74 +1,115 @@
 'use client';
 
-import { ProForm, type ProFormItemProps } from '@ant-design/pro-components';
+import { useEffect } from 'react';
+
+import { useForm } from '@tanstack/react-form';
 import { toast } from 'sonner';
 
-import { useApplicationId } from '../hook';
 import Form from '@/components/slices/form/Form';
-import { portalClient } from '@/lib/portal-sdk/client';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
 import Alert from '@/components/ui-legacy/alert';
-import A7Drawer from '@/components/ui-legacy/drawer';
+import Drawer from '@/components/base/drawer';
+import { transformFormLabelToAPI } from '@/helper/utils/form-producer/labels';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
+import { portalClient } from '@/lib/portal-sdk/client';
 import type {
-  CreateApplicationCredentialReq,
-  CredentialForm,
+  KeyAuthCredential,
+  KeyAuthPluginValue,
 } from '@/types/portal-sdk';
-import { pipeProduce } from '@/lib/utils/form-producer/common';
-import { produceToAPILabels } from '@/helper/utils/form-producer/labels';
+import type { FormLabel } from '@/types/utils';
 
-export const FormItemKey = ({ children, ...rest }: ProFormItemProps) => {
-  return (
-    <ProForm.Item label="Key" required {...rest}>
-      {children || (
-        <Alert
-          type="info"
-          title="A random key will be automatically generated. You cannot specify a custom key value."
-        />
+import { useApplicationId } from '../hook';
+
+export const FormItemKey = ({
+  children,
+  required = true,
+}: {
+  children?: React.ReactNode;
+  required?: boolean;
+}) => (
+  <div className="flex flex-col gap-1.5 mb-4">
+    <label className="text-sm font-medium">
+      Key{' '}
+      {required && (
+        <span className="text-muted-foreground text-xs">(Required)</span>
       )}
-    </ProForm.Item>
-  );
+    </label>
+    {children ?? (
+      <Alert
+        variant="info"
+        description="A random key will be automatically generated. You cannot specify a custom key value."
+      />
+    )}
+  </div>
+);
+
+type KeyAuthAddDrawerProps = UseDisclosureReturn & {
+  // Surfaces the generated key once, right after creation. The key is never
+  // returned again on read paths, so the table reveals it via a one-time alert.
+  setAlertData?: (key: string) => void;
 };
 
-const KeyAuthAddDrawer = (props: UseDisclosureReturn) => {
-  const { open, onClose, onOk, ...rest } = props;
-  const [form] = ProForm.useForm();
+const KeyAuthAddDrawer = (props: KeyAuthAddDrawerProps) => {
+  const { open, onClose, onOk, setAlertData, ...rest } = props;
   const applicationId = useApplicationId();
-  const submitAdd = (formData: CredentialForm) =>
-    portalClient.application.credential
-      .create(applicationId, {
-        ...pipeProduce(produceToAPILabels)(formData),
+
+  const form = useForm({
+    defaultValues: {
+      name: '',
+      desc: '',
+      labels: [] as FormLabel,
+    },
+    onSubmit: async ({ value }) => {
+      const payload: Parameters<
+        typeof portalClient.application.credential.create
+      >[1] = {
+        name: value.name,
+        desc: value.desc || undefined,
+        labels: transformFormLabelToAPI(value.labels),
         type: 'key-auth',
         'key-auth': {},
-      } as CreateApplicationCredentialReq)
-      .then(() => {
-        onOk?.();
-        toast.success('Add Key Authentication Credential Successfully');
-      })
-      .then(onClose);
+      };
+      const res = (await portalClient.application.credential.create(
+        applicationId,
+        payload,
+      )) as KeyAuthCredential;
+      const key = (res['key-auth'] as KeyAuthPluginValue | undefined)?.key;
+      if (!key) {
+        toast.error(
+          'Credential created, but no key was returned. Please regenerate to get a new key.',
+        );
+        onClose();
+        return;
+      }
+      setAlertData?.(key);
+      onOk?.();
+      toast.success('Add Key Authentication Credential Successfully');
+      onClose();
+    },
+  });
+
+  useEffect(() => {
+    if (open) form.reset();
+  }, [open, form]);
 
   return (
-    <A7Drawer
-      title={'Add Key Authentication Credential'}
+    <Drawer
+      title="Add Key Authentication Credential"
       open={open}
       onClose={onClose}
-      onOk={form.submit}
-      destroyOnHidden
+      onOk={() => form.handleSubmit()}
+      loading={form.state.isSubmitting}
       {...rest}
     >
-      <Form<CredentialForm>
-        form={form}
-        onFinish={submitAdd}
-        submitter={false}
-        preserve={false}
-      >
+      <Form onSubmit={() => form.handleSubmit()}>
         <FormPartBasics
-          title={'Credential Basics'}
+          title="Credential Basics"
+          form={form}
           labelProps={{ resourceType: 'developer_credential' }}
         />
         <FormItemKey />
       </Form>
-    </A7Drawer>
+    </Drawer>
   );
 };
 

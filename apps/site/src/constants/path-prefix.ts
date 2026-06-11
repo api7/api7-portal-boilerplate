@@ -1,10 +1,13 @@
 export const PATH_ROOT = '/';
 export const PATH_API_HUB = '/api-hub';
+export const PATH_DOCS = '/docs';
 export const PATH_AUTH = '/auth';
 export const PATH_LOGIN = `${PATH_AUTH}/sign-in`;
 export const PATH_ACCOUNT = '/account';
 export const PATH_LANDING = `${PATH_AUTH}/landing` as const;
 export const PATH_APPLICATIONS = '/applications';
+export const PATH_APPROVALS = '/admin/approvals';
 export const PATH_USER_PROFILE = '/user-profile';
 export const PATH_ORGANIZATION = '/organization';
-export const PATH_DASHBOARD_ORGANIZATIONS = '/dashboard/organizations';
+export const PATH_DASHBOARD_ORGANIZATIONS = '/admin/organizations';
+export const PATH_DASHBOARD_USERS = '/admin/users';

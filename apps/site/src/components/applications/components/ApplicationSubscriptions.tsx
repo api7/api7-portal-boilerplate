@@ -1,24 +1,30 @@
 'use client';
 
+import type { ColumnDef } from '@tanstack/react-table';
+import { useCreation } from 'ahooks';
+import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import Link from 'next/link';
 import { useState } from 'react';
 
-import { useCreation } from 'ahooks';
-import { Button } from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-
-import { PRODUCT_STATUS_CONFIG, useStatusCol } from './StatusFilter';
-import SubscribeAPIProductModal from './SubscribeAPIProductModal';
-import UnsubscribeModal from './UnsubscribeModal';
 import TimeFormat from '@/components/slices/time-format';
-import IconImage from '@/components/ui-legacy/icon-image';
-import { MoreMenu } from '@/components/ui-legacy/more-menu';
-import A7Table from '@/components/ui-legacy/table';
+import { Button } from '@/components/ui/button';
+import { DataTable } from '@/components/base/data-table';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import type { SubscriptionItem } from '@/types/portal-sdk';
-import Link from 'next/link';
+
+import { PRODUCT_STATUS_CONFIG, statusCol } from './StatusFilter';
+import SubscribeAPIProductModal from './SubscribeAPIProductModal';
+import UnsubscribeModal from './UnsubscribeModal';
 
 const SubscribeNewAPIProductBtn = ({
   applicationId,
@@ -33,14 +39,8 @@ const SubscribeNewAPIProductBtn = ({
 
   return (
     <>
-      <Button
-        key="add"
-        variant="filled"
-        type="primary"
-        disabled={disabled}
-        icon={<IconImage type="add" alt="add" />}
-        onClick={subscribeDisclosure.setOpen}
-      >
+      <Button disabled={disabled} onClick={subscribeDisclosure.setOpen}>
+        <PlusIcon />
         Subscribe to New API Product
       </Button>
       <SubscribeAPIProductModal
@@ -59,74 +59,78 @@ type ApplicationSubscriptionsProps = {
 const ApplicationSubscriptions = ({ id }: ApplicationSubscriptionsProps) => {
   const apiHubBasePath = useApiHubBasePath();
   const { canManageApplications } = useCanManageApplications();
-  const req = useSubscriptionList({
-    application_id: id,
-  });
-
-  const statusCol = useStatusCol<SubscriptionItem>({
-    onParamsChange: req.onParamsChange,
-    statusConfig: PRODUCT_STATUS_CONFIG,
-  });
+  const req = useSubscriptionList({ application_id: id });
 
   const unsubscribeDisclosure = useDisclosure();
-  const [curSubscription, setCurSubscription] =
-    useState<SubscriptionItem | null>();
+  const [curSubscription, setCurSubscription] = useState<SubscriptionItem | null>();
 
-  const columns = useCreation<ColumnsType<SubscriptionItem>>(
+  const columns = useCreation<ColumnDef<SubscriptionItem>[]>(
     () => [
       {
-        title: 'API Product',
-        dataIndex: 'api_product_name',
-        key: 'api_product_name',
-        render: (name, record) => (
+        header: 'API Product',
+        accessorKey: 'api_product_name',
+        cell: ({ row }) => (
           <Link
-            href={`${apiHubBasePath}/detail?id=${record.api_product_id}`}
+            href={`${apiHubBasePath}/${row.original.api_product_id}`}
             target="_blank"
-            className="text-primary hover:text-primary/80"
+            className="text-primary hover:underline text-sm font-medium"
           >
-            {name}
+            {row.original.api_product_name}
           </Link>
         ),
       },
-      statusCol,
+      statusCol<SubscriptionItem>(PRODUCT_STATUS_CONFIG),
       {
-        title: 'Subscribed',
-        dataIndex: 'subscribed_at',
-        key: 'subscribed_at',
-        render: (timestamp: number) => {
+        header: 'Subscribed',
+        accessorKey: 'subscribed_at',
+        cell: ({ getValue }) => {
+          const timestamp = getValue() as number;
           if (!timestamp) return 'Not yet';
           return <TimeFormat time={timestamp} fromNow />;
         },
       },
       {
-        title: 'Actions',
-        key: 'actions',
-        fixed: 'right',
-        render: (_, record) => (
-          <MoreMenu
-            items={[
-              {
-                key: 'unsubscribe',
-                label: 'Unsubscribe',
-                className: 'text-red-500',
-                disabled: !canManageApplications,
-                onClick: () => {
-                  setCurSubscription(record);
-                  unsubscribeDisclosure.setOpen();
-                },
-              },
-            ]}
-            menuButtonProps={{ disabled: !canManageApplications }}
-          />
+        id: 'actions',
+        header: 'Actions',
+        cell: ({ row }) => (
+          <DropdownMenu>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  aria-label="More Options"
+                  disabled={!canManageApplications}
+                >
+                  <EllipsisVerticalIcon />
+                </Button>
+              }
+            />
+            <DropdownMenuContent align="end" className="w-40">
+              <DropdownMenuGroup>
+                <DropdownMenuItem
+                  variant="destructive"
+                  disabled={!canManageApplications}
+                  onClick={() => {
+                    setCurSubscription(row.original);
+                    unsubscribeDisclosure.setOpen();
+                  }}
+                >
+                  <Trash2Icon />
+                  Unsubscribe
+                </DropdownMenuItem>
+              </DropdownMenuGroup>
+            </DropdownMenuContent>
+          </DropdownMenu>
         ),
       },
     ],
-    [statusCol, apiHubBasePath, canManageApplications]
+    [apiHubBasePath, canManageApplications],
   );
 
   return (
     <>
-      <A7Table
+      <DataTable
         data-testid="application-subscriptions"
         columns={columns}
         nameSearch

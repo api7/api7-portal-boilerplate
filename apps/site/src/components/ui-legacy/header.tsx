@@ -9,7 +9,7 @@ type HeaderProps = {
   descProps?: React.HTMLAttributes<HTMLDivElement>;
 } & React.HTMLAttributes<HTMLDivElement>;
 const Header = (props: HeaderProps) => {
-  const { wrapperProps, titleProps, title, desc, descProps, ...rootProps } =
+  const { wrapperProps, titleProps, title, afterTitle, desc, descProps, ...rootProps } =
     props;
   return (
     <div
@@ -31,7 +31,7 @@ const Header = (props: HeaderProps) => {
           )}
         >
           {title}
-          {props?.afterTitle}
+          {afterTitle}
         </div>
         {desc && (
           <div

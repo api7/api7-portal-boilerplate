@@ -2,7 +2,6 @@ import { expect } from '@playwright/test';
 import { PATH_APPLICATIONS } from '@site/constants/path-prefix';
 
 import { test } from '../fixture';
-import { API_PRODUCTS } from '../req/dashboard/constant';
 import {
   a7DeleteProductList,
   a7PostGatewayProduct,
@@ -15,9 +14,9 @@ import {
 } from '../req/dashboard/service';
 import {
   uiAddApplication,
+  uiClickCellButton,
   uiGoToAPICredentials,
   uiGoToApplications,
-  uiSubscribeProductInAPIHub,
 } from '../utils/ui';
 
 const gateway_group_id = 'default';
@@ -64,14 +63,15 @@ test.describe('auth type auto fill in detail page', () => {
   });
 
   test('auth type should auto selected', async ({ page, ctx }) => {
+    test.slow();
     await test.step('add application', async () => {
       await uiGoToApplications(page);
       await uiAddApplication(page, { name: applicationName });
       await uiGoToApplications(page);
       await page.getByText(applicationName).click();
-      await page.waitForURL(new RegExp(`${PATH_APPLICATIONS}/detail.*`));
+      await page.waitForURL(new RegExp(`${PATH_APPLICATIONS}/[^/]+$`));
       // get application id
-      applicationId = page.url().split('?')[1].split('=')[1];
+      applicationId = page.url().split('/').pop()!;
     });
 
     await page.goto('/');
@@ -81,17 +81,8 @@ test.describe('auth type auto fill in detail page', () => {
     const pet = page.getByRole('link', { name: productName }).first();
     await pet.click();
 
-    const productDetailRes = await ctx.get(`${API_PRODUCTS}/${productId}`);
-    expect(productDetailRes.status()).toBe(200);
-    const productDetail = await productDetailRes.json();
-    const authHeader = productDetail?.auth?.['key-auth']?.header;
-    expect(
-      authHeader,
-      'expected key-auth header in product detail',
-    ).toBeTruthy();
-
     const title = page.getByTestId('meta-name').getByText(productName);
-    await expect(title).toBeVisible();
+    await expect(title).toBeVisible({ timeout: 15000 });
 
     await page.getByRole('button', { name: 'Test Request' }).first().click();
 
@@ -113,62 +104,27 @@ test.describe('auth type auto fill in detail page', () => {
     );
     await button.click();
 
-    // fill in credential name
+    // fill in credential name (the key is auto-generated)
     const keyAuth2 = 'keyAuth2';
     await page.locator('#name').fill(keyAuth2);
 
     await page
-      .locator('.ant-drawer-footer')
+      .getByTestId('drawer-footer')
       .locator('button:has-text("Add")')
       .click();
 
-    // click name show detail
-    await page.locator(`a:has-text("${keyAuth2}")`).click();
+    // open the credential detail: the key is view-once, so the detail no longer
+    // exposes it — it shows a notice instead of the masked value.
+    const credentialCell = page.getByRole('cell', { name: keyAuth2 });
+    await uiClickCellButton(credentialCell, keyAuth2);
 
-    // click copy
-    await page.locator('#copy-img').click();
+    await expect(page.getByText(/only shown once/i)).toBeVisible();
+    await expect(page.getByText('********')).toBeHidden();
 
-    const clipboardText = await page.evaluate(() =>
-      navigator.clipboard.readText(),
-    );
-
-    // subscribe product to application
-    await uiSubscribeProductInAPIHub(page, {
-      applicationName,
-      productId,
-    });
-
-    // reload the current org-scoped product detail page so subscription-bound
-    // credential queries keep the active organization context.
-    await page.reload();
-
+    // the product's declared auth scheme is still auto-selected in Test Request
+    await page.goto(`/api-hub/${productId}`);
     await page.getByRole('button', { name: 'Test Request' }).first().click();
-
-    // should see auth type and key
     await expect(authType).toBeVisible();
-    await page
-      .getByLabel('API Client')
-      .getByRole('button', { name: 'Show Password' })
-      .click();
-
-    const apiClientFieldValues = await page
-      .getByLabel('API Client')
-      .getByRole('textbox')
-      .evaluateAll((elements) =>
-        elements.map((element) => {
-          if (
-            element instanceof HTMLInputElement ||
-            element instanceof HTMLTextAreaElement
-          ) {
-            return element.value;
-          }
-
-          return element.textContent ?? '';
-        }),
-      );
-
-    expect(apiClientFieldValues).toContain(authHeader);
-    expect(apiClientFieldValues).toContain(clipboardText);
 
     // close modal
     await closeButton.click();

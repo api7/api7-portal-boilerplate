@@ -44,7 +44,7 @@ const ApplicationUsage = ({ id }: ApplicationUsageProps) => {
   }, [params, id]);
 
   return (
-    <div className="space-y-12 p-[16px] bg-[#FAFBFD] rounded-[6px]">
+    <div className="space-y-12 p-[16px] bg-muted rounded-[6px]">
       <Filter
         id={id}
         onParamsChange={(params) => {

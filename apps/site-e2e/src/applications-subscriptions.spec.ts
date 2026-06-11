@@ -3,6 +3,7 @@ import { expect } from '@playwright/test';
 import {
   uiAddApplication,
   uiDeleteApplicationInList,
+  uiGetMoreOptionsButton,
   uiVerifyToast,
   uiGoToApplications,
   uiSubscribeProductProduct,
@@ -142,14 +143,20 @@ test.describe('Test Application Subscriptions', () => {
 
   test.beforeEach(async ({ page }) => {
     await uiGoToApplications(page);
-    const noData = page.getByRole('cell', { name: 'No Data' });
-    const firstMoreBtn = page.getByTestId('more').first();
+    const table = page.getByTestId('application-table');
+    const noData = table.getByText('No Data');
+    const firstMoreBtn = table
+      .locator('button[aria-label="More Options"]')
+      .first();
     await expect(noData.or(firstMoreBtn)).toBeVisible();
     // Keep deleting first row until table is empty
     while (await firstMoreBtn.isVisible()) {
       const firstDataRow = page.getByRole('row').nth(1);
       const nameCell = firstDataRow.getByRole('cell').first();
-      const name = await nameCell.textContent();
+      const name = (await nameCell.textContent())?.trim();
+      if (!name) {
+        break;
+      }
       await uiDeleteApplicationInList(page, name);
     }
   });
@@ -170,7 +177,7 @@ test.describe('Test Application Subscriptions', () => {
       const nameCell = page.getByRole('cell', { name: testApp.name });
       const nameLink = nameCell.getByRole('link', { name: testApp.name });
       await nameLink.click();
-      await expect(page).toHaveURL(/\/applications\/detail\?id=.+$/);
+      await expect(page).toHaveURL(/\/applications\/[^/]+$/);
     });
 
     await test.step('verify subscriptions tab exists and is accessible', async () => {
@@ -245,7 +252,7 @@ test.describe('Test Application Subscriptions', () => {
       ]);
 
       // Verify navigation to API Hub product detail
-      await expect(newPage).toHaveURL(/\/api-hub\/detail\?id=.+$/);
+      await expect(newPage).toHaveURL(/\/api-hub\/[^/]+$/);
       await newPage.close();
     });
   });
@@ -273,10 +280,10 @@ test.describe('Test Application Subscriptions', () => {
     await test.step('unsubscribe from product', async () => {
       const productRow = page
         .getByRole('cell', { name: autoApprovalProduct.name })
-        .locator('xpath=..');
+        .locator('xpath=ancestor::tr[1]');
 
       // Click actions menu
-      const moreMenuBtn = productRow.getByTestId('more');
+      const moreMenuBtn = uiGetMoreOptionsButton(productRow);
       await moreMenuBtn.click();
 
       // Click unsubscribe
@@ -303,7 +310,7 @@ test.describe('Test Application Subscriptions', () => {
       await confirmInput.fill(autoApprovalProduct.name);
 
       // Confirm unsubscribe
-      const confirmBtn = page.getByRole('button', { name: 'Confirm' });
+      const confirmBtn = page.getByRole('button', { name: 'Save' });
       await expect(confirmBtn).toBeEnabled();
       await confirmBtn.click();
 

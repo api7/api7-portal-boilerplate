@@ -20,9 +20,9 @@ import {
   a7PutServiceOAS,
 } from '../req/dashboard/service';
 import {
-  k8DeployA7Gateway,
-  k8HelmUninstall,
-  k8PortForward,
+  deployGatewayContainer,
+  removeGatewayContainer,
+  waitForGatewayPort,
 } from '../utils/shell';
 import {
   uiAddAPIKeyCredential,
@@ -51,9 +51,9 @@ test.describe(
     };
 
     test.beforeAll(async ({ a7Ctx }) => {
-      test.setTimeout(600_000);
+      test.setTimeout(120_000);
       // ensure uninstall
-      await k8HelmUninstall();
+      await removeGatewayContainer();
 
       // Step 1: Create gateway group
       const res = await a7PostGateway(a7Ctx, {
@@ -62,8 +62,8 @@ test.describe(
       gatewayId = res.value.id;
 
       // Step 2: Deploy gateway and wait for it to be ready (sequential)
-      await k8DeployA7Gateway(a7Ctx, { gateway_group_id: gatewayId });
-      await k8PortForward('svc/api7-ee-3-gateway-gateway', '9080:80');
+      await deployGatewayContainer(a7Ctx, { gateway_group_id: gatewayId });
+      await waitForGatewayPort('svc/api7-ee-3-gateway-gateway', '9080:80');
 
       // Step 3: Create service, route, and product
       const serviceRes = await a7PostPublishedService(a7Ctx, gatewayId, {
@@ -114,16 +114,15 @@ test.describe(
     });
 
     test.afterAll(async ({ a7Ctx }) => {
-      test.setTimeout(600_000);
-      await k8HelmUninstall();
+      test.setTimeout(30_000);
+      await removeGatewayContainer();
       await a7DeleteProduct(a7Ctx, productId);
       await a7DeletePublishedRoute(a7Ctx, routeId, gatewayId);
       await a7DeleteService(a7Ctx, serviceId, gatewayId);
     });
 
     test('applications usage', async ({ page }) => {
-      // Increase the timeout due to waiting of k8s deployment
-      test.setTimeout(600_000);
+      test.setTimeout(60_000);
       let applicationId: string | null = null;
       const productName = product.name ?? `gateway-product-${seed}`;
       await test.step('navigate to application detail', async () => {
@@ -131,11 +130,10 @@ test.describe(
         const nameCell = page.getByRole('cell', { name: 'default' });
         const nameLink = nameCell.getByRole('link', { name: 'default' });
         await nameLink.click();
-        await expect(page).toHaveURL(/\/applications\/detail\?id=.+$/);
+        await expect(page).toHaveURL(/\/applications\/[^/]+$/);
         // Extract application ID from URL
         const url = page.url();
-        const match = url.match(/id=([^&]+)/);
-        applicationId = match?.[1] ?? null;
+        applicationId = url.split('/').pop() ?? null;
         expect(applicationId).toBeTruthy();
         if (!applicationId) {
           throw new Error(`Failed to read application id from url: ${url}`);
@@ -162,7 +160,7 @@ test.describe(
           const postData = route.request().postData();
           if (postData) {
             const payload = JSON.parse(postData);
-            expect(payload.start_at).toBe(dayjs().startOf('day').unix());
+            expect(payload.start_at).toBe(dayjs().subtract(7, 'day').startOf('day').unix());
             expect(payload.end_at).toBe(dayjs().endOf('day').unix());
             expect(payload.application_id).toBe(applicationId);
           }
@@ -184,13 +182,10 @@ test.describe(
 
         await page.getByRole('tab', { name: 'Usage' }).click();
 
-        // check default start date and end date
-        await expect(page.getByPlaceholder('Start date')).toHaveValue(
-          dayjs().startOf('day').format('YYYY-MM-DD HH:mm:ss'),
-        );
-        await expect(page.getByPlaceholder('End date')).toHaveValue(
-          dayjs().endOf('day').format('YYYY-MM-DD HH:mm:ss'),
-        );
+        // check default date range is shown in the picker button
+        const datePicker = page.getByTestId('application-usage-filter-date');
+        await expect(datePicker).toContainText(dayjs().subtract(7, 'day').format('MMM D, YYYY'));
+        await expect(datePicker).toContainText(dayjs().format('MMM D, YYYY'));
 
         await page.getByTestId('application-usage-filter-product').click();
         await page.getByText('gateway-product-').click();

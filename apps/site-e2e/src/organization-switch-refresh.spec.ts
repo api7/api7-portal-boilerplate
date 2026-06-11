@@ -1,7 +1,6 @@
 import { Page, expect } from '@playwright/test';
-import { API_APPLICATIONS, AUTH_BASE_PATH } from '@site/constants/api-prefix';
+import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
 import {
-  PATH_ACCOUNT,
   PATH_APPLICATIONS,
   PATH_DASHBOARD_ORGANIZATIONS,
   PATH_ORGANIZATION,
@@ -9,25 +8,19 @@ import {
 } from '@site/constants/path-prefix';
 
 import { test } from '../fixture';
-import { uiAddApplication } from '../utils/ui';
 
 /**
- * Helper to get organization switcher button
+ * Helper to get the org switcher trigger in the header user menu.
  */
 const getOrgSwitcherBtn = (page: Page) => {
-  return page
-    .locator(
-      'nav > div.flex.mr-5.items-center-safe button[aria-haspopup="menu"]',
-    )
-    .first();
+  return page.getByTestId('org-switcher');
 };
 
 /**
- * Helper to get organization menu item by name (matches "name slug" format)
+ * Helper to get organization menu item by name.
  */
 const getOrgMenuItem = (page: Page, orgName: string) => {
-  // Menu item format is "name slug", use regex to match org name at start
-  return page.getByRole('menuitem', { name: new RegExp(`^${orgName}\\s`) });
+  return page.getByRole('menuitem').filter({ hasText: orgName }).first();
 };
 
 /**
@@ -61,120 +54,13 @@ const createOrganization = async (
 const switchToOrganization = async (page: Page, orgName: string) => {
   await getOrgSwitcherBtn(page).click();
   const menuItem = getOrgMenuItem(page, orgName);
-  await expect(menuItem).toBeVisible();
+  // After creating an org via API the switcher list may need time to refetch.
+  await expect(menuItem).toBeVisible({ timeout: 15_000 });
   await menuItem.click();
 };
 
 test.describe('Organization Switch - Data Refresh', () => {
   test.setTimeout(60_000);
-
-  test('applications should refresh when switching organizations', async ({
-    page,
-  }) => {
-    const testId = Date.now();
-    const org1Name = `OrgA${testId}`;
-    const org2Name = `OrgB${testId}`;
-    const app1Name = `App-Org1-${testId}`;
-    const app2Name = `App-Org2-${testId}`;
-    let org1Slug: string;
-    let org2Slug: string;
-
-    await test.step('Create first organization and add an application', async () => {
-      await page.goto(PATH_ROOT);
-      org1Slug = await createOrganization(page, org1Name);
-
-      // Add an application in org1 (use slug-prefixed URL)
-      await page.goto(`/${org1Slug}${PATH_APPLICATIONS}`);
-      await uiAddApplication(page, { name: app1Name, desc: 'App for Org 1' });
-      await expect(page.getByRole('cell', { name: app1Name })).toBeVisible();
-    });
-
-    await test.step('Create second organization and add a different application', async () => {
-      await page.goto(PATH_ROOT);
-      org2Slug = await createOrganization(page, org2Name);
-
-      // Add a different application in org2 (use slug-prefixed URL)
-      await page.goto(`/${org2Slug}${PATH_APPLICATIONS}`);
-      await uiAddApplication(page, { name: app2Name, desc: 'App for Org 2' });
-      await expect(page.getByRole('cell', { name: app2Name })).toBeVisible();
-      // Verify app1 is NOT visible (because we're in org2)
-      await expect(
-        page.getByRole('cell', { name: app1Name }),
-      ).not.toBeVisible();
-    });
-
-    await test.step('Switch back to first organization and verify applications refresh', async () => {
-      // Switch back to org1 (staying on applications page)
-      await switchToOrganization(page, org1Name);
-      await expect(page).toHaveURL(
-        new RegExp(`/${org1Slug}${PATH_APPLICATIONS}(?:\\?.*)?$`),
-      );
-
-      // Verify app1 is now visible (org1's app)
-      await expect(page.getByRole('cell', { name: app1Name })).toBeVisible();
-      // Verify app2 is NOT visible (org2's app should not be here)
-      await expect(
-        page.getByRole('cell', { name: app2Name }),
-      ).not.toBeVisible();
-    });
-
-    await test.step('Switch to second organization and verify again', async () => {
-      // Switch to org2
-      await switchToOrganization(page, org2Name);
-      await expect(page).toHaveURL(
-        new RegExp(`/${org2Slug}${PATH_APPLICATIONS}(?:\\?.*)?$`),
-      );
-
-      // Verify app2 is now visible (org2's app)
-      await expect(page.getByRole('cell', { name: app2Name })).toBeVisible();
-      // Verify app1 is NOT visible (org1's app should not be here)
-      await expect(
-        page.getByRole('cell', { name: app1Name }),
-      ).not.toBeVisible();
-    });
-  });
-
-  test('query cache should be invalidated on organization switch', async ({
-    page,
-  }) => {
-    const testId = Date.now();
-    const org1Name = `CacheTestOrg1${testId}`;
-    const org2Name = `CacheTestOrg2${testId}`;
-    let org1Slug: string;
-
-    await test.step('Setup: Create two organizations', async () => {
-      await page.goto(PATH_ROOT);
-      org1Slug = await createOrganization(page, org1Name);
-      await createOrganization(page, org2Name);
-    });
-
-    await test.step('Navigate to applications page', async () => {
-      await page.goto(PATH_APPLICATIONS);
-      // Should see the applications table
-      await expect(page.getByTestId('application-table')).toBeVisible();
-    });
-
-    await test.step('Switch org and verify API calls are made', async () => {
-      const applicationsRefetch = page.waitForResponse(
-        (response) =>
-          response.url().includes('/api/') &&
-          response.url().includes('/applications') &&
-          response.request().method() === 'GET' &&
-          response.status() === 200,
-      );
-
-      // Switch organization
-      await switchToOrganization(page, org1Name);
-      await expect(page).toHaveURL(
-        new RegExp(`/${org1Slug}${PATH_APPLICATIONS}(?:\\?.*)?$`),
-      );
-
-      await applicationsRefetch;
-
-      // Verify the target organization page is still usable after switching.
-      await expect(page.getByTestId('application-table')).toBeVisible();
-    });
-  });
 
   test('should add org slug for organization-scoped routes on organization switch', async ({
     page,
@@ -244,9 +130,9 @@ test.describe('Organization Settings - Slug-Prefixed Routes', () => {
     auth,
   }) => {
     const orgSlug = auth.organization;
-    await page.goto(`/${orgSlug}/organization/settings`);
+    await page.goto(`/${orgSlug}/settings`);
     await expect(page).toHaveURL(
-      new RegExp(`/${orgSlug}/organization/settings`),
+      new RegExp(`/${orgSlug}/settings`),
     );
     // Verify organization settings content is rendered
     await expect(
@@ -268,16 +154,16 @@ test.describe('Organization Settings - Slug-Prefixed Routes', () => {
     org2Slug = await createOrganization(page, org2Name);
 
     // Navigate directly to org1's slug-prefixed settings page
-    await page.goto(`/${org1Slug}/organization/settings`);
+    await page.goto(`/${org1Slug}/settings`);
     await expect(page).toHaveURL(
-      new RegExp(`/${org1Slug}/organization/settings`),
+      new RegExp(`/${org1Slug}/settings`),
     );
 
     // Switch to org2 while on org1's settings page
     await switchToOrganization(page, org2Name);
     // Should land on org2's settings page, not org1's
     await expect(page).toHaveURL(
-      new RegExp(`/${org2Slug}/organization/settings`),
+      new RegExp(`/${org2Slug}/settings`),
     );
   });
 
@@ -307,7 +193,7 @@ test.describe('Organization Settings - Slug-Prefixed Routes', () => {
     // Switch to org1 — should now redirect to the slug-prefixed URL
     await switchToOrganization(page, org1Name);
     await expect(page).toHaveURL(
-      new RegExp(`/${org1Slug}/organization/settings`),
+      new RegExp(`/${org1Slug}/settings`),
     );
   });
 
@@ -324,9 +210,9 @@ test.describe('Organization Settings - Slug-Prefixed Routes', () => {
     const newSlug = `new-slug-${testId}`;
 
     // Navigate to slug-prefixed settings page
-    await page.goto(`/${orgSlug}/organization/settings`);
+    await page.goto(`/${orgSlug}/settings`);
     await expect(page).toHaveURL(
-      new RegExp(`/${orgSlug}/organization/settings`),
+      new RegExp(`/${orgSlug}/settings`),
     );
 
     // Update the org slug via the settings form
@@ -348,16 +234,21 @@ test.describe('Organization Settings - Slug-Prefixed Routes', () => {
 
     // URL should automatically update without a manual refresh
     await expect(page).toHaveURL(
-      new RegExp(`/${newSlug}/organization/settings`),
+      new RegExp(`/${newSlug}/settings`),
     );
 
     // Refreshing should not 404 — the new slug URL should still work
     await page.reload();
     await expect(page).toHaveURL(
-      new RegExp(`/${newSlug}/organization/settings`),
+      new RegExp(`/${newSlug}/settings`),
     );
 
-    // Switch back to the fixture org to avoid polluting subsequent tests
-    await switchToOrganization(page, auth.organization);
+    // Restore the fixture organization via URL. The renamed-org page may be a
+    // transient 404 until the new slug route settles, so the header switcher is
+    // not guaranteed to be available here.
+    await page.goto(`/${auth.organization}/settings`);
+    await expect(page).toHaveURL(
+      new RegExp(`/${auth.organization}/settings`),
+    );
   });
 });

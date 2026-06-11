@@ -250,12 +250,12 @@ test.describe('Impersonation UI', () => {
 
     try {
       await page.goto(PATH_ROOT);
-      await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveCount(
-        0,
-      );
+      await page.getByRole('button', { name: 'Account' }).click();
+      await expect(page.getByRole('menuitem', { name: 'Admin' })).toHaveCount(0);
+      await page.keyboard.press('Escape');
 
-      await page.goto('/dashboard/organizations');
-      await expect(page).not.toHaveURL(/\/dashboard\/organizations(?:\?.*)?$/);
+      await page.goto('/admin/organizations');
+      await expect(page).not.toHaveURL(/\/admin\/organizations(?:\?.*)?$/);
     } finally {
       await context.close();
     }
@@ -272,11 +272,13 @@ test.describe('Impersonation UI', () => {
 
     try {
       await page.goto(
-        `/dashboard/organizations?search=${encodeURIComponent(ownerAuth.organization)}`,
+        `/admin/organizations?search=${encodeURIComponent(ownerAuth.organization)}`,
       );
 
-      await expect(page.getByText('Organization Dashboard')).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+      await expect(page.getByRole('main').getByText('Organizations', { exact: true })).toBeVisible();
+      await page.getByRole('button', { name: 'Account' }).click();
+      await expect(page.getByRole('menuitem', { name: 'Admin' })).toBeVisible();
+      await page.keyboard.press('Escape');
       const organizationRow = page
         .getByRole('row')
         .filter({
@@ -296,9 +298,9 @@ test.describe('Impersonation UI', () => {
       await expect(
         page.getByText('Currently in Impersonation Mode'),
       ).toBeVisible();
-      await expect(page.getByRole('link', { name: 'Dashboard' })).toHaveCount(
-        0,
-      );
+      await page.getByRole('button', { name: 'Account' }).click();
+      await expect(page.getByRole('menuitem', { name: 'Admin' })).toHaveCount(0);
+      await page.keyboard.press('Escape');
 
       const impersonatedSessionRes = await page.request.get(
         `${AUTH_BASE_PATH}/get-session`,
@@ -309,14 +311,16 @@ test.describe('Impersonation UI', () => {
       expect(impersonatedSession.user.id).toBe(ownerUserId);
       expect(impersonatedSession.session.impersonatedBy).toBe(adminUserId);
 
-      await page.goto('/dashboard/organizations');
-      await expect(page).not.toHaveURL(/\/dashboard\/organizations(?:\?.*)?$/);
+      await page.goto('/admin/organizations');
+      await expect(page).not.toHaveURL(/\/admin\/organizations(?:\?.*)?$/);
 
       await page.getByRole('button', { name: 'Exit Impersonation' }).click();
       await expect(
         page.getByText('Currently in Impersonation Mode'),
       ).toHaveCount(0);
-      await expect(page.getByRole('link', { name: 'Dashboard' })).toBeVisible();
+      await page.getByRole('button', { name: 'Account' }).click();
+      await expect(page.getByRole('menuitem', { name: 'Admin' })).toBeVisible();
+      await page.keyboard.press('Escape');
 
       const restoredSessionRes = await page.request.get(
         `${AUTH_BASE_PATH}/get-session`,
@@ -343,7 +347,7 @@ test.describe('Impersonation UI', () => {
     try {
       // Step 1: Admin starts impersonation of the owner
       await page.goto(
-        `/dashboard/organizations?search=${encodeURIComponent(ownerAuth.organization)}`,
+        `/admin/organizations?search=${encodeURIComponent(ownerAuth.organization)}`,
       );
       const organizationRow = page
         .getByRole('row')
@@ -454,7 +458,7 @@ test.describe('Impersonation UI', () => {
     try {
       // Step 1: Admin starts impersonation of the owner
       await page.goto(
-        `/dashboard/organizations?search=${encodeURIComponent(ownerAuth.organization)}`,
+        `/admin/organizations?search=${encodeURIComponent(ownerAuth.organization)}`,
       );
       const organizationRow = page
         .getByRole('row')

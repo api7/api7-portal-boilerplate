@@ -2,11 +2,12 @@
 
 import { toast } from 'sonner';
 
-import { useApplicationId } from '../hook';
 import ValidateModal from '@/components/slices/modal/ValidateModal';
-import { portalClient } from '@/lib/portal-sdk/client';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
+import { portalClient } from '@/lib/portal-sdk/client';
 import type { PluginCredential } from '@/types/portal-sdk';
+
+import { useApplicationId } from '../hook';
 
 type CredentialDeleteProps = UseDisclosureReturn & {
   oldData?: PluginCredential;
@@ -29,7 +30,11 @@ const CredentialDeleteModal = (props: CredentialDeleteProps) => {
       title="Delete Credential"
       confirmText={oldData.name}
       targetText={'the credential name'}
-      alertProps={{ message: 'Deletion is irreversible.' }}
+      alertProps={{
+        variant: 'destructive',
+        description:
+          'Deletion is irreversible. It will take effect immediately.',
+      }}
       onOk={submitDelete}
       {...rest}
     />

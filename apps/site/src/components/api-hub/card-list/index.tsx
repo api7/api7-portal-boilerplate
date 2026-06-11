@@ -1,12 +1,16 @@
-import { useEffect, useState } from 'react';
-
-import { Input } from 'antd';
+import { useState } from 'react';
 
 import type { CardListProps } from './types';
-import IconImage from '@/components/ui-legacy/icon-image';
-import Pagination from '@/components/ui-legacy/paginate';
-import ListEmpty from '@/components/ui-legacy/table/TableEmpty';
-import ListLoading from '@/components/ui-legacy/table/TableLoading';
+import { SearchIcon } from 'lucide-react';
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+} from '@/components/ui/input-group';
+import DataTablePagination from '@/components/base/data-table/pagination';
+import { Skeleton } from '@/components/ui/skeleton';
+import ListEmpty from '@/components/base/empty';
+import ListLoading from '@/components/base/data-table/table-loading';
 import { cn } from '@/lib/utils';
 
 const CardList = <T extends object>({
@@ -20,6 +24,7 @@ const CardList = <T extends object>({
   helperText = '',
   showSearch = false,
   defaultSearch = '',
+  searchPrefix,
   shouldReset = false,
   onParamsChange,
   showPagination = true,
@@ -35,9 +40,12 @@ const CardList = <T extends object>({
   className,
   ...rest
 }: CardListProps<T>) => {
-  const [searchValue, setSearchValue] = useState<string>('');
-
-  useEffect(() => setSearchValue(defaultSearch || ''), [defaultSearch]);
+  const [searchValue, setSearchValue] = useState<string>(defaultSearch || '');
+  const [prevDefaultSearch, setPrevDefaultSearch] = useState(defaultSearch);
+  if (prevDefaultSearch !== defaultSearch) {
+    setPrevDefaultSearch(defaultSearch);
+    setSearchValue(defaultSearch || '');
+  }
 
   const shouldShowHeadPart =
     title ||
@@ -56,27 +64,31 @@ const CardList = <T extends object>({
             helperText ? 'flex-col' : 'flex-row'
           )}
         >
-          <div className="flex justify-end w-full">
-            {showSearch && onParamsChange && (
-              <Input
-                className="dark:bg-transparent dark:text-primary-content"
-                placeholder={text.searchPlaceholder}
-                value={searchValue}
-                prefix={<IconImage type="search" size={18} />}
-                onChange={(e) => setSearchValue(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    pagination?.goToPage(0);
-                    onParamsChange({ search: searchValue || undefined });
-                  }
-                }}
-              />
-            )}
-            {toolBar?.map((item, index) => (
-              <div className="ml-2" key={index}>
-                {item}
-              </div>
-            ))}
+          <div className="flex justify-between w-full gap-2">
+            <div>{searchPrefix}</div>
+            <div className="flex items-center gap-2">
+              {showSearch && onParamsChange && (
+                <InputGroup className="min-w-0 sm:w-[220px]">
+                  <InputGroupAddon>
+                    <SearchIcon className="size-[18px]" />
+                  </InputGroupAddon>
+                  <InputGroupInput
+                    placeholder={text.searchPlaceholder}
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        pagination?.goToPage(0);
+                        onParamsChange({ search: searchValue || undefined });
+                      }
+                    }}
+                  />
+                </InputGroup>
+              )}
+              {toolBar?.map((item, index) => (
+                <div key={index}>{item}</div>
+              ))}
+            </div>
           </div>
         </div>
       )}
@@ -107,22 +119,23 @@ const CardList = <T extends object>({
           )}
 
           {showPagination && (
-            <Pagination
-              isLoading={isLoading}
-              total={pagination?.total!}
-              pageIndex={pagination?.page! - 1}
-              itemOffset={(pagination?.page! - 1) * pagination?.pageSize!}
-              onPageChange={(selectedNumber) => {
-                pagination?.goToPage(selectedNumber + 1);
-              }}
-              onPageSizeChange={(value) => {
-                pagination?.goToPage(0);
-                onParamsChange?.({ page_size: value });
-              }}
-              text={pagination?.text}
-              className="mt-4"
-              savePage
-            />
+            isLoading ? (
+              <Skeleton className="mt-4 h-10" />
+            ) : (
+              <DataTablePagination
+                total={pagination?.total ?? 0}
+                pageIndex={(pagination?.page ?? 1) - 1}
+                pageSize={pagination?.pageSize ?? 10}
+                goToPage={(page) => pagination?.goToPage(page + 1)}
+                onPageSizeChange={(value) => {
+                  pagination?.goToPage(0);
+                  onParamsChange?.({ page_size: value });
+                }}
+                text={pagination?.text}
+                className="mt-4"
+                savePage
+              />
+            )
           )}
         </div>
       </div>

@@ -1,10 +1,10 @@
 import type { FC, ReactNode } from 'react';
 
-import { BareIconImage } from './icon-image';
-import { Skeleton } from '../ui/skeleton';
-import { CopyBtn } from '../api-hub/CopyBtn';
-import ProductAvatar from '../api-hub/ProductAvatar';
 import A7LabelList from '../api7/api7-label-list';
+import { CopyButton } from '../api-hub/CopyButton';
+import ProductAvatar from '../api-hub/ProductAvatar';
+import { Skeleton } from '../ui/skeleton';
+import Image from 'next/image';
 
 type IDProps = WithLoading<{ id?: string }>;
 
@@ -16,7 +16,7 @@ const ID: FC<IDProps> = (props) => {
     <div className="flex items-center text-xs text-neutral-content gap-1">
       <div>ID:</div>
       <span>{id}</span>
-      <CopyBtn content={id} />
+      <CopyButton content={id} />
     </div>
   );
 };
@@ -32,11 +32,13 @@ export const MetaAvatar = (props: MetaAvatarProps) => {
   if (isLoading || !name)
     return <Skeleton style={{ width: size, height: size }} />;
   return src ? (
-    <BareIconImage
+    <Image
       src={src}
       width={size}
       height={size}
+      alt={name}
       className="rounded overflow-hidden"
+      unoptimized
     />
   ) : (
     <ProductAvatar text={name} width={size} height={size} />
@@ -113,4 +115,3 @@ const Meta: FC<MetaProps> = (props) => {
 };
 
 export default Meta;
-

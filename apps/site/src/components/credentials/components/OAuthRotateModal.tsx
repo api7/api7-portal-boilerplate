@@ -2,15 +2,16 @@
 
 import { toast } from 'sonner';
 
-import { useApplicationId } from '../hook';
 import ValidateModal from '@/components/slices/modal/ValidateModal';
-import { portalClient } from '@/lib/portal-sdk/client';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
+import { portalClient } from '@/lib/portal-sdk/client';
 import type {
   ApplicationCredential,
   OAuthCredential,
   OAuthCredentialBasics,
 } from '@/types/portal-sdk';
+
+import { useApplicationId } from '../hook';
 
 type OAuthRotateModalProps = UseDisclosureReturn & {
   oldData?: OAuthCredential;
@@ -45,7 +46,7 @@ const OAuthRotateModal = (props: OAuthRotateModalProps) => {
       confirmText={oldData?.oauth?.client_id ?? ''}
       targetText={'the Client ID'}
       alertProps={{
-        message:
+        description:
           'After regeneration, a new Client Secret will be generated, and the old Client Secret will be immediately invalidated.',
       }}
       onOk={submitRotate}

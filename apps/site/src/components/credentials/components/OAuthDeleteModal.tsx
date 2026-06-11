@@ -2,11 +2,12 @@
 
 import { toast } from 'sonner';
 
-import { useApplicationId } from '../hook';
 import ValidateModal from '@/components/slices/modal/ValidateModal';
-import { portalClient } from '@/lib/portal-sdk/client';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
+import { portalClient } from '@/lib/portal-sdk/client';
 import type { OAuthCredential } from '@/types/portal-sdk';
+
+import { useApplicationId } from '../hook';
 
 type OAuthDeleteProps = UseDisclosureReturn & {
   oldData?: OAuthCredential;
@@ -29,7 +30,7 @@ const OAuthDeleteModal = (props: OAuthDeleteProps) => {
       title="Delete OAuth Client"
       confirmText={oldData.oauth?.client_id ?? ''}
       targetText={'the OAuth client ID'}
-      alertProps={{ message: 'Deletion is irreversible.' }}
+      alertProps={{ description: 'Deletion is irreversible.' }}
       onOk={submitDelete}
       {...rest}
     />

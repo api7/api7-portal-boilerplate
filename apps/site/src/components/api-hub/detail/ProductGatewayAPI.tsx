@@ -1,5 +1,4 @@
-import { useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useTheme } from 'next-themes';
 import {
   LoginThenSubscribeToUnlock,
   SubscribeToUnlock,
@@ -9,11 +8,9 @@ import { usePreventHashScroll } from './usePreventHashScroll';
 import ScalarDocs from './ScalarDocs';
 import { ApiProductGateway, useParsedProduct } from '../utils';
 import { Skeleton } from '@/components/ui/skeleton';
-import A7Tabs from '@/components/ui-legacy/tabs';
 import { placeholderOpenAPI } from '@/constants/placeholder-openapi';
 import { authClient } from '@/lib/auth/client';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
-import { cn } from '@/lib/utils';
 import useProductDetail from '@/lib/query/useProductDetail';
 
 type RealDocProps = {
@@ -21,61 +18,48 @@ type RealDocProps = {
 };
 
 const ProductGatewayRealDoc = ({ data }: RealDocProps) => {
-  const [idx, setIdx] = useState(0);
   const parsed = useParsedProduct(data);
-  const scalarDocsKey = `${idx}:${JSON.stringify(parsed.authentication)}`;
+  const { resolvedTheme } = useTheme();
+  const scalarDocsKey = `${resolvedTheme}:${JSON.stringify(parsed.authentication)}`;
 
   return (
-    <>
-      <A7Tabs
-        rootClassName="mb-0 [&>.ant-tabs-nav]:!mb-0"
-        type="card"
-        activeKey={String(idx)}
-        onTabClick={(key) => setIdx(Number(key))}
-        items={parsed.openAPIs?.map((v, index) => ({
-          key: String(index),
-          label: v.parsed.specification?.info.title,
-        }))}
-      />
-      <div
-        className={cn(
-          'border border-base-300 dark:border-base-200',
-          !!data?.raw_openapis?.length && 'border-t-0',
-          'w-full min-h-[80vh] relative'
-        )}
-      >
-        {parsed.isLoading ? (
-          <Skeleton className="w-full h-full absolute left-0 top-0 z-10" />
-        ) : (
-          <ScalarDocs
-            key={scalarDocsKey}
-            configuration={{
-              hideDarkModeToggle: true,
-              darkMode: false,
-              forceDarkModeState: 'light',
-              defaultOpenAllTags: false,
-              content: parsed.openAPIs[idx].str,
-              authentication: parsed.authentication,
-            }}
-          />
-        )}
-      </div>
-    </>
+    <div className="border border-base-300 dark:border-base-200 w-full min-h-[80vh] relative">
+      {parsed.isLoading ? (
+        <Skeleton className="w-full h-full absolute left-0 top-0 z-10" />
+      ) : (
+        <ScalarDocs
+          key={scalarDocsKey}
+          configuration={{
+            hideDarkModeToggle: true,
+            darkMode: false,
+            forceDarkModeState: resolvedTheme === 'dark' ? 'dark' : 'light',
+            defaultOpenAllTags: false,
+            sources: parsed.openAPIs.map((v) => ({
+              title: v.title,
+              content: v.str,
+            })),
+            authentication: parsed.authentication,
+          }}
+        />
+      )}
+    </div>
   );
 };
 
 const ProductGatewayMockDoc = () => {
   usePreventHashScroll();
+  const { resolvedTheme } = useTheme();
   return (
     <div className="blur-sm pointer-events-none">
       <ScalarDocs
+        key={resolvedTheme}
         configuration={{
           darkMode: false,
           hideDarkModeToggle: true,
           defaultOpenAllTags: false,
           content: placeholderOpenAPI,
           hideTestRequestButton: true,
-          forceDarkModeState: 'light',
+          forceDarkModeState: resolvedTheme === 'dark' ? 'dark' : 'light',
         }}
       />
     </div>
@@ -91,17 +75,16 @@ const ProductGatewayMockDoc = () => {
  *   if authorized=true, return Mock Doc + Sub Btn or Real Doc
  *   if authorized=false, return Mock Doc + Login Then Subscribe To Unlock
  */
-const ProductGatewayAPI = () => {
+const ProductGatewayAPI = ({ id }: { id: string }) => {
   const session = authClient.useSession();
   const authorized = !!session.data?.user;
-  const product_id = useSearchParams().get('id')!;
-  const { data } = useProductDetail(product_id);
+  const { data } = useProductDetail(id);
   const subscribedApps = useSubscriptionList({
-    api_product_id: product_id,
+    api_product_id: id,
     status: ['subscribed'],
   });
   const waitingForApprovalApps = useSubscriptionList({
-    api_product_id: product_id,
+    api_product_id: id,
     status: ['wait_for_approval'],
   });
 

@@ -2,26 +2,22 @@
 
 import { useEffect } from 'react';
 
-import { ProForm } from '@ant-design/pro-components';
+import { useForm } from '@tanstack/react-form';
 import { toast } from 'sonner';
 
-import { useApplicationId } from '../hook';
 import Form from '@/components/slices/form/Form';
-import { portalClient } from '@/lib/portal-sdk/client';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
-import A7Drawer from '@/components/ui-legacy/drawer';
-import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { pipeProduce } from '@/helper/utils/form-producer/common';
+import Drawer from '@/components/base/drawer';
 import {
-  produceToAPILabels,
-  produceToFormLabels,
+  transformAPILabelToForm,
+  transformFormLabelToAPI,
 } from '@/helper/utils/form-producer/labels';
-import type {
-  Basics,
-  PluginCredential,
-  UpdateApplicationCredentialReq,
-} from '@/types/portal-sdk';
-import type { ToFormLabel } from '@/types/utils';
+import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
+import { portalClient } from '@/lib/portal-sdk/client';
+import type { PluginCredential, UpdateApplicationCredentialReq } from '@/types/portal-sdk';
+import type { FormLabel } from '@/types/utils';
+
+import { useApplicationId } from '../hook';
 
 export type CredentialEditDrawerProps = UseDisclosureReturn & {
   oldData?: PluginCredential;
@@ -30,47 +26,51 @@ export type CredentialEditDrawerProps = UseDisclosureReturn & {
 
 const CredentialEditDrawer = (props: CredentialEditDrawerProps) => {
   const { open, onOk, oldData, title, ...rest } = props;
-  const [form] = ProForm.useForm();
   const applicationId = useApplicationId();
 
-  useEffect(() => form.resetFields(), [form, oldData]);
+  const form = useForm({
+    defaultValues: {
+      name: oldData?.name ?? '',
+      desc: oldData?.desc ?? '',
+      labels: transformAPILabelToForm(oldData?.labels) as FormLabel,
+    },
+    onSubmit: async ({ value }) => {
+      await portalClient.application.credential.update(
+        applicationId,
+        oldData!.id,
+        {
+          type: oldData!.type,
+          name: value.name,
+          desc: value.desc || undefined,
+          labels: transformFormLabelToAPI(value.labels),
+        } as UpdateApplicationCredentialReq,
+      );
+      onOk?.();
+      toast.success(`${title} Successfully`);
+      props.onClose();
+    },
+  });
 
-  const submitEdit = (form: ToFormLabel<Basics>) =>
-    // TODO: Wait for or help the upstream project fix the transform issue.
-    // FormItemLabel use `transform`, but transform cannot be triggered when the corresponding field is not modified.
-    // we still need produceXXX before submit
-    // ref: https://github.com/ant-design/pro-components/issues/8700
-    portalClient.application.credential
-      .update(applicationId, oldData!.id, {
-        type: oldData!.type,
-        ...pipeProduce(produceToAPILabels)(form),
-      } as UpdateApplicationCredentialReq)
-      .then(() => {
-        onOk?.();
-        toast.success(`${title} Successfully`);
-      })
-      .then(props?.onClose);
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        name: oldData?.name ?? '',
+        desc: oldData?.desc ?? '',
+        labels: transformAPILabelToForm(oldData?.labels) as FormLabel,
+      });
+    }
+  }, [open, oldData, form]);
 
   return (
-    <A7Drawer
-      open={open}
-      title={title}
-      onOk={form.submit}
-      okText="Save"
-      {...rest}
-    >
-      <Form<ToFormLabel<Basics>>
-        form={form}
-        onFinish={submitEdit}
-        submitter={false}
-        initialValues={produceToFormLabels(oldData || {})}
-      >
+    <Drawer open={open} title={title} onOk={() => form.handleSubmit()} loading={form.state.isSubmitting} okText="Save" {...rest}>
+      <Form onSubmit={() => form.handleSubmit()}>
         <FormPartBasics
           isChunk={false}
+          form={form}
           labelProps={{ resourceType: 'developer_credential' }}
         />
       </Form>
-    </A7Drawer>
+    </Drawer>
   );
 };
 

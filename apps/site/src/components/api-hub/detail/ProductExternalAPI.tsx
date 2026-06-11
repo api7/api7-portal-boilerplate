@@ -1,21 +1,23 @@
+import { useTheme } from 'next-themes';
+
 import ScalarDocs from './ScalarDocs';
 import { ApiProductExternal, getServerUrls } from '../utils';
-import { useSearchParams } from 'next/navigation';
 import useProductDetail from '@/lib/query/useProductDetail';
 
-const ProductExternalAPI = () => {
-  const product_id = useSearchParams().get('id')!;
-  const { data } = useProductDetail(product_id);
+const ProductExternalAPI = ({ id }: { id: string }) => {
+  const { data } = useProductDetail(id);
   const serverUrls = getServerUrls(data as ApiProductExternal);
+  const { resolvedTheme } = useTheme();
   return (
     <ScalarDocs
+      key={resolvedTheme}
       configuration={{
         servers: serverUrls.map((url) => ({ url })),
         hideDarkModeToggle: true,
         darkMode: false,
         defaultOpenAllTags: false,
-        forceDarkModeState: 'light',
-        content: data?.raw_openapis?.[0],
+        forceDarkModeState: resolvedTheme === 'dark' ? 'dark' : 'light',
+        sources: data?.raw_openapis?.map((raw) => ({ content: raw })) ?? [],
       }}
     />
   );

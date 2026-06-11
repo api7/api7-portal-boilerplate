@@ -1,6 +1,5 @@
 'use client';
 
-import { useCreation } from 'ahooks';
 import { map, pick } from 'lodash-es';
 
 import ProductExternalAPI from './ProductExternalAPI';
@@ -9,22 +8,25 @@ import ProductSubscriptions from './ProductSubscriptions';
 import Back from '@/components/ui-legacy/back';
 import Meta, { type MetaProps } from '@/components/ui-legacy/meta';
 import { Skeleton } from '@/components/ui/skeleton';
-import A7Tabs from '@/components/ui-legacy/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useProductDetail, {
   type UseProductDetailReturn,
 } from '@/lib/query/useProductDetail';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import { cn } from '@/lib/utils';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/auth/client';
-import { AuthOrPageNotFound } from '@/components/slices/NotFound';
 
 type Props = {
   req: UseProductDetailReturn;
+  id: string;
 };
 
-const MetaPart = (props: Props) => {
+type ReqProps = Pick<Props, 'req'>;
+
+const MetaPart = (props: ReqProps) => {
   const { req } = props;
   const finalTags =
     req.data?.type === 'external'
@@ -45,11 +47,12 @@ const MetaPart = (props: Props) => {
 };
 
 const OpenAPISpecTabContent = (props: Props) => {
-  const { req } = props;
-  const product_id = useSearchParams().get('id')!;
+  const { req, id } = props;
+  const orgSlug = useOrganizationSlug();
   const subscribedApps = useSubscriptionList({
-    api_product_id: product_id,
+    api_product_id: id,
     status: ['subscribed'],
+    enabled: !!orgSlug,
   });
 
   return (
@@ -65,28 +68,29 @@ const OpenAPISpecTabContent = (props: Props) => {
       {(req.isLoading || !req.data?.type) && (
         <Skeleton className="w-full h-full" />
       )}
-      {req.data?.type === 'external' && <ProductExternalAPI />}
-      {req.data?.type === 'gateway' && <ProductGatewayAPI />}
+      {req.data?.type === 'external' && <ProductExternalAPI id={id} />}
+      {req.data?.type === 'gateway' && <ProductGatewayAPI id={id} />}
     </div>
   );
 };
 
-const MainPart = ({ req }: Props) => {
+const MainPart = ({ req, id }: Props) => {
   const session = authClient.useSession();
+  const orgSlug = useOrganizationSlug();
   const isGatewayProduct = req.data?.type === 'gateway';
   const items = [
     {
       key: 'openapi',
       label: 'OpenAPI Specification',
-      children: <OpenAPISpecTabContent req={req} />,
+      children: <OpenAPISpecTabContent req={req} id={id} />,
     },
-    // Only show Subscriptions tab for gateway products (external products cannot be subscribed)
-    ...(session.data?.user && isGatewayProduct
+    // Only show Subscriptions tab for gateway products with an org context (external products cannot be subscribed; no-slug public pages have no developer identity)
+    ...(orgSlug && session.data?.user && isGatewayProduct
       ? [
           {
             key: 'subscriptions',
             label: 'Subscriptions',
-            children: <ProductSubscriptions />,
+            children: <ProductSubscriptions id={id} />,
           },
         ]
       : []),
@@ -95,11 +99,16 @@ const MainPart = ({ req }: Props) => {
   return (
     <>
       <MetaPart req={req} />
-      <A7Tabs
-        type="line"
-        className="card-container p-4 relative"
-        items={items}
-      />
+      <Tabs defaultValue={items[0]?.key} className="card-container p-4 relative">
+        <TabsList variant="line">
+          {items.map((tab) => (
+            <TabsTrigger key={tab.key} value={tab.key}>{tab.label}</TabsTrigger>
+          ))}
+        </TabsList>
+        {items.map((tab) => (
+          <TabsContent key={tab.key} value={tab.key}>{tab.children}</TabsContent>
+        ))}
+      </Tabs>
     </>
   );
 };
@@ -108,23 +117,12 @@ const AuthProductDetail = ({ id }: { id: string }) => {
   const router = useRouter();
   const apiHubBasePath = useApiHubBasePath();
   const req = useProductDetail(id);
-  const session = authClient.useSession();
-  const isAuthorized = !!session.data?.user;
-  const canViewPage = useCreation(() => {
-    return (
-      req.data?.visibility === 'public' ||
-      (req.data?.visibility === 'logged_in' && isAuthorized)
-    );
-  }, [req.data?.visibility, isAuthorized]);
 
   return (
-    <AuthOrPageNotFound
-      isAuthorized={canViewPage}
-      loading={req.status === 'pending'}
-    >
+    <>
       <Back onClick={() => router.push(apiHubBasePath)} />
-      <MainPart req={req} />
-    </AuthOrPageNotFound>
+      <MainPart req={req} id={id} />
+    </>
   );
 };
 

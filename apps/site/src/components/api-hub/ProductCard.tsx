@@ -1,42 +1,28 @@
-import { Tooltip, Typography } from 'antd';
-import type { TitleProps } from 'antd/es/typography/Title';
 import { map } from 'lodash-es';
+import { NetworkIcon } from 'lucide-react';
 import Link from 'next/link';
 
 import A7Label from '@/components/api7/api7-label';
 import A7LabelList from '@/components/api7/api7-label-list';
+import { MetaAvatar } from '@/components/ui-legacy/meta';
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
 } from '@/components/ui/card';
-import { BareIconImage } from '@/components/ui-legacy/icon-image';
-import { MetaAvatar } from '@/components/ui-legacy/meta';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
-import { cn } from '@/lib/utils';
 import type {
   ApiProductListItem,
   ProductSubscriptionStatus as SubscriptionStatus,
 } from '@/types/portal-sdk';
-
-export const ProductTitle = (
-  props: WithLoading<Pick<ApiProductListItem, 'name'>> & TitleProps
-) => {
-  const { name, isLoading, ...titleProps } = props;
-  if (isLoading) return <Skeleton className="w-1/2 h-6" />;
-  return (
-    <Typography.Title
-      level={3}
-      ellipsis={{ tooltip: name }}
-      {...titleProps}
-      className={cn('text-lg! mb-1!', titleProps.className)}
-    >
-      {name}
-    </Typography.Title>
-  );
-};
 
 const SubsStatusTag = (props: {
   subscription_status: Exclude<SubscriptionStatus, 'unsubscribed'>;
@@ -56,7 +42,7 @@ const SubsStatusTag = (props: {
   const tagColor = tagLabel[subscription_status].color;
 
   return (
-    <div className="flex h-fit shrink-0 align-middle justify-center py-[5px] mb-[4px]">
+    <div className="flex h-fit shrink-0 align-middle justify-center py-1.25 mb-1">
       <A7Label isStatus color={tagColor}>
         {tagText}
       </A7Label>
@@ -75,7 +61,7 @@ const ProductCard = (props: ApiProductListItem) => {
   return (
     <Link
       className="h-full min-w-0 flex flex-col"
-      href={`${apiHubBasePath}/detail?id=${id}`}
+      href={`${apiHubBasePath}/${id}`}
     >
       <CardHeader className="pt-6 pb-4 px-6">
         <div className="gap-2 flex min-w-0 items-start">
@@ -87,13 +73,17 @@ const ProductCard = (props: ApiProductListItem) => {
           <div className="flex min-w-0 flex-1 flex-col items-start text-left">
             <div className="flex w-full min-w-0 items-start gap-2 text-left">
               <div className="min-w-0 max-w-full overflow-hidden">
-                <Tooltip placement="top" arrow title={name}>
-                  <Typography.Title
-                    level={3}
-                    className="mb-1! block! truncate text-lg! text-primary-content! [text-align:left]"
-                  >
-                    {name}
-                  </Typography.Title>
+                <Tooltip>
+                  <TooltipTrigger>
+                    <h3 className="mb-1! block! truncate text-lg! text-primary-content! [text-left] font-medium">
+                      {name}
+                    </h3>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">
+                    <small className="text-sm leading-none font-medium">
+                      {name}
+                    </small>
+                  </TooltipContent>
                 </Tooltip>
               </div>
               {subscription_status !== 'unsubscribed' && (
@@ -107,10 +97,8 @@ const ProductCard = (props: ApiProductListItem) => {
                 labelOption={{
                   color: 'default',
                   className:
-                    'min-w-0 flex-1 rounded-sm text-left text-secondary-content bg-gray-100',
-                  style: {
-                    paddingInline: 0,
-                  },
+                    'min-w-0 flex-1 rounded-sm text-left text-secondary-content bg-muted',
+
                   textProps: {
                     className: 'max-w-full text-left [overflow-wrap:anywhere]',
                   },
@@ -121,18 +109,22 @@ const ProductCard = (props: ApiProductListItem) => {
         </div>
       </CardHeader>
       <CardContent className="pb-3  px-6 flex-1">
-        <Tooltip placement="top" arrow title={desc}>
-          <p className="m-0 overflow-hidden text-sm leading-[22px] text-neutral-content [display:-webkit-box] [overflow-wrap:anywhere] [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
-            {desc}
-          </p>
+        <Tooltip>
+          <TooltipTrigger
+            render={
+              <p className="m-0 overflow-hidden text-sm leading-5.5 text-neutral-content [display:-webkit-box] wrap-anywhere [-webkit-box-orient:vertical] [-webkit-line-clamp:2]">
+                {desc}
+              </p>
+            }
+          />
+          <TooltipContent side="top">
+            <small className="text-sm leading-none font-medium">{desc}</small>
+          </TooltipContent>
         </Tooltip>
       </CardContent>
-      <CardFooter
-        className="px-6 py-[10px] flex justify-between bg-white 
-        dark:bg-gray-800 rounded-b text-neutral-content"
-      >
+      <CardFooter className="px-6 py-2.5 flex justify-between bg-card rounded-b text-neutral-content">
         <div className="flex min-w-0 gap-2 items-center">
-          <BareIconImage src="/icons/api-count.svg" size={20} alt="API Count" />
+          <NetworkIcon className="size-5 shrink-0" />
           <div className="min-w-0 truncate">API Count</div>
         </div>
         <div className="ml-2 max-w-[50%] min-w-0 truncate text-right">
@@ -144,13 +136,13 @@ const ProductCard = (props: ApiProductListItem) => {
 };
 
 const ProductCardWrapper = (
-  props: ApiProductListItem & { reload: () => void; isLoading: boolean }
+  props: ApiProductListItem & { reload: () => void; isLoading: boolean },
 ) => {
   const { isLoading } = props;
 
   if (isLoading) {
     return (
-      <Card className="bg-gray-50 dark:bg-slate-800 h-full flex flex-col">
+      <Card className="bg-card h-full flex flex-col">
         <div className="h-full flex flex-col">
           <div className="pt-6 pb-4 px-6">
             <div className="flex gap-2 items-start">
@@ -165,7 +157,7 @@ const ProductCardWrapper = (
             <Skeleton className="h-4 w-full mb-2" />
             <Skeleton className="h-4 w-5/6" />
           </div>
-          <div className="px-6 py-[10px] flex justify-between bg-white dark:bg-gray-800 rounded-b">
+          <div className="px-6 py-2.5 flex justify-between bg-card rounded-b">
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-4 w-8" />
           </div>
@@ -175,8 +167,10 @@ const ProductCardWrapper = (
   }
 
   return (
-    <Card className="bg-gray-50 dark:bg-slate-800 h-full min-w-0 shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]">
-      <ProductCard {...props} />
+    <Card className="bg-card h-full min-w-0 shadow-[0_1px_2px_0_rgba(0,0,0,0.03)]">
+      <TooltipProvider>
+        <ProductCard {...props} />
+      </TooltipProvider>
     </Card>
   );
 };

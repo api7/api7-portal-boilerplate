@@ -1,13 +1,14 @@
+import { expect } from '@playwright/test';
 import type {
   CreateProductGateway,
   ProductExternal,
   ProductGateway,
   ProductListRes,
 } from '@site/types/portal-sdk';
-import { expect } from '@playwright/test';
+
+import { HTTPBIN_URL } from '../../constant';
 import { A7Ctx, a7DefaultPortalID } from './common';
 import { API_PRODUCTS } from './constant';
-import { HTTPBIN_URL } from 'apps/site-e2e/constant';
 
 export const httpbinRawOAS = `
 openapi: 3.0.0
@@ -71,9 +72,9 @@ paths:
 
 export const a7PostExternalProduct = async (
   ctx: A7Ctx,
-  data?: Partial<ProductExternal>
+  data?: Partial<ProductExternal>,
 ) => {
-  const portalID = await a7DefaultPortalID(ctx)
+  const portalID = await a7DefaultPortalID(ctx);
   const postProduct = await ctx.post(`${API_PRODUCTS}?portal_id=${portalID}`, {
     data: {
       type: 'external',
@@ -92,9 +93,9 @@ export const a7PostExternalProduct = async (
 
 export const a7PostGatewayProduct = async (
   ctx: A7Ctx,
-  data?: DeepPartial<CreateProductGateway>
+  data?: DeepPartial<CreateProductGateway>,
 ) => {
-  const portalID = await a7DefaultPortalID(ctx)
+  const portalID = await a7DefaultPortalID(ctx);
   const postProduct = await ctx.post(`${API_PRODUCTS}?portal_id=${portalID}`, {
     data: {
       type: 'gateway',
@@ -110,16 +111,20 @@ export const a7PostGatewayProduct = async (
 };
 
 export const a7DeleteProduct = async (ctx: A7Ctx, id: string) => {
-  const portalID = await a7DefaultPortalID(ctx)
-  const deleteProduct = await ctx.delete(`${API_PRODUCTS}/${id}?portal_id=${portalID}`);
+  const portalID = await a7DefaultPortalID(ctx);
+  const deleteProduct = await ctx.delete(
+    `${API_PRODUCTS}/${id}?portal_id=${portalID}`,
+  );
   expect(deleteProduct.status()).toBe(200);
 };
 
 export const a7DeleteProductList = async (ctx: A7Ctx, ids?: string[]) => {
   const allIds = ids || [];
   if (!ids) {
-    const portalID = await a7DefaultPortalID(ctx)
-    const getAllProducts = await ctx.get(`${API_PRODUCTS}?portal_id=${portalID}`);
+    const portalID = await a7DefaultPortalID(ctx);
+    const getAllProducts = await ctx.get(
+      `${API_PRODUCTS}?portal_id=${portalID}`,
+    );
     expect(getAllProducts.status()).toBe(200);
     const allProducts = (await getAllProducts.json()) as ProductListRes;
     allIds.push(...(allProducts.list || []).map(({ id }) => id));

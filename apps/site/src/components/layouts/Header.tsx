@@ -11,14 +11,15 @@ type HeaderProps = {
 
 const Header = async ({ title = 'Developer Portal' }: HeaderProps) => {
   const session = await verifySession({ redirect: false });
-  const canAccessDashboard =
-    !!session?.user &&
-    isPlatformAdmin(session.user.id) &&
+  const authorized = !!session?.user;
+  const canAccessAdmin =
+    authorized &&
+    isPlatformAdmin(session.user) &&
     !isImpersonatingSession(session.session.impersonatedBy);
 
   return (
     <>
-      <nav className="navbar flex sticky top-0 h-[var(--app-header-height)] font-medium align-middle bg-white shadow-sm z-50">
+      <nav className="navbar flex sticky top-0 h-[var(--app-header-height)] font-medium align-middle bg-background border-b border-border z-50">
         <div className="flex-1 flex items-center gap-1 pl-2">
           <Image
             src="/favicon.ico"
@@ -29,11 +30,11 @@ const Header = async ({ title = 'Developer Portal' }: HeaderProps) => {
             loading="eager"
             priority
           />
-          <HeaderNavbar title={title} canAccessDashboard={canAccessDashboard} />
+          <HeaderNavbar title={title} authorized={authorized} />
         </div>
 
         <div className="flex mr-5 items-center-safe">
-          <UserMenu />
+          <UserMenu authorized={authorized} canAccessAdmin={canAccessAdmin} />
         </div>
       </nav>
     </>

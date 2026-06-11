@@ -40,12 +40,15 @@ test.describe('Owner re-sign-in role restoration', () => {
     expect(session.status()).toBe(200);
     expect((await session.json())?.session?.activeOrganizationId).toBeTruthy();
 
-    // Given: owner re-signs-in via UI form (without logging out first)
+    // Sign out first: the new auth UI redirects away from the sign-in page when
+    // already authenticated, so we must sign out before re-signing-in.
+    await page.context().clearCookies();
     await page.goto(PATH_LOGIN);
-    await expect(page.getByRole('textbox', { name: 'Email' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
     await page.getByRole('textbox', { name: 'Email' }).fill(auth.email);
+    await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByRole('textbox', { name: 'Password' }).fill(auth.password);
-    await page.getByRole('button', { name: 'Login' }).click();
+    await page.getByRole('button', { name: 'Sign In' }).click();
 
     // When: sign-in completes and lands on default page via router.push("/")
     await page.waitForURL((url) => !url.pathname.startsWith('/auth/'), {
@@ -88,10 +91,11 @@ test.describe('Owner re-sign-in role restoration', () => {
 
     // When: re-sign-in via UI form
     await page.goto(PATH_LOGIN);
-    await expect(page.getByRole('textbox', { name: 'Email' })).toBeVisible();
+    await page.waitForLoadState('networkidle');
     await page.getByRole('textbox', { name: 'Email' }).fill(auth.email);
+    await page.getByRole('button', { name: 'Continue' }).click();
     await page.getByRole('textbox', { name: 'Password' }).fill(auth.password);
-    await page.getByRole('button', { name: 'Login' }).click();
+    await page.getByRole('button', { name: 'Sign In' }).click();
 
     await page.waitForURL((url) => !url.pathname.startsWith('/auth/'), {
       timeout: 30_000,

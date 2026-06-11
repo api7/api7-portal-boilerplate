@@ -21,7 +21,6 @@ type TableParams = {
 
 type Prettify<T> = {
   [K in keyof T]: T[K] extends Record<string, unknown> ? Prettify<T[K]> : T[K];
-  // eslint-disable-next-line @typescript-eslint/ban-types
 } & {};
 
 type ListItemDefault = {
@@ -33,7 +32,7 @@ type ListItemDefault = {
 // ListReq is used to add a list of responses to a fixed payload
 type ListRes<
   ListItem,
-  OmitItemKeys extends keyof ListItemDefault | undefined = undefined
+  OmitItemKeys extends keyof ListItemDefault | undefined = undefined,
 > = {
   total: number;
   list: Prettify<Omit<Overwrite<ListItemDefault, ListItem>, OmitItemKeys>>[];
@@ -47,4 +46,3 @@ type ObjRes<T, noDefault = false> = Prettify<{
 }>;
 
 type WithLoading<T = unknown> = T & { isLoading: boolean };
-

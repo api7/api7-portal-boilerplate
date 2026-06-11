@@ -1,5 +1,6 @@
 import { a7PutPublicAccess } from '../../req/dashboard/common';
 import {
+  PATH_API_HUB,
   PATH_APPLICATIONS,
   PATH_LOGIN,
   PATH_ROOT,
@@ -7,7 +8,7 @@ import {
 import { test } from '../../fixture';
 import { expect } from '@playwright/test';
 import { a7DeleteProductList } from '../../req/dashboard/product';
-import { uiShowNotFound } from '../../utils/ui';
+import { uiShowLogin, uiShowNotFound } from '../../utils/ui';
 import { genCanViewPages, genNotFoundPages } from './utils/helper';
 import { headerNavs } from '@site/lib/config/navs';
 
@@ -40,7 +41,7 @@ test.describe('public access is `true`, test the behavior of guest users visitin
 
     // can see login button
     await page.getByRole('button', { name: 'Account' }).click();
-    await expect(page.getByRole('link', { name: 'Sign in' })).toBeVisible();
+    await expect(page.getByRole('menuitem', { name: /sign in/i })).toBeVisible();
   });
 
   canViewPages.forEach(async (url) => {
@@ -52,18 +53,16 @@ test.describe('public access is `true`, test the behavior of guest users visitin
     });
   });
 
-  notFoundPages
-    .filter((v) => v !== '/any_not_exist_page')
-    .forEach(async (url) => {
-      test(`${url} show not found`, async ({ page }) => {
-        await page.goto(url);
-        await uiShowNotFound(page);
-      });
+  notFoundPages.forEach(async (url) => {
+    test(`${url} show 404 not found`, async ({ page }) => {
+      await page.goto(url);
+      await uiShowNotFound(page);
     });
+  });
 
-  const anyNotExistPage = '/any_not_exist_page';
-  test(`${anyNotExistPage} show 404 not found`, async ({ page }) => {
-    await page.goto(anyNotExistPage);
-    await uiShowNotFound(page);
+  test(`${PATH_API_HUB}/non_existent_id redirects guest to login`, async ({ page }) => {
+    await page.goto(`${PATH_API_HUB}/non_existent_id`);
+    await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`));
+    await uiShowLogin(page);
   });
 });

@@ -44,16 +44,19 @@ const useParams = <T extends TableParams>(params: T) => {
   });
 
   // Update r.params when mergedParams changes
+  // eslint-disable-next-line react-hooks/immutability
   useDeepCompareEffect(() => {
     if (isEqual(params, paramsPassed.current)) return;
     paramsPassed.current = params;
     const newParams = deepCleanEmptyKeys(params) as T;
+    // eslint-disable-next-line react-hooks/immutability
     r.params = newParams;
     setParamsHash(getParamsHash(newParams));
   }, [params]);
 
   const updateParams = useMemoizedFn((params: Partial<T>) => {
     const newParams = deepCleanEmptyKeys({ ...r.params, ...params }) as T;
+    // eslint-disable-next-line react-hooks/immutability
     r.params = newParams;
     setParamsHash(getParamsHash(newParams));
     return r.params;

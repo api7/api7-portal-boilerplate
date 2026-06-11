@@ -13,7 +13,7 @@ export const authClient = createAuthClient({
   basePath: AUTH_BASE_PATH,
   plugins: [
     adminClient(),
-    twoFactorClient(),
+    twoFactorClient({ twoFactorPage: '/auth/two-factor' }),
     organizationClient({
       ac,
       roles,

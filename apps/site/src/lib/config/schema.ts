@@ -1,3 +1,6 @@
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const safeRegex = require('safe-regex2') as (pattern: string | RegExp) => boolean
+
 import { z } from 'zod';
 
 export const configSchema = z.object({
@@ -66,6 +69,43 @@ export const configSchema = z.object({
       })
       .prefault({}),
     socialProviders: z.record(z.string(), z.object(z.any())).optional(),
+    genericOAuthProviders: z
+      .array(
+        z.looseObject({
+          providerId: z.string(),
+          discoveryUrl: z.url(),
+          clientId: z.string(),
+          clientSecret: z.string(),
+          scopes: z.array(z.string()).default(['openid', 'profile', 'email']),
+          pkce: z.boolean().default(true),
+          requireIssuerValidation: z.boolean().default(true),
+          ssoOnly: z.boolean().default(false),
+        }),
+      )
+      .default([]),
+    sso: z
+      .strictObject({
+        providers: z
+          .array(
+            z.strictObject({
+              domains: z.array(
+                z.string().refine((val) => {
+                  const trimmed = val.trim()
+                  if (trimmed.length === 0 || trimmed.length > 200) return false
+                  try {
+                    const re = new RegExp(trimmed)
+                    return safeRegex(re)
+                  } catch {
+                    return false
+                  }
+                }, "must be a valid, safe regular expression ≤200 chars (e.g. '@example\\\\.com$')"),
+              ),
+              providerId: z.string(),
+            }),
+          )
+          .default([]),
+      })
+      .default({ providers: [] }),
   }),
   app: z
     .object({
@@ -75,7 +115,7 @@ export const configSchema = z.object({
       desc: z
         .string()
         .default(
-          'Explore and integrate with our APIs. Access documentation, manage applications, and discover products.'
+          'Explore and integrate with our APIs. Access documentation, manage applications, and discover products.',
         ),
       applicationDetail: z
         .object({
@@ -90,11 +130,17 @@ export const configSchema = z.object({
             .prefault({}),
         })
         .prefault({}),
+      tosURL: z
+        .url()
+        .optional()
+        .describe(
+          'URL of the Terms of Service page. When set, users must accept the terms before signing up.',
+        ),
       beforeSignUpButtonHtml: z
         .string()
         .optional()
         .describe(
-          'Optional HTML rendered before the Sign Up button. Only use trusted static content.'
+          'Optional HTML rendered before the Sign Up button. Only use trusted static content.',
         ),
     })
     .partial()
@@ -103,7 +149,4 @@ export const configSchema = z.object({
 
 export type AppConfig = z.infer<typeof configSchema>;
 
-export type ConfigMapData = Pick<
-  AppConfig,
-  'app' | 'db' | 'portal' | 'auth'
->;
+export type ConfigMapData = Pick<AppConfig, 'app' | 'db' | 'portal' | 'auth'>;

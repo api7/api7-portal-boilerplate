@@ -1,9 +1,4 @@
-import { authClient } from '@/lib/auth/client';
-import useCredentialList from '@/lib/query/useCredentialList';
-import useSubscriptionList from '@/lib/query/useSubscriptionList';
-import { BasicAuthCredential, KeyAuthCredential } from '@/types/portal-sdk';
 import type { ApiProduct } from '@api7/portal-sdk/unstable-types';
-import { dereference } from '@scalar/openapi-parser';
 import { produce } from 'immer';
 import { set } from 'lodash-es';
 import { useCallback, useMemo } from 'react';
@@ -15,114 +10,41 @@ export const getServerUrls = (data: ApiProductExternal): string[] =>
 
 export type ApiProductGateway = Extract<ApiProduct, { type: 'gateway' }>;
 export const useParsedProduct = (data: ApiProductGateway) => {
-  const session = authClient.useSession();
-  const authorized = !!session.data?.user;
-  const subscribedAppsReq = useSubscriptionList({
-    api_product_id: data?.id,
-    status: ['subscribed'],
-    enabled: authorized,
-  });
-
-  const subscribedAppIds = useMemo(
-    () => subscribedAppsReq.data?.map((app) => app.application_id),
-    [subscribedAppsReq.data],
-  );
-  const keyAuthCredentialReq = useCredentialList({
-    savePage: false,
-    enabled: authorized && !!subscribedAppIds?.length,
-    initParams: {
-      auth_method: 'key-auth',
-      application_id: subscribedAppIds,
-    },
-  });
-  const basicAuthCredentialReq = useCredentialList({
-    savePage: false,
-    enabled: authorized && !!subscribedAppIds?.length,
-    initParams: {
-      auth_method: 'basic-auth',
-      application_id: subscribedAppIds,
-    },
-  });
-  const keyAuthPlugin = (keyAuthCredentialReq.data?.[0] as KeyAuthCredential)?.[
-    'key-auth'
-  ];
-  const basicAuthPlugin = (
-    basicAuthCredentialReq.data?.[0] as BasicAuthCredential
-  )?.['basic-auth'];
-
+  // Declare the security schemes the API expects, but never auto-fill developer
+  // credentials. Secrets (key-auth key, basic-auth password) are view-once and
+  // are not returned on read paths, so the developer enters them manually in the
+  // "Try it" panel.
   const yamlProducer = useCallback(
     (d: Record<string, unknown>) => {
       const securitySchemes: Record<string, object> = {};
-      // Add key-auth if configured
       if (data?.auth['key-auth']) {
         securitySchemes['Key Authentication'] = {
           type: 'apiKey',
           in: 'header',
           name: data.auth['key-auth'].header || 'apikey',
-          value: keyAuthPlugin?.key,
         };
       }
-      // Add basic-auth if configured
       if (data?.auth['basic-auth']) {
         securitySchemes['Basic Authentication'] = {
           type: 'http',
           scheme: 'basic',
-          username: basicAuthPlugin?.username,
-          password: basicAuthPlugin?.password,
         };
       }
       set(d, 'components.securitySchemes', securitySchemes);
     },
-    [basicAuthPlugin, data.auth, keyAuthPlugin],
+    [data.auth],
   );
 
   const openAPIs = useMemo(() => {
     const list = data.raw_openapis ?? [];
     return list.map((raw) => {
-      const produced = produce(parse(raw), yamlProducer);
+      const produced = produce(parse(raw) as Record<string, unknown>, yamlProducer);
       return {
         str: stringify(produced),
-        parsed: dereference(produced),
+        title: (produced as Record<string, unknown> & { info?: { title?: string } }).info?.title,
       };
     });
   }, [data.raw_openapis, yamlProducer]);
-
-  // Get credentials for authentication
-  const authConfig = useMemo(() => {
-    const auth: Record<string, object> = {};
-
-    // Add key-auth credentials if available
-    if (data?.auth['key-auth'] && keyAuthCredentialReq?.data?.length) {
-      if (keyAuthPlugin?.key) {
-        auth['Key Authentication'] = {
-          type: 'apiKey',
-          in: 'header',
-          name: data.auth['key-auth'].header || 'apikey',
-          value: keyAuthPlugin.key,
-        };
-      }
-    }
-
-    // Add basic-auth credentials if available
-    if (data?.auth['basic-auth'] && basicAuthCredentialReq?.data?.length) {
-      if (basicAuthPlugin?.username && basicAuthPlugin?.password) {
-        auth['Basic Authentication'] = {
-          type: 'http',
-          scheme: 'basic',
-          username: basicAuthPlugin.username,
-          password: basicAuthPlugin.password,
-        };
-      }
-    }
-
-    return Object.keys(auth).length > 0 ? auth : undefined;
-  }, [
-    data.auth,
-    keyAuthCredentialReq.data?.length,
-    basicAuthCredentialReq.data?.length,
-    keyAuthPlugin,
-    basicAuthPlugin,
-  ]);
 
   const preferredSecurityScheme = useMemo(() => {
     const schemes = [];
@@ -137,13 +59,10 @@ export const useParsedProduct = (data: ApiProductGateway) => {
 
   return {
     openAPIs,
-    isLoading:
-      subscribedAppsReq.isLoading ||
-      keyAuthCredentialReq.isLoading ||
-      basicAuthCredentialReq.isLoading,
+    isLoading: false,
     authentication: {
       preferredSecurityScheme,
-      securitySchemes: authConfig,
+      securitySchemes: undefined,
     },
   };
 };

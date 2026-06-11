@@ -1,24 +1,23 @@
-import { ProForm, type ProFormProps } from '@ant-design/pro-components';
+'use client';
 
-const Form = <T = Record<string, any>,>(
-  props: ProFormProps<T> & {
-    children?: React.ReactNode | React.ReactNode[];
-  }
-) => {
-  return (
-    <ProForm
-      omitNil
-      //FIXME: try see drawer and form's comments.
-      // Doesn't work well with drawer's destroyOnHidden
-      // clearOnDestroy
-      // preserve={false}
-      autoFocusFirstInput
-      layout="vertical"
-      requiredMark="optional"
-      validateTrigger={['onChange', 'onFinish']}
-      {...props}
-    />
-  );
+import { cn } from '@/lib/utils';
+
+type Props = {
+  children?: React.ReactNode;
+  onSubmit?: () => void;
+  className?: string;
 };
+
+const Form = ({ children, onSubmit, className }: Props) => (
+  <form
+    onSubmit={(e) => {
+      e.preventDefault();
+      onSubmit?.();
+    }}
+    className={cn('flex flex-col gap-4', className)}
+  >
+    {children}
+  </form>
+);
 
 export default Form;

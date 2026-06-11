@@ -1,4 +1,8 @@
-import { PATH_API_HUB, PATH_APPLICATIONS } from '@/constants/path-prefix';
+import {
+  PATH_API_HUB,
+  PATH_APPLICATIONS,
+  PATH_DOCS,
+} from '@/constants/path-prefix';
 
 export type HeaderNav = {
   title: string;
@@ -13,6 +17,10 @@ export const headerNavs: HeaderNav[] = [
   {
     title: 'API Hub',
     href: PATH_API_HUB,
+  },
+  {
+    title: 'Docs',
+    href: PATH_DOCS,
   },
   {
     title: 'My Applications',

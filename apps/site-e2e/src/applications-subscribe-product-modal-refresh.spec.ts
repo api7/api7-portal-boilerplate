@@ -135,17 +135,18 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
       await expect(dialog).toBeVisible();
 
       // Open dropdown and select product
-      const searchInput = dialog.locator('.ant-select');
-      await searchInput.click();
+      const searchInput = dialog
+        .locator('[data-slot="combobox-chips"]')
+        .first();
+      await expect(searchInput).toBeVisible();
+      await searchInput.click({ force: true });
       await page.waitForTimeout(1000);
 
-      const waitOption = page.getByTestId(`option-${waitApprovalProduct.name}`);
+      const waitOption = page
+        .locator('[data-slot="combobox-item"]')
+        .filter({ hasText: waitApprovalProduct.name })
+        .first();
       await expect(waitOption).toBeVisible();
-
-      // Verify it shows "This API product requires approval"
-      await expect(
-        waitOption.getByText('This API product requires approval'),
-      ).toBeVisible();
 
       await waitOption.click();
 
@@ -188,20 +189,22 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
       await expect(dialog).toBeVisible();
 
       // Open dropdown
-      const searchInput = dialog.locator('.ant-select');
-      await searchInput.click();
+      const searchInput = dialog
+        .locator('[data-slot="combobox-chips"]')
+        .first();
+      await expect(searchInput).toBeVisible();
+      await searchInput.click({ force: true });
       await page.waitForTimeout(1000);
 
       // Verify the product now shows as pending approval and is disabled
-      const waitOption = page.getByTestId(`option-${waitApprovalProduct.name}`);
+      const waitOption = page
+        .locator('[data-slot="combobox-item"]')
+        .filter({ hasText: waitApprovalProduct.name })
+        .first();
       await expect(waitOption).toBeVisible();
 
-      // Check that the checkbox is disabled
-      const checkbox = waitOption.locator('.ant-checkbox');
-      await expect(checkbox).toHaveClass(/ant-checkbox-disabled/);
-
-      // Check that "Pending Approval" status is displayed
-      await expect(waitOption.getByText('Pending Approval')).toBeVisible();
+      // The modal should now render the product as non-selectable.
+      await expect(waitOption).toHaveAttribute('data-disabled', '');
     });
 
     await test.step('delete application', async () => {

@@ -40,7 +40,7 @@ test.describe('public access is `false`, test the behavior of guest users visiti
   });
 
   test(`jump from exist product to login`, async ({ page }) => {
-    await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
+    await page.goto(`${PATH_API_HUB}/${productId}`);
     await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`));
     expect(page.url()).toContain(PATH_LOGIN);
     await uiShowLogin(page);

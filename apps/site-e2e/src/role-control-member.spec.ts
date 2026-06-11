@@ -12,12 +12,12 @@ import { expect } from '@playwright/test';
 import {
   API_APPLICATIONS,
   API_CREDENTIALS,
+  API_PREFIX,
   API_SUBSCRIPTIONS,
   AUTH_BASE_PATH,
 } from '@site/constants/api-prefix';
 import {
   PATH_APPLICATIONS,
-  PATH_ORGANIZATION,
 } from '@site/constants/path-prefix';
 
 import { E2E_TARGET_URL } from '../constant';
@@ -32,7 +32,7 @@ import {
   setupMemberUser,
 } from '../req/common';
 import { a7DefaultPortalID, a7DeveloperExists } from '../req/dashboard/common';
-import { uiAddApplication } from '../utils/ui';
+import { uiAddApplication, uiGetMoreOptionsButton } from '../utils/ui';
 
 test.describe('Role Control - Member Read-Only', () => {
   test('member: Add Application button is disabled', async ({
@@ -118,8 +118,8 @@ test.describe('Role Control - Member Read-Only', () => {
 
     const row = memberPage
       .getByRole('cell', { name: appName })
-      .locator('xpath=..');
-    const moreMenuBtn = row.getByTestId('more');
+      .locator('xpath=ancestor::tr[1]');
+    const moreMenuBtn = uiGetMoreOptionsButton(row);
     await expect(moreMenuBtn).toBeVisible();
     await expect(moreMenuBtn).toBeDisabled();
 
@@ -163,7 +163,7 @@ test.describe('Role Control - Member Read-Only', () => {
     await memberPage.goto(PATH_APPLICATIONS);
     const nameLink = memberPage.getByText(appName);
     await nameLink.click();
-    await expect(memberPage).toHaveURL(/\/applications\/detail\?id=.+$/);
+    await expect(memberPage).toHaveURL(/\/applications\/[^/]+$/);
 
     await memberPage.getByRole('tab', { name: 'Subscriptions' }).click();
     const subscribeBtn = memberPage.getByRole('button', {
@@ -205,7 +205,7 @@ test.describe('Role Control - Member Read-Only', () => {
     });
     const memberPage = await memberContext.newPage();
 
-    await memberPage.goto(`/${orgSlug}${PATH_ORGANIZATION}/members`);
+    await memberPage.goto(`/${orgSlug}/members`);
     const inviteBtn = memberPage.getByRole('button', {
       name: 'Invite Member',
     });
@@ -245,7 +245,7 @@ test.describe('Role Control - Member Read-Only', () => {
     });
     const memberPage = await memberContext.newPage();
 
-    await memberPage.goto(`/${orgSlug}${PATH_ORGANIZATION}/settings`);
+    await memberPage.goto(`/${orgSlug}/settings`);
     const saveBtn = memberPage.getByRole('button', { name: 'Save' }).first();
     await expect(saveBtn).toBeVisible();
     await expect(saveBtn).toBeDisabled();
@@ -351,7 +351,8 @@ test.describe('Role Control - Member Read-Only', () => {
 
     await page.goto(PATH_APPLICATIONS);
     await uiAddApplication(page, { name: appName, desc: 'For delete test' });
-    const appsRes = await ctx.get(API_APPLICATIONS);
+    const ownerSlug = await getActiveOrganizationSlug(ctx);
+    const appsRes = await ctx.get(`${API_PREFIX}/${ownerSlug}/applications`);
     const appsData = await appsRes.json();
     const app = appsData.list?.find(
       (a: { name: string }) => a.name === appName,
@@ -398,7 +399,8 @@ test.describe('Role Control - Member Read-Only', () => {
   }) => {
     const testId = `member-api-cred-${Date.now()}`;
 
-    const appsRes = await ctx.get(API_APPLICATIONS);
+    const ownerSlug = await getActiveOrganizationSlug(ctx);
+    const appsRes = await ctx.get(`${API_PREFIX}/${ownerSlug}/applications`);
     const appsData = await appsRes.json();
     const appId = appsData.list?.[0]?.id;
     expect(appId).toBeTruthy();
@@ -443,7 +445,8 @@ test.describe('Role Control - Member Read-Only', () => {
   }) => {
     const testId = `member-api-sub-${Date.now()}`;
 
-    const appsRes = await ctx.get(API_APPLICATIONS);
+    const ownerSlug = await getActiveOrganizationSlug(ctx);
+    const appsRes = await ctx.get(`${API_PREFIX}/${ownerSlug}/applications`);
     const appsData = await appsRes.json();
     const appId = appsData.list?.[0]?.id;
     expect(appId).toBeTruthy();
@@ -519,7 +522,8 @@ test.describe('Role Control - Member Read-Only', () => {
       },
     });
 
-    const res = await memberCtx.get(API_APPLICATIONS, {
+    const ownerSlug = await getActiveOrganizationSlug(ctx);
+    const res = await memberCtx.get(`${API_PREFIX}/${ownerSlug}/applications`, {
       failOnStatusCode: false,
     });
     expect(res.status()).toBe(200);
@@ -558,7 +562,7 @@ test.describe('Role Control - Admin', () => {
     });
     const adminPage = await adminContext.newPage();
 
-    await adminPage.goto(`${PATH_ORGANIZATION}/settings`);
+    await adminPage.goto(`/organization/settings`);
     await expect(
       adminPage.getByRole('button', { name: 'Delete Organization' }),
     ).toHaveCount(0);

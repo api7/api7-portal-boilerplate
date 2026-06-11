@@ -12,8 +12,7 @@ export default function MainLayout({
       <ImpersonationBanner />
       <Header />
       <main
-        className="min-h-screen p-4"
-        style={{ backgroundColor: 'oklch(0.976139 0 0)' }}
+        className="min-h-screen p-4 bg-background"
       >
         {children}
       </main>

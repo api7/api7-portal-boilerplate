@@ -1,9 +1,14 @@
-import { Tooltip } from 'antd';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 
-import { absoluteTimeFormat } from './constant';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+
+import { absoluteTimeFormat } from './constant';
 
 dayjs.extend(relativeTime);
 
@@ -15,14 +20,17 @@ type Props = {
 const defaultClassName =
   'min-w-[152px] border-b-[1px] border-dashed border-[#c0c7d8]';
 const TimeFormatFromNow = ({ time, format, ...divProps }: Props) => (
-  <Tooltip
-    arrow
-    title={dayjs(time).format(format || absoluteTimeFormat)}
-    placement="top"
-  >
-    <span {...divProps} className={cn(defaultClassName, divProps.className)}>
-      {dayjs(time).fromNow()}
-    </span>
+  <Tooltip>
+    <TooltipTrigger delay={0}>
+      <span {...divProps} className={cn(defaultClassName, divProps.className)}>
+        {dayjs(time).fromNow()}
+      </span>
+    </TooltipTrigger>
+    <TooltipContent>
+      <p className="text-sm">
+        {dayjs(time).format(format || absoluteTimeFormat)}
+      </p>
+    </TooltipContent>
   </Tooltip>
 );
 
@@ -50,4 +58,3 @@ const TimeFormat = (props: Props & { fromNow?: boolean }) => {
 };
 
 export default TimeFormat;
-

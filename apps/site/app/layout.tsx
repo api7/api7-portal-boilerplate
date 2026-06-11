@@ -3,6 +3,7 @@ import './globals.css';
 import { Toaster } from 'sonner';
 import { Providers } from './providers';
 import { getConfig } from '@/lib/config';
+import { getConfigStatus } from '@/lib/config/config-status';
 import { Inter } from "next/font/google";
 import { cn } from "@/lib/utils";
 
@@ -27,13 +28,15 @@ export const metadata: Metadata = {
   },
 };
 
+const configStatus = getConfigStatus();
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("font-sans", inter.variable)}>
+    <html lang="en" className={cn("font-sans", inter.variable)} suppressHydrationWarning>
       <body
         className="antialiased"
         suppressHydrationWarning
@@ -42,7 +45,7 @@ export default function RootLayout({
         // layer prop has been tried as a mitigation but did not fully resolve
         // the issue, so the suppression is kept as a pragmatic workaround.
       >
-        <Providers>
+        <Providers initialConfigStatus={configStatus}>
           <Toaster position="top-right" closeButton expand richColors />
           {children}
         </Providers>

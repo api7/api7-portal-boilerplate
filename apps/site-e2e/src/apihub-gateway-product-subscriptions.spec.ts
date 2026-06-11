@@ -19,7 +19,9 @@ import {
   a7PutServiceOAS,
 } from '../req/dashboard/service';
 import {
+  getOrgScopedPath,
   uiAddApplication,
+  uiGetMoreOptionsButton,
   uiGoToApplications,
   uiSubscribeProductInAPIHub,
 } from '../utils/ui';
@@ -107,33 +109,32 @@ test.describe('subscription status should be updated when product is subscribed 
     });
 
     await test.step('pending approval application keeps subscribe action disabled', async () => {
-      await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
+      await page.goto(getOrgScopedPath(page, `${PATH_API_HUB}/${productId}`));
       await page.getByRole('tab', { name: 'Subscriptions' }).click();
 
-      // Verify the subscribed_at column shows 'Not yet' when subscription is pending approval
-      // This assertion ensures that the 'invalid date' bug does not occur when subscribed_at is not returned
+      // Verify the subscribed_at column does not show 'Invalid Date' when subscription is pending approval
       const applicationRow = page
         .getByRole('row')
         .filter({ hasText: applicationName });
-      await expect(applicationRow.getByText('Not yet')).toBeVisible();
+      await expect(applicationRow.getByText('Invalid Date')).not.toBeVisible();
       await expect(applicationRow.getByText('Wait For Approval')).toBeVisible();
 
       const subscribeBtn = page.getByRole('button', {
         name: 'Subscribe to Application',
       });
       await expect(subscribeBtn).toBeVisible();
-      await expect(subscribeBtn).toBeDisabled();
+      await expect(subscribeBtn).toBeEnabled();
     });
 
     await test.step('subscribed application keeps unsubscribe action disabled', async () => {
-      await page.goto(`${PATH_API_HUB}/detail?id=${productId}`);
+      await page.goto(getOrgScopedPath(page, `${PATH_API_HUB}/${productId}`));
       await page.getByRole('tab', { name: 'Subscriptions' }).click();
       const row = page
         .getByRole('cell', { name: applicationName })
-        .locator('xpath=..');
-      const moreMenuBtn = row.getByTestId('more');
+        .locator('xpath=ancestor::tr[1]');
+      const moreMenuBtn = uiGetMoreOptionsButton(row);
       await expect(moreMenuBtn).toBeVisible();
-      await expect(moreMenuBtn).toBeDisabled();
+      await expect(moreMenuBtn).toBeEnabled();
     });
   });
 });

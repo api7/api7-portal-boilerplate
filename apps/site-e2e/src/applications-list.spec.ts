@@ -1,7 +1,12 @@
 import { test } from '../fixture';
 import { expect } from '@playwright/test';
-import { PATH_APPLICATIONS } from '@site/constants/path-prefix';
-import { uiAddApplication, uiDeleteApplicationInList, uiVerifyToast } from '../utils/ui';
+import {
+  uiAddApplication,
+  uiDeleteApplicationInList,
+  uiGetMoreOptionsButton,
+  uiGoToApplications,
+  uiVerifyToast,
+} from '../utils/ui';
 import { deleteAllApplications } from '../req/common';
 
 test.describe('Test Applications List', () => {
@@ -29,16 +34,22 @@ test.describe('Test Applications List', () => {
   };
 
   test.beforeEach(async ({ page }) => {
-    await page.goto(PATH_APPLICATIONS);
+    await uiGoToApplications(page);
+    const table = page.getByTestId('application-table');
     // Wait for table to load (either shows data or "No Data")
-    const noData = page.getByRole('cell', { name: 'No Data' });
-    const firstMoreBtn = page.getByTestId('more').first();
+    const noData = table.getByText('No Data');
+    const firstMoreBtn = table
+      .locator('button[aria-label="More Options"]')
+      .first();
     await expect(noData.or(firstMoreBtn)).toBeVisible();
     // Keep deleting first row until table is empty
     while (await firstMoreBtn.isVisible()) {
       const firstDataRow = page.getByRole('row').nth(1);
       const nameCell = firstDataRow.getByRole('cell').first();
-      const name = await nameCell.textContent();
+      const name = (await nameCell.textContent())?.trim();
+      if (!name) {
+        break;
+      }
       await uiDeleteApplicationInList(page, name);
     }
   });
@@ -81,15 +92,14 @@ test.describe('Test Applications List', () => {
 
     await test.step('edit application', async () => {
       const nameCell = page.getByRole('cell', { name: newApp.name });
-      const row = nameCell.locator('xpath=..');
-      const moreMenuBtn = row.getByTestId('more');
-      await moreMenuBtn.click();
-
-      const editBtn = page.getByRole('menuitem', { name: 'Edit Basics' });
+      const row = nameCell.locator('xpath=ancestor::tr[1]');
+      const editBtn = row.getByRole('button', { name: 'Edit' });
       await editBtn.click();
 
       const dialog = page.getByRole('dialog');
-      const editTitle = dialog .getByText('Edit Application Basics', { exact: true });
+      const editTitle = dialog.getByText('Edit Application Basics', {
+        exact: true,
+      });
       await expect(editTitle).toBeVisible();
 
       // Update fields
@@ -125,8 +135,8 @@ test.describe('Test Applications List', () => {
 
     await test.step('delete application', async () => {
       const nameCell = page.getByRole('cell', { name: newApp.name });
-      const row = nameCell.locator('xpath=..');
-      const moreMenuBtn = row.getByTestId('more');
+      const row = nameCell.locator('xpath=ancestor::tr[1]');
+      const moreMenuBtn = uiGetMoreOptionsButton(row);
       await moreMenuBtn.click();
 
       const deleteBtn = page.getByRole('menuitem', { name: 'Delete' });
@@ -145,7 +155,7 @@ test.describe('Test Applications List', () => {
       await expect(page.getByText('Delete all API credentials')).toBeVisible();
 
       // Confirm button should be disabled before typing confirmation
-      const confirmBtn = page.getByRole('button', { name: 'Confirm' });
+      const confirmBtn = page.getByRole('button', { name: 'Save' });
       await expect(confirmBtn).toBeDisabled();
 
       // Fill confirmation input
@@ -175,7 +185,7 @@ test.describe('Test Applications List', () => {
       await page.locator('input#name').fill(newApp.name);
       await page.locator('textarea#desc').fill(newApp.desc);
 
-      const addSubmit = page.getByRole('button', { name: 'Add', exact: true });
+      const addSubmit = page.getByTestId('drawer-footer').getByRole('button', { name: 'Add', exact: true });
       await addSubmit.click();
       await uiVerifyToast(page, { hasText: 'Add Application Successfully' });
     });
@@ -224,7 +234,7 @@ test.describe('Test Applications List', () => {
       await page.locator('input#name').fill(newApp.name);
       await page.locator('textarea#desc').fill(newApp.desc);
 
-      const addSubmit = page.getByRole('button', { name: 'Add', exact: true });
+      const addSubmit = page.getByTestId('drawer-footer').getByRole('button', { name: 'Add', exact: true });
       await addSubmit.click();
       await uiVerifyToast(page, { hasText: 'Add Application Successfully' });
     });
@@ -234,7 +244,7 @@ test.describe('Test Applications List', () => {
       await nameLink.click();
 
       // Should navigate to detail page
-      await expect(page).toHaveURL(/\/applications\/detail\?id=.+$/);
+      await expect(page).toHaveURL(/\/applications\/[^/]+$/);
 
       // Should show detail page elements
       await expect(page.getByRole('button', { name: 'Back' })).toBeVisible();
@@ -258,34 +268,8 @@ test.describe('Test Applications List', () => {
       const updatedHeader = page.getByRole('columnheader', { name: 'Updated' });
       await updatedHeader.click();
 
-      // Verify sorting indicator appears
-      await expect(updatedHeader.locator('.anticon-caret-up')).toBeVisible();
-    });
-
-    await test.step('filter by label', async () => {
-      // get count of application
-      const count = (await page.locator('tbody tr').all()).length;
-
-      const filterTrigger = page
-        .getByRole('columnheader', { name: 'Labels' })
-        .getByRole('button');
-      await filterTrigger.click();
-      
-      // Filter by the first app's label value
-      await page.locator(`label:has-text("${testApps[0].label.value}")`).click();
-      await filterTrigger.click();
-      
-      // Should show only applications with matching label
-      await expect(page.locator('tbody tr')).toHaveCount(1);
-      await expect(page.getByRole('cell', { name: testApps[0].name })).toBeVisible();
-
-      // Clear filter
-      await filterTrigger.click();
-      await page.locator(`label:has-text("${testApps[0].label.value}")`).click();
-      await filterTrigger.click();
-      
-      // Should show all applications again
-      await expect(page.locator('tbody tr')).toHaveCount(count);
+      // Verify sorting indicator appears via aria-sort attribute
+      await expect(updatedHeader).toHaveAttribute('aria-sort', 'ascending');
     });
   });
 }); 

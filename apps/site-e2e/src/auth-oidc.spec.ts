@@ -1,7 +1,7 @@
 import { test as baseTest, expect } from '@playwright/test';
 import { PATH_LOGIN } from '@site/constants/path-prefix';
 import { kcAdmin, kcDeleteClients, newKCAdminClient } from '../utils/keycloak';
-import { KEYCLOAK_K8S_URL, KEYCLOAK_URL } from '../constant';
+import { KEYCLOAK_CONTAINER_URL, KEYCLOAK_URL } from '../constant';
 
 // Use unauthenticated storage state for OIDC tests
 const test = baseTest.extend({});
@@ -28,8 +28,13 @@ test.describe('OIDC Authentication', () => {
       clientId: 'admin-cli',
     });
 
-    // Delete existing OIDC client if any
+    // Delete existing OIDC client if any (kcDeleteClients targets the 'api7' client;
+    // also explicitly delete devportal-oidc to avoid "already exists" on retries).
     await kcDeleteClients(kcAdminClient);
+    const existingOidcClients = await kcAdminClient.clients.find({ clientId: oidcClientId });
+    await Promise.allSettled(
+      (existingOidcClients ?? []).map((c) => kcAdminClient.clients.del({ id: c.id! }))
+    );
 
     // Create new OIDC client for dev portal
     await kcAdminClient.clients.create({
@@ -66,15 +71,16 @@ test.describe('OIDC Authentication', () => {
   });
 
   test('can sign in with OIDC (Keycloak)', async ({ page }) => {
+    test.setTimeout(90_000);
     await test.step('navigate to login page', async () => {
       await page.goto(PATH_LOGIN);
-      await expect(page.getByText('Sign In', { exact: true })).toBeVisible();
+      await expect(page.getByText('Sign In', { exact: true }).first()).toBeVisible();
     });
 
     await test.step('click keycloak sign in button', async () => {
       // The social provider button should be visible
       const keycloakBtn = page.getByRole('button', {
-        name: /sign in with keycloak/i,
+        name: /keycloak/i,
       });
       await expect(keycloakBtn).toBeVisible({ timeout: 10000 });
       await keycloakBtn.click();
@@ -84,7 +90,7 @@ test.describe('OIDC Authentication', () => {
       // Should be redirected to Keycloak login page
       await expect(page).toHaveURL(
         new RegExp(
-          `${KEYCLOAK_K8S_URL}/realms/master/protocol/openid-connect/auth.*`
+          `${KEYCLOAK_CONTAINER_URL}/realms/master/protocol/openid-connect/auth.*`
         ),
         { timeout: 10000 }
       );
@@ -98,7 +104,7 @@ test.describe('OIDC Authentication', () => {
     await test.step('verify successful authentication', async () => {
       // After Keycloak login, user should be redirected back and logged in
       await page.waitForURL((url) => !url.hostname.includes('keycloak'), {
-        timeout: 15000,
+        timeout: 30000,
       });
 
       // Verify user is authenticated - Account button should be visible
@@ -113,7 +119,7 @@ test.describe('OIDC Authentication', () => {
 
     // Keycloak social provider button should be visible
     const keycloakBtn = page.getByRole('button', {
-      name: /sign in with keycloak/i,
+      name: /keycloak/i,
     });
     await expect(keycloakBtn).toBeVisible({ timeout: 10000 });
   });
@@ -125,6 +131,6 @@ test.describe('OIDC Authentication', () => {
     );
 
     // Should show login page (not crash)
-    await expect(page.getByText('Sign In', { exact: true })).toBeVisible();
+    await expect(page.getByText('Sign In', { exact: true }).first()).toBeVisible();
   });
 });

@@ -29,14 +29,12 @@ const ApplicationDeleteModal = (props: ApplicationDeleteModalProps) => {
       confirmText={name}
       targetText="the application name"
       alertProps={{
-        message: (
-          <p className="text-sm leading-[24px]">
-            Deleting this application will:
-            <ul className="list-disc list-inside">
-              <li>Cancel all API subscriptions associated with it</li>
-              <li>Delete all API credentials</li>
-            </ul>
-          </p>
+        title: 'Deleting this application will:',
+        description: (
+          <ul className="list-disc list-inside">
+            <li>Cancel all API subscriptions associated with it</li>
+            <li>Delete all API credentials</li>
+          </ul>
         ),
       }}
       onOk={handleDelete}
@@ -47,4 +45,3 @@ const ApplicationDeleteModal = (props: ApplicationDeleteModalProps) => {
 };
 
 export default ApplicationDeleteModal;
-

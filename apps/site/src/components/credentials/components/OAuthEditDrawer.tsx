@@ -2,20 +2,18 @@
 
 import { useEffect } from 'react';
 
-import { ProForm } from '@ant-design/pro-components';
+import { useForm } from '@tanstack/react-form';
 import { toast } from 'sonner';
 
-import { FormItemOAuth } from './OAuthAddDrawer';
-import { useApplicationId } from '../hook';
 import Form from '@/components/slices/form/Form';
-import { portalClient } from '@/lib/portal-sdk/client';
-import A7Drawer from '@/components/ui-legacy/drawer';
+import Drawer from '@/components/base/drawer';
+import { transformAPIRedirectURIsToForm, transformRedirectURIsToAPI } from '@/helper/utils/form-producer/redirect_uris';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import {
-  transformAPIRedirectURIsToForm,
-  transformRedirectURIsToAPI,
-} from '@/helper/utils/form-producer/redirect_uris';
-import type { CredentialFormOAuth, OAuthCredential } from '@/types/portal-sdk';
+import { portalClient } from '@/lib/portal-sdk/client';
+import type { OAuthCredential } from '@/types/portal-sdk';
+
+import { useApplicationId } from '../hook';
+import { FormItemOAuth } from './OAuthAddDrawer';
 
 export type OAuthEditDrawerProps = UseDisclosureReturn & {
   oldData?: OAuthCredential;
@@ -24,51 +22,50 @@ export type OAuthEditDrawerProps = UseDisclosureReturn & {
 
 const OAuthEditDrawer = (props: OAuthEditDrawerProps) => {
   const { open, onOk, oldData, title, ...rest } = props;
-  const [form] = ProForm.useForm();
   const applicationId = useApplicationId();
 
-  useEffect(() => form.resetFields(), [form, oldData]);
+  const defaultValues = {
+    dcr_provider_id: oldData?.oauth?.dcr_provider_id ?? '',
+    redirect_uris: transformAPIRedirectURIsToForm(oldData?.oauth?.redirect_uris),
+    desc: oldData?.desc ?? '',
+  };
 
-  const submitEdit = (form: CredentialFormOAuth) => {
-    return portalClient.application.credential
-      .update(applicationId, oldData!.id, {
-        desc: form.desc || oldData?.desc,
-        type: 'oauth',
-        oauth: {
-          redirect_uris: transformRedirectURIsToAPI(form.redirect_uris),
+  const form = useForm({
+    defaultValues,
+    onSubmit: async ({ value }) => {
+      await portalClient.application.credential.update(
+        applicationId,
+        oldData!.id,
+        {
+          desc: value.desc !== undefined ? value.desc : oldData?.desc,
+          type: 'oauth',
+          oauth: {
+            redirect_uris: transformRedirectURIsToAPI(value.redirect_uris),
+          },
         },
-      })
-      .then(() => {
-        onOk?.();
-        toast.success(`${title} Successfully`);
-      })
-      .then(props?.onClose);
-  };
+      );
+      onOk?.();
+      toast.success(`${title} Successfully`);
+      props.onClose();
+    },
+  });
 
-  const formInitialValues = {
-    ...oldData?.oauth,
-    desc: oldData?.desc,
-    redirect_uris: transformAPIRedirectURIsToForm(
-      oldData?.oauth?.redirect_uris
-    ),
-  };
+  useEffect(() => {
+    if (open) {
+      form.reset({
+        dcr_provider_id: oldData?.oauth?.dcr_provider_id ?? '',
+        redirect_uris: transformAPIRedirectURIsToForm(oldData?.oauth?.redirect_uris),
+        desc: oldData?.desc ?? '',
+      });
+    }
+  }, [open, oldData, form]);
+
   return (
-    <A7Drawer
-      open={open}
-      title={title}
-      onOk={form.submit}
-      okText="Save"
-      {...rest}
-    >
-      <Form<CredentialFormOAuth>
-        form={form}
-        onFinish={submitEdit}
-        submitter={false}
-        initialValues={formInitialValues}
-      >
-        <FormItemOAuth isEdit={true} />
+    <Drawer open={open} title={title} onOk={() => form.handleSubmit()} loading={form.state.isSubmitting} okText="Save" {...rest}>
+      <Form onSubmit={() => form.handleSubmit()}>
+        <FormItemOAuth form={form} isEdit />
       </Form>
-    </A7Drawer>
+    </Drawer>
   );
 };
 

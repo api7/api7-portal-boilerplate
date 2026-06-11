@@ -1,6 +1,6 @@
 import { expect, request } from '@playwright/test';
 
-import { KEYCLOAK_K8S_URL, KEYCLOAK_URL } from '../constant';
+import { KEYCLOAK_CONTAINER_URL, KEYCLOAK_URL } from '../constant';
 import { test } from '../fixture';
 import { a7GetDCRProviderList } from '../req/dashboard/auth';
 import { a7PostGateway } from '../req/dashboard/gateway';
@@ -22,11 +22,17 @@ import { a7UICreateDCR } from '../utils/a7UI';
 import { getAccessToken } from '../utils/helper';
 import { kcAdmin } from '../utils/keycloak';
 import {
-  k8DeployA7Gateway,
-  k8HelmUninstall,
-  k8PortForward,
+  deployGatewayContainer,
+  removeGatewayContainer,
+  waitForGatewayPort,
 } from '../utils/shell';
-import { uiGoToAPICredentials, uiSubscribeProductInAPIHub } from '../utils/ui';
+import {
+  uiGetMoreOptionsButton,
+  uiGetOAuthAlert,
+  uiGetOAuthAlertInput,
+  uiGoToAPICredentials,
+  uiSubscribeProductInAPIHub,
+} from '../utils/ui';
 
 test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
   let gatewayId: string;
@@ -43,9 +49,9 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
   const productName = `gateway-product-${seed}`;
   const gatewayName = `gateway-product-${seed}`;
   const dcrProviderName = `dcr-provider-${seed}`;
-  const keycloakInitialAccessTokenAddress = `${KEYCLOAK_K8S_URL}/admin/master/console/#/master/clients/initial-access-token`;
+  const keycloakInitialAccessTokenAddress = `${KEYCLOAK_CONTAINER_URL}/admin/master/console/#/master/clients/initial-access-token`;
   const keycloakTokenURL = `${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token`;
-  const keycloakIssuer = `${KEYCLOAK_K8S_URL}/realms/master`;
+  const keycloakIssuer = `${KEYCLOAK_CONTAINER_URL}/realms/master`;
   const gatewayAddress = `http://localhost:9080`;
   const portalHost = 'httpbin.portal.org';
   const routePathPrefix = `/${seed}/anything`;
@@ -78,9 +84,9 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
   };
 
   test.beforeAll(async ({ a7Ctx }) => {
-    test.setTimeout(600_000);
+    test.setTimeout(120_000);
     // ensure uninstall
-    await k8HelmUninstall();
+    await removeGatewayContainer();
 
     // Step 1: Create gateway group
     const res = await a7PostGateway(a7Ctx, {
@@ -89,8 +95,8 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
     gatewayId = res.value.id;
 
     // Step 2: Deploy gateway and wait for it to be ready (sequential)
-    await k8DeployA7Gateway(a7Ctx, { gateway_group_id: gatewayId });
-    await k8PortForward('svc/api7-ee-3-gateway-gateway', '9080:80');
+    await deployGatewayContainer(a7Ctx, { gateway_group_id: gatewayId });
+    await waitForGatewayPort('svc/api7-ee-3-gateway-gateway', '9080:80');
 
     // Step 3: Create service and route
     const serviceRes = await a7PostPublishedService(a7Ctx, gatewayId, {
@@ -127,15 +133,15 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
   });
 
   test.afterAll(async ({ a7Ctx }) => {
-    test.setTimeout(600_000);
-    await k8HelmUninstall();
+    test.setTimeout(30_000);
+    await removeGatewayContainer();
     await a7DeleteProductList(a7Ctx);
     await a7DeletePublishedRoute(a7Ctx, routeId, gatewayId);
     await a7DeleteService(a7Ctx, serviceId, gatewayId);
   });
 
   test('test gateway product with dcr', async ({ page, a7Ctx, a7UIPage }) => {
-    test.setTimeout(600_000);
+    test.setTimeout(60_000);
 
     await test.step('create keycloak client initial access token', async () => {
       await page.goto(keycloakInitialAccessTokenAddress);
@@ -200,25 +206,22 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
 
       await page.getByRole('button', { name: 'Add OAuth Client' }).click();
       await page.getByLabel('Identity Provider').click();
-      await page.getByTitle(dcrProviderName).click();
+      await page.getByRole('option', { name: dcrProviderName }).click();
       await page.locator('#redirect_uris_0_redirect_url').fill('*');
       await page
-        .locator('.ant-drawer-footer')
+        .getByTestId('drawer-footer')
         .locator('button', { hasText: 'Add' })
         .click();
-      await expect(
-        page.locator('.ant-alert', { hasText: 'OAuth Client Created' }),
-      ).toBeVisible({ timeout: 5000 });
+      await expect(uiGetOAuthAlert(page, 'OAuth Client Created')).toBeVisible({
+        timeout: 5000,
+      });
 
-      clientId = await page
-        .locator('.ant-space-item', { hasText: 'Client ID' })
-        .locator('input')
-        .inputValue();
+      clientId = await uiGetOAuthAlertInput(page, 'Client ID').inputValue();
 
-      clientSecret = await page
-        .locator('.ant-space-item', { hasText: 'Client Secret' })
-        .locator('input')
-        .inputValue();
+      clientSecret = await uiGetOAuthAlertInput(
+        page,
+        'Client Secret',
+      ).inputValue();
     });
 
     await test.step('subscribe product in api hub', async () => {
@@ -265,15 +268,16 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
       await page.getByRole('tab', { name: 'OAuth' }).click();
 
       // Open dropdown menu and click Delete
-      const oauthRow = page.locator('.ant-table-row', { hasText: clientId });
-      const moreMenuBtn = oauthRow.locator('button.ant-dropdown-trigger');
+      const oauthRow = page.locator('tr', { hasText: clientId });
+      const moreMenuBtn = uiGetMoreOptionsButton(oauthRow);
+      await expect(moreMenuBtn).toBeVisible();
       await moreMenuBtn.click();
       await page.getByRole('menuitem', { name: 'Delete' }).click();
 
       await page.locator('[id="inputText"]').fill(clientId);
-      await page.getByRole('button', { name: 'Confirm' }).click();
+      await page.getByRole('button', { name: 'Save' }).click();
       await expect(
-        page.locator('.ant-table-cell', { hasText: clientId }),
+        page.locator('td', { hasText: clientId }),
       ).toBeHidden();
 
       await expectGatewayStatus(validToken, 401);

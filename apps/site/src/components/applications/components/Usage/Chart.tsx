@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from 'react';
 import * as echarts from 'echarts';
 import type { EChartsOption } from 'echarts';
 import { cloneDeep } from 'lodash-es';
+import { useTheme } from 'next-themes';
 
 import { processRealData } from './utils';
 import type { UsageDataPoint } from '@/types/portal-sdk';
@@ -35,6 +36,15 @@ const Chart: React.FC<ChartProps> = ({
 }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const chartInstance = useRef<echarts.ECharts | null>(null);
+
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+  // Theme-aware colors so the chart (and its loading mask) match the app theme
+  // instead of flashing the ECharts default light palette in dark mode.
+  const textColor = isDark ? '#e5e5e5' : '#333333';
+  const axisLineColor = isDark ? 'rgba(255,255,255,0.25)' : '#cccccc';
+  const splitLineColor = isDark ? 'rgba(255,255,255,0.1)' : '#eeeeee';
+  const maskColor = isDark ? 'rgba(38,38,38,0.6)' : 'rgba(255,255,255,0.8)';
 
   // Process data
   const { timeAxis, productNames, seriesData, totalCalls } = processRealData(
@@ -94,10 +104,19 @@ const Chart: React.FC<ChartProps> = ({
 
     return {
       color: coolColors,
+      textStyle: {
+        color: textColor,
+      },
       title: {
         text: 'Requests',
         subtext: `Total requests: ${totalCalls.toLocaleString()}`,
         left: 'center',
+        textStyle: {
+          color: textColor,
+        },
+        subtextStyle: {
+          color: isDark ? '#9ca3af' : '#999999',
+        },
       },
 
       tooltip: {
@@ -142,6 +161,9 @@ const Chart: React.FC<ChartProps> = ({
       legend: {
         data: reversedProductNames,
         bottom: 10,
+        textStyle: {
+          color: textColor,
+        },
       },
       grid: {
         left: '3%',
@@ -154,16 +176,27 @@ const Chart: React.FC<ChartProps> = ({
         data: timeAxis,
         axisLabel: {
           rotate: 30,
+          color: textColor,
           formatter: function (value: string) {
             return value;
           },
+        },
+        axisLine: {
+          lineStyle: { color: axisLineColor },
         },
       },
       yAxis: {
         type: 'value',
         minInterval: 1,
         axisLabel: {
+          color: textColor,
           formatter: '{value}',
+        },
+        axisLine: {
+          lineStyle: { color: axisLineColor },
+        },
+        splitLine: {
+          lineStyle: { color: splitLineColor },
         },
       },
       series,
@@ -185,8 +218,8 @@ const Chart: React.FC<ChartProps> = ({
       chartInstance.current.showLoading({
         text: 'Loading...',
         color: '#1890ff',
-        textColor: '#000',
-        maskColor: 'rgba(255, 255, 255, 0.8)',
+        textColor: textColor,
+        maskColor: maskColor,
         zlevel: 0,
       });
     } else {
@@ -209,7 +242,7 @@ const Chart: React.FC<ChartProps> = ({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, startTime, endTime, data]);
+  }, [loading, startTime, endTime, data, resolvedTheme]);
 
   return (
     <div

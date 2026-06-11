@@ -1,16 +1,24 @@
-import { PATH_ROOT } from '@site/constants/path-prefix';
-import { test } from '../fixture';
 import { expect } from '@playwright/test';
-import { uiAddAPIKeyCredential, uiDeleteCredential, uiGoToAPICredentials, uiVerifyToast } from '../utils/ui';
+import { PATH_ROOT } from '@site/constants/path-prefix';
+
+import { test } from '../fixture';
+import {
+  uiAddAPIKeyCredential,
+  uiClickCellButton,
+  uiDeleteCredential,
+  uiGetMoreOptionsButton,
+  uiGoToAPICredentials,
+  uiVerifyToast,
+} from '../utils/ui';
 
 test.describe('Test Credential CRUD', () => {
   test('can visit credential', async ({ page }) => {
     await uiGoToAPICredentials(page);
     await expect(
-      page.getByRole('main').getByText('Authentication Type')
+      page.getByRole('main').getByText('Authentication Type'),
     ).toBeVisible();
     await expect(
-      page.getByRole('tab', { name: 'Key Authentication' })
+      page.getByRole('tab', { name: 'Key Authentication' }),
     ).toBeVisible();
   });
 
@@ -19,43 +27,38 @@ test.describe('Test Credential CRUD', () => {
     await uiGoToAPICredentials(page);
     await uiAddAPIKeyCredential(page);
     const nameCell = page.getByRole('cell', { name: defaultKeyAuth }).first();
-    const defaultRow = nameCell.locator('xpath=..');
+    const defaultRow = nameCell.locator('xpath=ancestor::tr[1]');
 
     await test.step('check detail drawer and rotate key', async () => {
       //# check detail drawer
       // click name will show credential detail
-      await nameCell.locator('a').click();
+      await uiClickCellButton(nameCell, defaultKeyAuth);
       const detailTitle = page.getByText(
-        'Key Authentication Credential Detail'
+        'Key Authentication Credential Detail',
       );
       await expect(detailTitle).toBeVisible();
-      // mask and copy button should be visible
-      const keyMask = page.getByText('********');
-      await expect(keyMask).toBeVisible();
-      const copyBtn = keyMask.locator('xpath=..').locator('button');
-      await expect(copyBtn).toBeVisible();
-      // click copy btn and check copied key
-      await copyBtn.click();
-      const oldCopiedKey = await page.evaluate(() =>
-        navigator.clipboard.readText()
-      );
-      expect(oldCopiedKey).not.toBeNull();
+      // the key is view-once: the detail shows a notice instead of the value
+      await expect(page.getByText(/only shown once/i)).toBeVisible();
+      await expect(page.getByText('********')).toBeHidden();
       // close detail drawer
       await page
-        .locator('.ant-drawer-footer')
+        .getByTestId('drawer-footer')
         .getByRole('button', { name: 'Close' })
         .click();
       await expect(detailTitle).toBeHidden();
 
       //# check rotate key
-      const rotateBtn = defaultRow.getByRole('button', { name: 'Rotate' });
+      const moreMenuBtn = uiGetMoreOptionsButton(defaultRow);
+      await expect(moreMenuBtn).toBeVisible();
+      await moreMenuBtn.click();
+      const rotateBtn = page.getByRole('menuitem', { name: 'Rotate' });
       await expect(rotateBtn).toBeVisible();
       await rotateBtn.click();
 
       // rotate modal should show
       const rotateTitle = page.getByText(
         'Rotate Key Authentication Credential',
-        { exact: true }
+        { exact: true },
       );
       await expect(rotateTitle).toBeVisible();
       // alert also should show
@@ -77,43 +80,24 @@ test.describe('Test Credential CRUD', () => {
       // rotate modal should not exist
       await expect(rotateTitle).toBeHidden();
 
-      //# check detail again, old key should not equal to current key
-      await nameCell.locator('a').click();
-      await expect(detailTitle).toBeVisible();
-      // mask and copy button should be visible
-      await expect(keyMask).toBeVisible();
-      await expect(copyBtn).toBeVisible();
-      // click copy btn and check copied key
-      await copyBtn.click();
-      const curCopiedKey = await page.evaluate(() =>
-        navigator.clipboard.readText()
-      );
-      expect(curCopiedKey).not.toBeNull();
-      expect(curCopiedKey).not.toEqual(oldCopiedKey);
-      // close detail drawer
-      await page
-        .locator('.ant-drawer-footer')
-        .getByRole('button', { name: 'Close' })
-        .click();
-      await expect(detailTitle).toBeHidden();
+      // the regenerated key is revealed once after rotation (view-once)
+      await expect(
+        page.getByText(/the old key has been invalidated/i),
+      ).toBeVisible();
     });
 
-    const moreMenuBtn = defaultRow.locator('button.ant-dropdown-trigger');
+    const editBtn = defaultRow.getByRole('button', { name: 'Edit' });
+    const moreMenuBtn = uiGetMoreOptionsButton(defaultRow);
 
     const nameInput = page.locator('input#name');
     const editBasicsTitle = page.getByText(
       'Edit Key Authentication Credential',
-      { exact: true }
+      { exact: true },
     );
 
     const openEditBasicsDrawer = async () => {
-      await expect(moreMenuBtn).toBeVisible();
-      await moreMenuBtn.click();
-      const editBasicsBtn = page.getByRole('menuitem', {
-        name: 'Edit Basics',
-      });
-      await expect(editBasicsBtn).toBeVisible();
-      await editBasicsBtn.click();
+      await expect(editBtn).toBeVisible();
+      await editBtn.click();
       // edit basics drawer should show
       await expect(editBasicsTitle).toBeVisible();
     };
@@ -149,7 +133,7 @@ test.describe('Test Credential CRUD', () => {
       await expect(nameInput).toHaveValue(defaultKeyAuth);
 
       // labels
-      const labelAddBtn = page.getByRole('button', { name: 'plus Add' });
+      const labelAddBtn = page.getByTestId('add-label-btn');
       await labelAddBtn.click();
       // add label
       await page.locator('input#labels_0_key').fill('key1');
@@ -195,6 +179,7 @@ test.describe('Test Credential CRUD', () => {
     });
 
     await test.step('show delete', async () => {
+      await expect(moreMenuBtn).toBeVisible();
       await moreMenuBtn.click();
       const deleteBtn = page.getByRole('menuitem', {
         name: 'Delete',
@@ -230,7 +215,7 @@ test.describe('Test Credential CRUD', () => {
       await expect(addTitle).toBeVisible();
 
       //# click add directly, should cannot submit
-      const addSubmit = page.getByRole('button', { name: 'Add', exact: true });
+      const addSubmit = page.getByTestId('drawer-footer').getByRole('button', { name: 'Add', exact: true });
       await expect(addSubmit).toBeVisible();
       await addSubmit.click();
       // name is required
@@ -247,8 +232,8 @@ test.describe('Test Credential CRUD', () => {
       // key alert should show
       await expect(
         page.getByText(
-          'A random key will be automatically generated. You cannot specify a custom key value.'
-        )
+          'A random key will be automatically generated. You cannot specify a custom key value.',
+        ),
       ).toBeVisible();
 
       // submit

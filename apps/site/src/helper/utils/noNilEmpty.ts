@@ -1,16 +1,16 @@
 import { isNil, isEmpty } from 'lodash-es';
 
-export const noNilEmpty = (...vals: any[]) =>
+export const noNilEmpty = (...vals: unknown[]) =>
   vals.every((v) => !isNil(v) && !isEmpty(v));
 
-export const noNilEmptyArray = (vals: any[] | undefined) => {
+export const noNilEmptyArray = (vals: unknown[] | undefined) => {
   if (isNil(vals) || isEmpty(vals)) {
     return false;
   }
   return vals.every((v) => !isNil(v) && !isEmpty(v));
 };
 
-export const someNoNilEmpty = (...vals: any[]) =>
+export const someNoNilEmpty = (...vals: unknown[]) =>
   vals.some((v) => !isNil(v) && !isEmpty(v));
 
 /**

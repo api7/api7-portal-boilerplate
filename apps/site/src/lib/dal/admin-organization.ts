@@ -24,6 +24,7 @@ export type ListAdminOrganizationsParams = {
   page: number;
   pageSize: number;
   search?: string;
+  userId?: string;
   orderBy: 'created_at';
   direction: 'asc' | 'desc';
 };
@@ -127,10 +128,20 @@ export const listAdminOrganizations = async ({
   page,
   pageSize,
   search,
-  orderBy,
+  userId,
   direction,
 }: ListAdminOrganizationsParams) => {
-  const where = buildOrganizationWhere(search);
+  const searchWhere = buildOrganizationWhere(search);
+  const userWhere = userId
+    ? inArray(
+        organization.id,
+        db
+          .select({ id: member.organizationId })
+          .from(member)
+          .where(eq(member.userId, userId)),
+      )
+    : undefined;
+  const where = searchWhere && userWhere ? and(searchWhere, userWhere) : (searchWhere ?? userWhere);
   const offset = (page - 1) * pageSize;
   const orderColumn = organization.createdAt;
   const orderDirection =
