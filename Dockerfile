@@ -32,7 +32,7 @@ RUN --mount=type=cache,id=nextjs-cache,target=/app/apps/site/.next/cache \
     corepack enable pnpm && \
     cd apps/site && \
     pnpm run build && \
-    pnpm dlx esbuild ./scripts/preflight.ts --bundle --platform=node --outfile=dist/preflight.js
+    pnpm dlx esbuild ./scripts/preflight.ts --bundle --platform=node --alias:server-only=./scripts/empty-module.js --outfile=dist/preflight.js
 
 FROM base AS runner
 WORKDIR /app

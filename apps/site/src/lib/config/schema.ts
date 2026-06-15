@@ -1,7 +1,9 @@
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const safeRegex = require('safe-regex2') as (pattern: string | RegExp) => boolean
-
 import { z } from 'zod';
+
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const safeRegex = require('safe-regex2') as (
+  pattern: string | RegExp,
+) => boolean;
 
 export const configSchema = z.object({
   portal: z.object({
@@ -90,13 +92,14 @@ export const configSchema = z.object({
             z.strictObject({
               domains: z.array(
                 z.string().refine((val) => {
-                  const trimmed = val.trim()
-                  if (trimmed.length === 0 || trimmed.length > 200) return false
+                  const trimmed = val.trim();
+                  if (trimmed.length === 0 || trimmed.length > 200)
+                    return false;
                   try {
-                    const re = new RegExp(trimmed)
-                    return safeRegex(re)
+                    const re = new RegExp(trimmed);
+                    return safeRegex(re);
                   } catch {
-                    return false
+                    return false;
                   }
                 }, "must be a valid, safe regular expression ≤200 chars (e.g. '@example\\\\.com$')"),
               ),
@@ -130,17 +133,11 @@ export const configSchema = z.object({
             .prefault({}),
         })
         .prefault({}),
-      tosURL: z
-        .url()
-        .optional()
-        .describe(
-          'URL of the Terms of Service page. When set, users must accept the terms before signing up.',
-        ),
-      beforeSignUpButtonHtml: z
+      signUpConsentLabel: z
         .string()
         .optional()
         .describe(
-          'Optional HTML rendered before the Sign Up button. Only use trusted static content.',
+          'HTML label for the sign-up consent checkbox. Supports multiple links. Only use trusted static content.',
         ),
     })
     .partial()

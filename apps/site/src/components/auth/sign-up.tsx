@@ -42,7 +42,7 @@ export type SignUpProps = {
   className?: string;
   socialLayout?: SocialLayout;
   socialPosition?: 'top' | 'bottom';
-  tosURL?: string;
+  signUpConsentLabel?: string;
 };
 
 /**
@@ -63,7 +63,7 @@ export function SignUp({
   className,
   socialLayout,
   socialPosition = 'bottom',
-  tosURL,
+  signUpConsentLabel,
 }: SignUpProps) {
   const {
     additionalFields,
@@ -142,10 +142,10 @@ export function SignUp({
       return;
     }
 
-    if (tosURL && formData.get('tosAccepted') !== 'on') {
+    if (signUpConsentLabel && formData.get('tosAccepted') !== 'on') {
       setFieldErrors((prev) => ({
         ...prev,
-        tosAccepted: 'You must accept the Terms of Service to continue.',
+        tosAccepted: 'You must accept the above terms to continue.',
       }));
       return;
     }
@@ -427,7 +427,7 @@ export function SignUp({
                     ),
                 )}
 
-                {tosURL && (
+                {signUpConsentLabel && (
                   <Field data-invalid={!!fieldErrors.tosAccepted}>
                     <div className="flex items-start gap-2">
                       <Checkbox
@@ -445,18 +445,10 @@ export function SignUp({
                       />
                       <label
                         htmlFor="tosAccepted"
-                        className="text-sm leading-snug cursor-pointer select-none"
-                      >
-                        I agree to the{' '}
-                        <a
-                          href={tosURL}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="underline underline-offset-4 hover:text-primary"
-                        >
-                          Terms of Service
-                        </a>
-                      </label>
+                        className="text-sm leading-snug cursor-pointer select-none [&_a]:underline [&_a]:underline-offset-4 [&_a:hover]:text-primary"
+                        // IMPORTANT: Only use trusted static content from config
+                        dangerouslySetInnerHTML={{ __html: signUpConsentLabel }}
+                      />
                     </div>
                     <FieldError>{fieldErrors.tosAccepted}</FieldError>
                   </Field>

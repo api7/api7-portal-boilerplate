@@ -1,3 +1,5 @@
+import 'server-only';
+
 import { lilconfigSync } from "lilconfig";
 import { parse } from "yaml";
 import { z } from "zod";

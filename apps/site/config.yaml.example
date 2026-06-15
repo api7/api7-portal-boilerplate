@@ -59,7 +59,6 @@ auth:
   #    keyAuth: false                                           # Show Key Authentication tab (default: true)
   #    basicAuth: false                                         # Show Basic Authentication tab (default: true)
   #    oauth: false                                             # Show OAuth tab (default: true)
-  # tosURL: "https://example.com/terms"                      # When set, users must accept Terms of Service before signing up
-  # beforeSignUpButtonHtml: >-
-  #   <p>By continuing, you acknowledge Example's <a href="https://example.com/terms" target="_blank" rel="noopener noreferrer">Terms of use</a> and the <a href="https://example.com/privacy" target="_blank" rel="noopener noreferrer">Privacy policy</a>.</p>
-  # IMPORTANT: This value is injected as raw HTML. Only use trusted static content.
+  # signUpConsentLabel: >-
+  #   I agree to the <a href="https://example.com/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a> and <a href="https://example.com/privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+  # IMPORTANT: signUpConsentLabel is injected as raw HTML. Only use trusted static content.

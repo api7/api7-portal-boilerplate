@@ -24,7 +24,7 @@ export default async function AuthPage({
         />
         <span className="text-xl font-semibold">{app.name}</span>
       </div>
-      <Auth path={path} tosURL={app.tosURL} />
+      <Auth path={path} signUpConsentLabel={app.signUpConsentLabel} />
     </div>
   );
 }

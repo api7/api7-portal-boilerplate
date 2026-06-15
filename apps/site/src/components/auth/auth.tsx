@@ -19,7 +19,7 @@ export type AuthProps = {
   socialPosition?: 'top' | 'bottom';
   /** @remarks `AuthView` */
   view?: AuthView;
-  tosURL?: string;
+  signUpConsentLabel?: string;
 };
 
 /**
@@ -57,7 +57,7 @@ export function Auth({
   socialLayout,
   socialPosition,
   view,
-  tosURL: tosUrl,
+  signUpConsentLabel,
 }: AuthProps) {
   const { basePaths, emailAndPassword, plugins, viewPaths, navigate } =
     useAuth();
@@ -156,7 +156,7 @@ export function Auth({
       className={className}
       socialLayout={socialLayout}
       socialPosition={socialPosition}
-      tosURL={tosUrl}
+      signUpConsentLabel={signUpConsentLabel}
     />
   );
 }
