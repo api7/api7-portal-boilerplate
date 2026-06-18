@@ -10,10 +10,7 @@ import path from 'node:path';
 
 import { expect } from '@playwright/test';
 import {
-  API_APPLICATIONS,
-  API_CREDENTIALS,
   API_PREFIX,
-  API_SUBSCRIPTIONS,
   AUTH_BASE_PATH,
 } from '@site/constants/api-prefix';
 import {
@@ -316,6 +313,7 @@ test.describe('Role Control - Member Read-Only', () => {
     };
 
     const orgId = await getActiveOrganizationId(ctx);
+    const ownerSlug = await getActiveOrganizationSlug(ctx);
     const outputDir = test.info().project.outputDir;
     const memberStatePath = path.resolve(
       outputDir,
@@ -333,10 +331,15 @@ test.describe('Role Control - Member Read-Only', () => {
       },
     });
 
-    await expectMemberWriteForbidden(memberCtx, 'POST', API_APPLICATIONS, {
-      name: 'ForbiddenApp',
-      desc: 'Should fail',
-    });
+    await expectMemberWriteForbidden(
+      memberCtx,
+      'POST',
+      `${API_PREFIX}/${ownerSlug}/applications`,
+      {
+        name: 'ForbiddenApp',
+        desc: 'Should fail',
+      },
+    );
 
     await memberCtx.dispose();
   });
@@ -386,7 +389,7 @@ test.describe('Role Control - Member Read-Only', () => {
     await expectMemberWriteForbidden(
       memberCtx,
       'DELETE',
-      `${API_APPLICATIONS}/${app.id}`,
+      `${API_PREFIX}/${ownerSlug}/applications/${app.id}`,
     );
 
     await memberCtx.dispose();
@@ -429,11 +432,16 @@ test.describe('Role Control - Member Read-Only', () => {
       },
     });
 
-    await expectMemberWriteForbidden(memberCtx, 'POST', API_CREDENTIALS, {
-      name: 'ForbiddenCred',
-      auth_method: 'key-auth',
-      application_id: appId,
-    });
+    await expectMemberWriteForbidden(
+      memberCtx,
+      'POST',
+      `${API_PREFIX}/${ownerSlug}/credentials`,
+      {
+        name: 'ForbiddenCred',
+        auth_method: 'key-auth',
+        application_id: appId,
+      },
+    );
 
     await memberCtx.dispose();
   });
@@ -446,20 +454,9 @@ test.describe('Role Control - Member Read-Only', () => {
     const testId = `member-api-sub-${Date.now()}`;
 
     const ownerSlug = await getActiveOrganizationSlug(ctx);
-    const appsRes = await ctx.get(`${API_PREFIX}/${ownerSlug}/applications`);
-    const appsData = await appsRes.json();
-    const appId = appsData.list?.[0]?.id;
-    expect(appId).toBeTruthy();
 
-    const API_PRODUCTS = '/api/api_products';
-    const productsRes = await ctx.get(API_PRODUCTS);
-    const productsData = await productsRes.json();
-    const productId = productsData.list?.[0]?.id;
-    if (!productId) {
-      test.skip(true, 'No API product available for subscription test');
-      return;
-    }
-
+    // 403 comes from the proxy role check, before the portal API validates the
+    // request body — so fake IDs are sufficient here.
     const orgId = await getActiveOrganizationId(ctx);
     const memberAuth = {
       email: `member${testId}@test.example.com`,
@@ -484,10 +481,15 @@ test.describe('Role Control - Member Read-Only', () => {
       },
     });
 
-    await expectMemberWriteForbidden(memberCtx, 'POST', API_SUBSCRIPTIONS, {
-      api_products: [productId],
-      applications: [appId],
-    });
+    await expectMemberWriteForbidden(
+      memberCtx,
+      'POST',
+      `${API_PREFIX}/${ownerSlug}/subscriptions`,
+      {
+        api_products: ['fake-product-id'],
+        applications: ['fake-app-id'],
+      },
+    );
 
     await memberCtx.dispose();
   });

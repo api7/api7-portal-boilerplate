@@ -1,7 +1,8 @@
 import 'server-only';
 
-import { betterAuth } from 'better-auth';
+import { APIError, type BetterAuthPlugin, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
+import { createAuthMiddleware } from 'better-auth/api';
 import { nextCookies } from 'better-auth/next-js';
 import {
   GenericOAuthConfig,
@@ -16,6 +17,7 @@ import {
 import { AUTH_BASE_PATH } from '../../constants/api-prefix';
 import { getConfig } from '../config';
 import { db } from '../db';
+import { isSsoPolicyEmail } from './email-policy';
 import { getOrganizationPluginOptions } from './organization';
 
 const config = getConfig();
@@ -71,6 +73,42 @@ const getTestingConfig = () => {
   ] as const;
 };
 
+const SSO_POLICY_LOCAL_AUTH_PATHS = new Set([
+  '/sign-in/email',
+  '/sign-up/email',
+  '/sign-in/magic-link',
+  '/request-password-reset',
+]);
+
+const getEmailFromBody = (body: unknown): string | null => {
+  if (!body || typeof body !== 'object' || !('email' in body)) return null;
+  const email = (body as { email?: unknown }).email;
+  return typeof email === 'string' ? email : null;
+};
+
+const ssoPolicyEnforcement = (): BetterAuthPlugin => ({
+  id: 'sso-policy-enforcement',
+  hooks: {
+    before: [
+      {
+        matcher: (ctx) => {
+          if (!SSO_POLICY_LOCAL_AUTH_PATHS.has(ctx.path ?? '')) return false;
+          const email = getEmailFromBody(ctx.body);
+          return (
+            email !== null && isSsoPolicyEmail(email, config.auth.sso.providers)
+          );
+        },
+        handler: createAuthMiddleware(async () => {
+          throw APIError.from('FORBIDDEN', {
+            code: 'SSO_REQUIRED_FOR_EMAIL_DOMAIN',
+            message: 'This email domain requires SSO sign in.',
+          });
+        }),
+      },
+    ],
+  },
+});
+
 const getTwoFactorConfig = () => {
   const twoFactorEnabled = config.auth.twoFactor.enabled;
   if (!twoFactorEnabled) return [];
@@ -86,7 +124,9 @@ const allowedHosts = (config.app.trustedOrigins ?? []).flatMap((origin) => {
   try {
     return [new URL(origin).host];
   } catch (e) {
-    console.warn(`[auth] Skipping malformed trustedOrigin "${origin}": ${(e as Error).message}`);
+    console.warn(
+      `[auth] Skipping malformed trustedOrigin "${origin}": ${(e as Error).message}`,
+    );
     return [];
   }
 });
@@ -107,9 +147,14 @@ const fallbackProtocol = (() => {
 
 export const auth = betterAuth({
   appName: config.app.name,
-  baseURL: allowedHosts.length > 0
-    ? { allowedHosts, fallback: config.app.baseURL, protocol: fallbackProtocol }
-    : config.app.baseURL,
+  baseURL:
+    allowedHosts.length > 0
+      ? {
+          allowedHosts,
+          fallback: config.app.baseURL,
+          protocol: fallbackProtocol,
+        }
+      : config.app.baseURL,
   trustedOrigins: config.app.trustedOrigins,
   basePath: AUTH_BASE_PATH,
   // In testing, many parallel workers share the same IP, easily hitting the
@@ -142,6 +187,7 @@ export const auth = betterAuth({
       ),
     ),
     ...getGenericOAuthPlugin(),
+    ssoPolicyEnforcement(),
     ...getTestingConfig(),
     nextCookies(),
   ],

@@ -34,10 +34,15 @@ export function TwoFactorView({ className }: TwoFactorViewProps) {
 
       setIsPending(true)
       try {
-        await typedAuthClient.twoFactor.verifyTotp({
+        const { error } = await typedAuthClient.twoFactor.verifyTotp({
           code: submitCode,
           trustDevice
         })
+        if (error) {
+          toast.error(error.message || "Invalid code. Please try again.")
+          setCode("")
+          return
+        }
         navigate({ to: redirectTo })
       } catch (err) {
         toast.error(

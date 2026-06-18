@@ -32,6 +32,7 @@ async function checkPortal(portalConfig: { url: string; token: string }) {
 
 async function checkAndMigrateDb(dbConfig: {
   url: string;
+  schema?: string;
   pool?: object;
   ssl?: boolean | object;
 }) {
@@ -40,6 +41,8 @@ async function checkAndMigrateDb(dbConfig: {
     connectionString: dbConfig.url,
     ...dbConfig.pool,
     ssl: dbConfig.ssl,
+    // Explicit schema overrides any search_path set in the connection URL.
+    ...(dbConfig.schema && { options: `-c search_path=${dbConfig.schema}` }),
   });
 
   const client = await pool.connect();
@@ -49,7 +52,11 @@ async function checkAndMigrateDb(dbConfig: {
   const db = drizzle(pool);
 
   console.log('Running migrations...');
-  await migrate(db, { migrationsFolder: './drizzle' });
+  await migrate(db, {
+    migrationsFolder: './drizzle',
+    migrationsTable: '__drizzle_migrations',
+    migrationsSchema: dbConfig.schema ?? 'public',
+  });
   console.log('Migrations completed!');
 
   await pool.end();

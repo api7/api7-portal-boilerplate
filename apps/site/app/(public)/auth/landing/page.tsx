@@ -46,19 +46,27 @@ export default function LandingPage() {
 
       <div className="space-y-6">
         <Card>
-          <CardContent className="p-6 flex flex-col gap-4">
+          <CardContent className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-10 h-10 rounded-full bg-primary/10">
-                <Plus className="w-5 h-5 text-primary" />
+              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
+                <Plus className="h-5 w-5 text-primary" />
               </div>
               <div>
-                <h2 className="font-semibold text-foreground">Add a new organization</h2>
-                <p className="text-sm text-muted-foreground">Set up a new organization to start collaborating with your team</p>
+                <h2 className="font-semibold text-foreground">
+                  Add a new organization
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Set up a new organization to start collaborating with your team
+                </p>
               </div>
             </div>
-            <div className="flex justify-center">
+            <div className="flex w-full justify-start sm:w-auto sm:justify-end">
               <CreateOrganizationDialog open={open} onOpenChange={onOpenChange} />
-              <Button size="lg" className="w-40" onClick={() => setOpen(true)}>
+              <Button
+                size="lg"
+                className="w-full sm:w-40"
+                onClick={() => setOpen(true)}
+              >
                 <PlusIcon />
                 Add
               </Button>

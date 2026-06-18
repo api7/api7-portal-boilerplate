@@ -12,6 +12,15 @@ export const configSchema = z.object({
   }),
   db: z.object({
     url: z.string().min(1, 'Database URL is required'),
+    schema: z
+      .string()
+      .regex(
+        /^[a-zA-Z_][a-zA-Z0-9_$]*$/,
+        'must be a valid PostgreSQL identifier (start with a letter or underscore; only letters, digits, underscores, and dollar signs allowed)',
+      )
+      .max(63, 'PostgreSQL identifiers are limited to 63 characters')
+      .optional()
+      .describe('PostgreSQL schema name (e.g. "portal"). Sets search_path on every connection.'),
     pool: z
       .object({
         max: z.number().int().positive(),

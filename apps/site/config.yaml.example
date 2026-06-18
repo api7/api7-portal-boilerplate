@@ -11,6 +11,9 @@ portal:
 
 db:
   url: ""                                                    # Required, no default
+  # schema: portal                                           # Optional, PostgreSQL schema name (default: public).
+                                                             # Sets search_path on every connection; removes the need
+                                                             # to embed options=-c%20search_path=... in the URL.
   # pool:                                                    # db connection pooling
     # max: 20
     # min: 0

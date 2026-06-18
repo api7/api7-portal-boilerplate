@@ -13,6 +13,8 @@ const pool = new Pool({
   connectionTimeoutMillis: config.db.pool.connectionTimeout,
   allowExitOnIdle: config.db.pool.allowExitOnIdle,
   ssl: config.db.ssl,
+  // Explicit schema overrides any search_path set in the connection URL options.
+  ...(config.db.schema && { options: `-c search_path=${config.db.schema}` }),
 });
 
 export const db = drizzle(pool, { schema });

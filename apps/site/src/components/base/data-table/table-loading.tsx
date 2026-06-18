@@ -2,6 +2,7 @@ import { memo } from 'react';
 
 import { useDebounce } from 'ahooks';
 
+import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
 type TableLoadingProps = {
@@ -20,7 +21,7 @@ const TableLoading = ({ isOpen, ...rootProps }: TableLoadingProps) => {
         rootProps.className,
       )}
     >
-      <div className="loading loading-spinner loading-lg" />
+      <Spinner className="size-8" />
     </div>
   );
 };

@@ -67,15 +67,25 @@ export function TwoFactorPasswordDialog({
     setIsPending(true)
     try {
       if (isTwoFactorEnabled) {
-        await typedAuthClient.twoFactor.disable({ password })
+        const { error } = await typedAuthClient.twoFactor.disable({ password })
+        if (error) {
+          setPasswordError(error.message || "Incorrect password. Please try again.")
+          setPassword("")
+          return
+        }
         toast.success("Two-factor authentication disabled.")
         handleClose()
         queryClient.invalidateQueries({ queryKey: authQueryKeys.session })
       } else {
-        const response = await typedAuthClient.twoFactor.enable({ password })
+        const { data, error } = await typedAuthClient.twoFactor.enable({ password })
+        if (error) {
+          setPasswordError(error.message || "Incorrect password. Please try again.")
+          setPassword("")
+          return
+        }
         handleClose()
-        setBackupCodes(response.data?.backupCodes ?? [])
-        setTotpURI(response.data?.totpURI ?? null)
+        setBackupCodes(data?.backupCodes ?? [])
+        setTotpURI(data?.totpURI ?? null)
         setTimeout(() => setShowBackupCodes(true), 250)
       }
     } catch (err) {

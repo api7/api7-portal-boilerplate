@@ -4,7 +4,7 @@ A customizable developer portal frontend for API7 Enterprise, built with Next.js
 
 ## Requirements
 
-- Node.js 22 LTS or 24 LTS recommended; Node.js 20.9.0 or later is the current package engine floor
+- Node.js 22 LTS or 24 LTS
 - pnpm 11 (enforced via `packageManager`)
 - PostgreSQL database
 
@@ -82,7 +82,7 @@ Detailed Docker build modes, runtime config mounting, preflight behavior, and E2
 ## Tech Stack
 
 - **Framework:** Next.js 16, React 18
-- **UI:** Ant Design 6, Tailwind CSS 4, DaisyUI
+- **UI:** Base UI / shadcn components, Tailwind CSS 4
 - **Database:** PostgreSQL + Drizzle ORM
 - **Auth:** Better Auth
 - **API Client:** @api7/portal-sdk, TanStack Query
