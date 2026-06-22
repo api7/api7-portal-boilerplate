@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { toast } from 'sonner';
 
-import Form from '@/components/slices/form/Form';
 import Drawer from '@/components/base/drawer';
 import { transformAPIRedirectURIsToForm, transformRedirectURIsToAPI } from '@/helper/utils/form-producer/redirect_uris';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
@@ -62,9 +61,9 @@ const OAuthEditDrawer = (props: OAuthEditDrawerProps) => {
 
   return (
     <Drawer open={open} title={title} onOk={() => form.handleSubmit()} loading={form.state.isSubmitting} okText="Save" {...rest}>
-      <Form onSubmit={() => form.handleSubmit()}>
+      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
         <FormItemOAuth form={form} isEdit />
-      </Form>
+      </form>
     </Drawer>
   );
 };

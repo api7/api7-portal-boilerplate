@@ -217,7 +217,7 @@ test.describe(
         .first();
       await expect(getOperationLink).toBeVisible({ timeout: 15000 });
       // detail page render well
-      await expect(page.getByText('ID:')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'View ID' })).toBeVisible();
       await expect(getOperationLink).toBeVisible();
 
       // Test Request to be hidden
@@ -298,7 +298,7 @@ test.describe(
         const title = page.getByTestId('meta-name').getByText(productName);
         await expect(title).toBeVisible();
         // doc
-        await expect(page.getByText('ID:')).toBeVisible();
+        await expect(page.getByRole('button', { name: 'View ID' })).toBeVisible();
         await expect(getOperationLink).toBeVisible();
       });
 

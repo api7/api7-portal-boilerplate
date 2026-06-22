@@ -7,6 +7,7 @@ import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
 import { useParams } from '../hooks/useParams';
 import { useSavePage } from '../hooks/useSavePage';
 import { portalClient } from '../portal-sdk/client';
+import { subscriptionListKey } from '@/lib/query/keys';
 
 type SubscriptionListParams = NonNullable<ListSubscriptionsData['query']>;
 export type UseSubscriptionListParams = WithSavePage<
@@ -34,7 +35,7 @@ export const useSubscriptionList = (params: UseSubscriptionListParams = {}) => {
     onParamsChange({ page: page < 1 ? 1 : page });
 
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
-    queryKey: ['subscriptions', orgSlug, paramsOnlyStr],
+    queryKey: subscriptionListKey(orgSlug, paramsOnlyStr),
     queryFn: () => portalClient.subscription.list(paramsOnlyStr),
     enabled: enabled !== false && isAuthenticated,
   });

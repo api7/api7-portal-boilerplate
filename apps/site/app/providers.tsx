@@ -6,8 +6,8 @@ import { organizationPlugin } from '@/lib/auth/organization-plugin';
 import type { ConfigStatus } from '@/lib/config/config-status';
 import { ConfigStatusProvider } from '@/lib/config/config-status-context';
 import { authClient } from '@/lib/auth/client';
-import { useActiveOrganizationSlug } from '@/lib/hooks/useActiveOrganizationSlug';
-import { queryClient } from '@/lib/req';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
+import { getQueryClient } from '@/lib/req';
 import { magicLinkPlugin } from '@better-auth-ui/core/plugins';
 import { twoFactorPlugin } from '@/lib/auth/two-factor-plugin';
 import { providerIcons } from '@better-auth-ui/react';
@@ -26,7 +26,7 @@ function AuthProviderWrapper({
   initialConfigStatus: ConfigStatus;
 }) {
   const router = useRouter();
-  const activeOrgSlug = useActiveOrganizationSlug();
+  const activeOrgSlug = useOrganizationSlug();
 
   // When the active org's slug changes (e.g. user renames it in settings),
   // replace the stale slug in the current URL so a page refresh won't 404.
@@ -115,6 +115,9 @@ function AuthProviderWrapper({
         plugins={plugins}
         {...(socialProviders && { socialProviders })}
         {...(initialConfigStatus.twoFactor && { twoFactor: ['totp'] as ['totp'] })}
+        {...(initialConfigStatus.requireEmailVerification && {
+          emailAndPassword: { requireEmailVerification: true },
+        })}
       >
         {children}
       </AuthProvider>
@@ -130,7 +133,7 @@ export function Providers({
   initialConfigStatus: ConfigStatus;
 }) {
   return (
-    <QueryClientProvider client={queryClient}>
+    <QueryClientProvider client={getQueryClient()}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
         <AuthProviderWrapper initialConfigStatus={initialConfigStatus}>{children}</AuthProviderWrapper>
       </ThemeProvider>

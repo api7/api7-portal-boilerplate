@@ -4,7 +4,7 @@ import { useCreation } from 'ahooks';
 import { CheckIcon, EllipsisVerticalIcon, XIcon } from 'lucide-react';
 import { useState } from 'react';
 
-import A7Label from '@/components/api7/api7-label';
+import { StatusBadge } from '@/components/base/status-badge';
 import { DataTable } from '@/components/base/data-table';
 import TimeFormat from '@/components/slices/time-format';
 import { Button } from '@/components/ui/button';
@@ -39,16 +39,16 @@ const RESULT_STATUS: Record<string, { color: string; text: string }> = {
 const renderStatus = (approval: Approval) => {
   if (approval.status === 'pending') {
     return (
-      <A7Label isStatus color="orange">
+      <StatusBadge color="orange">
         Pending
-      </A7Label>
+      </StatusBadge>
     );
   }
   const config = approval.result ? RESULT_STATUS[approval.result] : undefined;
   return (
-    <A7Label isStatus color={config?.color ?? 'gray'}>
+    <StatusBadge color={config?.color ?? 'gray'}>
       {config?.text ?? 'Finished'}
-    </A7Label>
+    </StatusBadge>
   );
 };
 

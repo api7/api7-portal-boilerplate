@@ -2,7 +2,9 @@ import { useQuery } from '@tanstack/react-query';
 
 import { useParams } from '../hooks/useParams';
 import { useSavePage } from '../hooks/useSavePage';
+import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
 import { portalClient } from '../portal-sdk/client';
+import { productListKey } from '@/lib/query/keys';
 import type { SubscriptionStatus } from '@/types/portal-sdk';
 import type { WithSavePage } from '@/types/utils';
 
@@ -16,6 +18,7 @@ type ProductListParams = WithSavePage<{
 }>;
 
 const useProductList = (p: ProductListParams = {}) => {
+  const orgSlug = useOrganizationSlug();
   const { savePage = false, initParams = {} } = p;
   const { paramsKeepNum, updateParams } = useParams<Params>(initParams);
   const { onParamsChange } = useSavePage<TableParams>({
@@ -25,8 +28,9 @@ const useProductList = (p: ProductListParams = {}) => {
 
   const goToPage = (page: number) =>
     onParamsChange({ page: page < 1 ? 1 : page });
+  const queryKey = productListKey(orgSlug, paramsKeepNum);
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
-    queryKey: ['products', paramsKeepNum],
+    queryKey,
     queryFn: () => portalClient.apiProduct.list(paramsKeepNum),
   });
 

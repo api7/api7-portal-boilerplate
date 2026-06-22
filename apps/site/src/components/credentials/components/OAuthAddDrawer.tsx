@@ -13,7 +13,6 @@ import { omit } from 'lodash-es';
 import { TrashIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
-import Form from '@/components/slices/form/Form';
 import Drawer from '@/components/base/drawer';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +25,7 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { transformRedirectURIsToAPI } from '@/helper/utils/form-producer/redirect_uris';
-import { cn } from '@/helper/utils/tailwind';
+import { cn } from '@/lib/utils';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
 import useDCRProviderList from '@/lib/query/useDCRProviderList';
@@ -249,9 +248,9 @@ const OAuthAddDrawer = (
       loading={form.state.isSubmitting}
       {...rest}
     >
-      <Form onSubmit={() => form.handleSubmit()}>
+      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
         <FormItemOAuth form={form} />
-      </Form>
+      </form>
     </Drawer>
   );
 };

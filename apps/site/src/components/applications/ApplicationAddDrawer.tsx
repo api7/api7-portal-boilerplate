@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { toast } from 'sonner';
 
-import Form from '@/components/slices/form/Form';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
 import Drawer from '@/components/base/drawer';
 import { transformFormLabelToAPI } from '@/helper/utils/form-producer/labels';
@@ -47,13 +46,12 @@ const ApplicationAddDrawer = (props: UseDisclosureReturn) => {
       loading={form.state.isSubmitting}
       {...rest}
     >
-      <Form onSubmit={() => form.handleSubmit()}>
+      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
         <FormPartBasics
           form={form}
           labelProps={{ resourceType: 'developer_application' }}
-          isChunk={false}
         />
-      </Form>
+      </form>
     </Drawer>
   );
 };

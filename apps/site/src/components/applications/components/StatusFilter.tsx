@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table';
 
-import A7Label from '@/components/api7/api7-label';
+import { StatusBadge } from '@/components/base/status-badge';
 import type { SubscriptionStatus } from '@/types/portal-sdk';
 
 export const PRODUCT_STATUS_CONFIG = {
@@ -33,9 +33,9 @@ const StatusDisplay = ({ status, statusConfig }: StatusDisplayProps) => {
   if (!config) return null;
   return (
     <div className="w-fit">
-      <A7Label isStatus color={config.color}>
+      <StatusBadge color={config.color}>
         {config.text}
-      </A7Label>
+      </StatusBadge>
     </div>
   );
 };

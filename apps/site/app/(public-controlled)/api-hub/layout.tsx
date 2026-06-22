@@ -1,6 +1,9 @@
+import { notFound } from 'next/navigation';
 import { Metadata } from 'next';
-import { generateSEO } from '@/lib/seo/metadata';
+
 import { PATH_API_HUB } from '@/constants/path-prefix';
+import { getConfig } from '@/lib/config';
+import { generateSEO } from '@/lib/seo/metadata';
 
 export const metadata: Metadata = generateSEO({
   title: 'API Hub',
@@ -14,5 +17,7 @@ export default function ApiHubLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const { app } = getConfig();
+  if (app.apiHub?.enabled === false) notFound();
   return children;
 }

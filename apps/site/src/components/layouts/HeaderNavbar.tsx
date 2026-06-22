@@ -13,6 +13,7 @@ import { cn } from '@/lib/utils';
 type HeaderNavbarProps = {
   title: string;
   authorized: boolean;
+  showApiHub: boolean;
 };
 
 const AnchorHoverAni = (
@@ -34,7 +35,7 @@ const AnchorHoverAni = (
   );
 };
 
-const HeaderNavbar = ({ title, authorized }: HeaderNavbarProps) => {
+const HeaderNavbar = ({ title, authorized, showApiHub }: HeaderNavbarProps) => {
   const router = useRouter();
   const pathname = usePathname();
   const orgSlug = useOrganizationSlug();
@@ -51,7 +52,7 @@ const HeaderNavbar = ({ title, authorized }: HeaderNavbarProps) => {
     return href.split('/').filter(Boolean)[0] || '';
   };
 
-  const navs = headerNavs;
+  const navs = headerNavs.filter((v) => v.href !== PATH_API_HUB || showApiHub);
 
   const hoverConf = (href: string, idx: number, className?: string, active?: boolean) => ({
     className: cn('nav', (active ?? activeHref === getNavKey(href)) && 'active', className),

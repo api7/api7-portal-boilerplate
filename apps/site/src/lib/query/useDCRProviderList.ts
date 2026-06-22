@@ -31,7 +31,7 @@ const useDCRProviderList = (p: ProductListParams = {}) => {
   const goToPage = (page: number) =>
     onParamsChange({ page: page < 1 ? 1 : page });
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
-    queryKey: ['products', paramsHash],
+    queryKey: ['portal', 'dcr-providers', paramsHash],
     queryFn: () => portalClient.dcrProvider.list(paramsKeepNum),
   });
 

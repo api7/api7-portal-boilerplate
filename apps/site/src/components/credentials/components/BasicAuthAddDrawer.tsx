@@ -5,7 +5,6 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
-import Form from '@/components/slices/form/Form';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -188,14 +187,13 @@ const BasicAuthAddDrawer = (props: BasicAuthAddDrawerProps) => {
       loading={form.state.isSubmitting}
       {...rest}
     >
-      <Form onSubmit={() => form.handleSubmit()}>
+      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
         <FormPartBasics
-          title="Credential Basics"
           form={form}
           labelProps={{ resourceType: 'developer_credential' }}
         />
         <FormItemBasicAuth form={form as unknown as BasicAuthSubForm} />
-      </Form>
+      </form>
     </Drawer>
   );
 };

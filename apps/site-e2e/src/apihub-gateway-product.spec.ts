@@ -176,7 +176,7 @@ test.describe(
           .first();
         await expect(getOperationLink).toBeVisible({ timeout: 15000 });
         // detail page render well
-        await expect(page.getByText('ID:')).toBeVisible();
+        await expect(page.getByRole('button', { name: 'View ID' })).toBeVisible();
         await expect(getOperationLink).toBeVisible();
         await getOperationLink.click();
         await expect(

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
 import { loadOrgNames } from '@/lib/approvals/enrich.server';
-import { isCurrentUserPlatformAdmin } from '@/lib/auth/platform-admin.server';
+import { getCurrentPlatformAdminSession } from '@/lib/auth/platform-admin.server';
 import { portal } from '@/lib/portal-sdk/server';
 import { APIError } from '@api7/portal-sdk';
 import type { ListApprovalsData } from '@api7/portal-sdk/unstable-types';
@@ -16,7 +16,7 @@ import type { ListApprovalsData } from '@api7/portal-sdk/unstable-types';
  * since that name only exists in this portal.
  */
 export async function GET(request: NextRequest) {
-  if (!(await isCurrentUserPlatformAdmin())) {
+  if (!(await getCurrentPlatformAdminSession())) {
     return NextResponse.json(
       { message: 'Forbidden. Approvals are restricted to platform admins.' },
       { status: 403 },

@@ -44,11 +44,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
+  const apiHubEnabled = app.apiHub?.enabled !== false;
+
   const staticPages: MetadataRoute.Sitemap = [
     { url: app.baseURL!, changeFrequency: 'weekly', priority: 1 },
-    { url: `${app.baseURL}${PATH_API_HUB}`, changeFrequency: 'daily', priority: 0.9 },
+    ...(apiHubEnabled
+      ? [{ url: `${app.baseURL}${PATH_API_HUB}`, changeFrequency: 'daily' as const, priority: 0.9 }]
+      : []),
     ...docPages,
   ];
+
+  if (!apiHubEnabled) return staticPages;
 
   const publicAccess = await getPublicAccess();
   if (!publicAccess) return staticPages;

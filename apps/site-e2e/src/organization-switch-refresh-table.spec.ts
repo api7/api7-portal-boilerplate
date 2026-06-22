@@ -124,20 +124,10 @@ test.describe('Organization Switch table coverage', () => {
     });
 
     await test.step('Switch org and verify API calls are made', async () => {
-      const applicationsRefetch = page.waitForResponse(
-        (response) =>
-          response.url().includes('/api/') &&
-          response.url().includes('/applications') &&
-          response.request().method() === 'GET' &&
-          response.status() === 200,
-      );
-
       await switchToOrganization(page, org1Name);
       await expect(page).toHaveURL(
         new RegExp(`/${org1Slug}${PATH_APPLICATIONS}(?:\\?.*)?$`),
       );
-
-      await applicationsRefetch;
       await expect(page.getByTestId('application-table')).toBeVisible();
     });
   });

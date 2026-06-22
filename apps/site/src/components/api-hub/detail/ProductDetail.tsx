@@ -1,12 +1,15 @@
 'use client';
 
-import { map, pick } from 'lodash-es';
+import { map } from 'lodash-es';
+import { useRouter } from 'next/navigation';
 
 import ProductExternalAPI from './ProductExternalAPI';
 import ProductGatewayAPI from './ProductGatewayAPI';
 import ProductSubscriptions from './ProductSubscriptions';
-import Back from '@/components/ui-legacy/back';
-import Meta, { type MetaProps } from '@/components/ui-legacy/meta';
+import { BadgeList } from '@/components/base/badge-list';
+import Back from '@/components/base/back';
+import { MetaCardAvatar } from '@/components/base/meta-card/avatar';
+import { MetaCard } from '@/components/base/meta-card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
@@ -16,7 +19,6 @@ import useProductDetail, {
 } from '@/lib/query/useProductDetail';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
 import { authClient } from '@/lib/auth/client';
 
 type Props = {
@@ -26,28 +28,33 @@ type Props = {
 
 type ReqProps = Pick<Props, 'req'>;
 
-const MetaPart = (props: ReqProps) => {
-  const { req } = props;
+const MetaPart = ({ req }: ReqProps) => {
   const finalTags =
     req.data?.type === 'external'
       ? req.data?.tags
       : map(req.data?.labels, (v, k) => `${k}:${v}`);
 
-  type BasicInfo = Required<Pick<MetaProps, 'name' | 'desc' | 'id'>>;
   return (
-    <div className="card-container">
-      <Meta
-        isLoading={req.isLoading}
-        {...(pick(req.data, ['name', 'desc', 'id']) as BasicInfo)}
-        {...(req.data?.type === 'gateway' && { src: req.data?.logo })}
-        labels={finalTags}
-      />
-    </div>
+    <MetaCard
+      isLoading={req.isLoading}
+      name={req.data?.name}
+      description={req.data?.desc}
+      viewID={req.data?.id ? { data: [{ id: req.data.id }] } : undefined}
+      avatar={
+        <MetaCardAvatar
+          name={req.data?.name ?? ''}
+          src={req.data?.type === 'gateway' ? req.data?.logo : undefined}
+          isLoading={req.isLoading}
+        />
+      }
+      customLabels={
+        <BadgeList data={finalTags ?? []} />
+      }
+    />
   );
 };
 
-const OpenAPISpecTabContent = (props: Props) => {
-  const { req, id } = props;
+const OpenAPISpecTabContent = ({ req, id }: Props) => {
   const orgSlug = useOrganizationSlug();
   const subscribedApps = useSubscriptionList({
     api_product_id: id,

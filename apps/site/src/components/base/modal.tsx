@@ -1,4 +1,4 @@
-import Alert, { type AlertProps } from '@/components/ui-legacy/alert';
+import { Alert, type AlertProps } from '@/components/base/alert';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,

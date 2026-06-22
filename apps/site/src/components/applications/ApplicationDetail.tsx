@@ -8,8 +8,8 @@ import { useConfigStatus } from '@/lib/config/config-status-context';
 import ApplicationDeleteModal from '@/components/applications/ApplicationDeleteModal';
 import ApplicationEditDrawer from '@/components/applications/ApplicationEditDrawer';
 import { ApplicationCredentials } from '@/components/credentials';
-import Back from '@/components/ui-legacy/back';
-import { Meta } from '@/components/ui-legacy/meta-section';
+import Back from '@/components/base/back';
+import { MetaCard } from '@/components/base/meta-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import {
@@ -123,7 +123,7 @@ const ApplicationDetail = ({ id }: { id: string }) => {
           )
         }
       />
-      <Meta
+      <MetaCard
         {...req.data}
         viewID={{
           data: [{ id: req.data?.id ?? '', label: 'ID' }],

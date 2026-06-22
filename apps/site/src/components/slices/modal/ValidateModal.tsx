@@ -7,7 +7,7 @@ import { CheckIcon, CopyIcon } from 'lucide-react';
 import { useForm, useStore } from '@tanstack/react-form';
 import type { AnyFieldApi } from '@tanstack/react-form';
 
-import { type AlertProps } from '@/components/ui-legacy/alert';
+import { type AlertProps } from '@/components/base/alert';
 import Modal, { type ModalProps } from '@/components/base/modal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';

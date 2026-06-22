@@ -3,6 +3,7 @@ import { useBoolean, useDeepCompareEffect } from 'ahooks';
 
 import { useParams } from '../hooks/useParams';
 import { useSavePage } from '../hooks/useSavePage';
+import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
 import { portalClient } from '../portal-sdk/client';
 import type { WithSavePage } from '@/types/utils';
 
@@ -21,6 +22,7 @@ export type CredentialListParams = WithSavePage & {
 
 export type UseCredentialListReturnType = ReturnType<typeof useCredentialList>;
 export const useCredentialList = (params: CredentialListParams) => {
+  const orgSlug = useOrganizationSlug();
   const {
     savePage = true,
     enabled = true,
@@ -51,7 +53,7 @@ export const useCredentialList = (params: CredentialListParams) => {
   const goToPage = (page: number) =>
     onParamsChange({ page: page < 1 ? 1 : page });
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
-    queryKey: ['credentials', paramsOnlyStr],
+    queryKey: ['portal', 'org', orgSlug, 'application', paramsOnlyStr.application_id, 'credentials', paramsOnlyStr],
     placeholderData: keepPreviousData,
     queryFn: () => portalClient.credential.list(paramsOnlyStr),
     enabled: enabled && localEnabled,

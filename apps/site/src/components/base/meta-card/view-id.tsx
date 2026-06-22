@@ -64,7 +64,7 @@ export const ViewID: FC<ViewIDProps> = (props) => {
               </Button>
             }
           />
-          <PopoverContent align="center" side="top" className="w-100 text-xl">
+          <PopoverContent align="center" side="top" className="w-auto text-xl">
             {IDList}
           </PopoverContent>
         </Popover>

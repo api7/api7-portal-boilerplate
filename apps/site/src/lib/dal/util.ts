@@ -1,11 +1,13 @@
 import 'server-only';
 
+import { ensureListOrganizations, ensureSession } from '@better-auth-ui/react/server';
 import { PATH_AUTH, PATH_LANDING, PATH_LOGIN } from '@/constants/path-prefix';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
 
 import { auth } from '../auth/server';
+import { getQueryClient } from '../req';
 import { portal } from '../portal-sdk/server';
 
 /**
@@ -30,11 +32,9 @@ export const isPublicAccessEnabled = cache(
  */
 export const verifySession = cache(
   async (options: { redirect?: boolean } = { redirect: true }) => {
-    const session = await auth.api
-      .getSession({
-        headers: await headers(),
-      })
-      .catch(() => null);
+    const session = await ensureSession(getQueryClient(), auth, {
+      headers: await headers(),
+    }).catch(() => null);
 
     if (!session && options.redirect) {
       const hdrs = await headers();
@@ -55,13 +55,17 @@ export const verifySession = cache(
  * @returns Array of organizations, empty array if none
  */
 export const getOrganizations = cache(async () => {
-  const orgs = await auth.api
-    .listOrganizations({
-      headers: await headers(),
-    })
-    .catch(() => []);
+  const session = await verifySession({ redirect: false });
+  if (!session) return [];
 
-  return orgs || [];
+  const orgs = await ensureListOrganizations(
+    getQueryClient(),
+    auth,
+    session.user.id,
+    { headers: await headers() },
+  ).catch(() => null);
+
+  return orgs ?? [];
 });
 
 /**

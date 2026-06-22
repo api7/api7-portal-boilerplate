@@ -148,6 +148,11 @@ export const configSchema = z.object({
         .describe(
           'HTML label for the sign-up consent checkbox. Supports multiple links. Only use trusted static content.',
         ),
+      apiHub: z
+        .object({
+          enabled: z.boolean().default(true),
+        })
+        .prefault({}),
     })
     .partial()
     .prefault({}),

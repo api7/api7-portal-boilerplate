@@ -5,9 +5,8 @@ import { useEffect } from 'react';
 import { useForm } from '@tanstack/react-form';
 import { toast } from 'sonner';
 
-import Form from '@/components/slices/form/Form';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
-import Alert from '@/components/ui-legacy/alert';
+import { Alert } from '@/components/base/alert';
 import Drawer from '@/components/base/drawer';
 import { transformFormLabelToAPI } from '@/helper/utils/form-producer/labels';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
@@ -101,14 +100,13 @@ const KeyAuthAddDrawer = (props: KeyAuthAddDrawerProps) => {
       loading={form.state.isSubmitting}
       {...rest}
     >
-      <Form onSubmit={() => form.handleSubmit()}>
+      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
         <FormPartBasics
-          title="Credential Basics"
           form={form}
           labelProps={{ resourceType: 'developer_credential' }}
         />
         <FormItemKey />
-      </Form>
+      </form>
     </Drawer>
   );
 };

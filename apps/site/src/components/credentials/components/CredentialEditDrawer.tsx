@@ -1,21 +1,22 @@
 'use client';
 
 import { useEffect } from 'react';
-
-import { useForm } from '@tanstack/react-form';
 import { toast } from 'sonner';
 
-import Form from '@/components/slices/form/Form';
-import FormPartBasics from '@/components/slices/form/FormPartBasics';
 import Drawer from '@/components/base/drawer';
+import FormPartBasics from '@/components/slices/form/FormPartBasics';
 import {
   transformAPILabelToForm,
   transformFormLabelToAPI,
 } from '@/helper/utils/form-producer/labels';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
-import type { PluginCredential, UpdateApplicationCredentialReq } from '@/types/portal-sdk';
+import type {
+  PluginCredential,
+  UpdateApplicationCredentialReq,
+} from '@/types/portal-sdk';
 import type { FormLabel } from '@/types/utils';
+import { useForm } from '@tanstack/react-form';
 
 import { useApplicationId } from '../hook';
 
@@ -62,14 +63,25 @@ const CredentialEditDrawer = (props: CredentialEditDrawerProps) => {
   }, [open, oldData, form]);
 
   return (
-    <Drawer open={open} title={title} onOk={() => form.handleSubmit()} loading={form.state.isSubmitting} okText="Save" {...rest}>
-      <Form onSubmit={() => form.handleSubmit()}>
+    <Drawer
+      open={open}
+      title={title}
+      onOk={() => form.handleSubmit()}
+      loading={form.state.isSubmitting}
+      okText="Save"
+      {...rest}
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
         <FormPartBasics
-          isChunk={false}
           form={form}
           labelProps={{ resourceType: 'developer_credential' }}
         />
-      </Form>
+      </form>
     </Drawer>
   );
 };

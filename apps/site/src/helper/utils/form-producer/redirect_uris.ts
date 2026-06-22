@@ -1,7 +1,5 @@
 import { produce } from 'immer';
-import { set, unset } from 'lodash-es';
-
-import { noNilEmpty } from '../noNilEmpty';
+import { isEmpty, isNil, set, unset } from 'lodash-es';
 import type { CredentialForm, CredentialFormOAuth } from '@/types/portal-sdk';
 
 export const transformRedirectURIsToAPI = (
@@ -19,7 +17,7 @@ export const transformAPIRedirectURIsToForm = (
 
 export const produceToAPIRedirectURIs = produce(
   (draft: CredentialFormOAuth) => {
-    if (noNilEmpty(draft.redirect_uris)) {
+    if (!isNil(draft.redirect_uris) && !isEmpty(draft.redirect_uris)) {
       set(draft, 'redirect_uris', transformRedirectURIsToAPI(draft.redirect_uris));
     } else {
       unset(draft, 'redirect_uris');
@@ -28,7 +26,7 @@ export const produceToAPIRedirectURIs = produce(
 ) as (draft: CredentialFormOAuth) => CredentialFormOAuth;
 
 export const produceToFormRedirectURIs = produce((draft: CredentialForm) => {
-  if (noNilEmpty(draft.oauth?.redirect_uris)) {
+  if (!isNil(draft.oauth?.redirect_uris) && !isEmpty(draft.oauth?.redirect_uris)) {
     set(
       draft,
       'redirect_uris',

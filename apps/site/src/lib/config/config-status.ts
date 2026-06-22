@@ -10,6 +10,7 @@ export type ConfigStatus = {
   genericOAuthProviders: { name: string; provider: string; ssoOnly: boolean }[];
   magicLink: boolean;
   twoFactor: boolean;
+  requireEmailVerification: boolean;
   applicationDetail: {
     subscriptions: boolean;
     usage: boolean;
@@ -50,5 +51,8 @@ export function getConfigStatus(): ConfigStatus {
     credentialsTabs: { keyAuth: true, basicAuth: true, oauth: true },
   };
 
-  return { socialProviders, genericOAuthProviders, magicLink, twoFactor, applicationDetail };
+  const requireEmailVerification =
+    config.auth.emailAndPassword.requireEmailVerification;
+
+  return { socialProviders, genericOAuthProviders, magicLink, twoFactor, requireEmailVerification, applicationDetail };
 }

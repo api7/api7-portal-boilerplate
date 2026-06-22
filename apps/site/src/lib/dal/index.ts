@@ -34,7 +34,3 @@ export const verifySessionAndOrganization = cache(
     return { session, orgs };
   },
 );
-
-export const getDeveloperIdFromSession = cache(
-  async (): Promise<string | null> => null,
-);

@@ -2,9 +2,9 @@ import { map } from 'lodash-es';
 import { NetworkIcon } from 'lucide-react';
 import Link from 'next/link';
 
-import A7Label from '@/components/api7/api7-label';
-import A7LabelList from '@/components/api7/api7-label-list';
-import { MetaAvatar } from '@/components/ui-legacy/meta';
+import { StatusBadge } from '@/components/base/status-badge';
+import { Badge } from '@/components/ui/badge';
+import { MetaCardAvatar } from '@/components/base/meta-card/avatar';
 import {
   Card,
   CardContent,
@@ -43,9 +43,9 @@ const SubsStatusTag = (props: {
 
   return (
     <div className="flex h-fit shrink-0 align-middle justify-center py-1.25 mb-1">
-      <A7Label isStatus color={tagColor}>
+      <StatusBadge color={tagColor}>
         {tagText}
-      </A7Label>
+      </StatusBadge>
     </div>
   );
 };
@@ -65,7 +65,7 @@ const ProductCard = (props: ApiProductListItem) => {
     >
       <CardHeader className="pt-6 pb-4 px-6">
         <div className="gap-2 flex min-w-0 items-start">
-          <MetaAvatar
+          <MetaCardAvatar
             {...props}
             {...(props.type === 'gateway' && { src: props.logo })}
             isLoading={!id}
@@ -90,20 +90,16 @@ const ProductCard = (props: ApiProductListItem) => {
                 <SubsStatusTag subscription_status={subscription_status} />
               )}
             </div>
-            <div className="flex w-full min-w-0 overflow-hidden text-left leading-6">
-              <A7LabelList
-                limitCount={3}
-                data={finalTags?.slice(0, 3) || []}
-                labelOption={{
-                  color: 'default',
-                  className:
-                    'min-w-0 flex-1 rounded-sm text-left text-secondary-content bg-muted',
-
-                  textProps: {
-                    className: 'max-w-full text-left [overflow-wrap:anywhere]',
-                  },
-                }}
-              />
+            <div className="flex w-full min-w-0 overflow-hidden text-left leading-6 gap-1">
+              {(finalTags?.slice(0, 3) ?? []).map((tag) => (
+                <Badge
+                  key={tag}
+                  variant="secondary"
+                  className="min-w-0 flex-1 rounded-sm text-secondary-content bg-muted [overflow-wrap:anywhere]"
+                >
+                  {tag}
+                </Badge>
+              ))}
             </div>
           </div>
         </div>

@@ -4,7 +4,6 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import Modal from '@/components/base/modal';
-import Form from '@/components/slices/form/Form';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
 import type {
@@ -72,9 +71,9 @@ const BasicAuthRotateModal = (props: BasicAuthRotateModalProps) => {
       open={open}
       {...rest}
     >
-      <Form onSubmit={() => form.handleSubmit()}>
+      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
         {oldData ? <FormItemBasicAuth form={form} /> : null}
-      </Form>
+      </form>
     </Modal>
   );
 };

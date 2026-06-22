@@ -1,4 +1,7 @@
+import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
+
 import { verifySessionAndOrganization } from '@/lib/dal';
+import { getQueryClient } from '@/lib/req';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,5 +12,9 @@ export default async function AuthLayout({
 }) {
   await verifySessionAndOrganization();
 
-  return children;
+  return (
+    <HydrationBoundary state={dehydrate(getQueryClient())}>
+      {children}
+    </HydrationBoundary>
+  );
 }

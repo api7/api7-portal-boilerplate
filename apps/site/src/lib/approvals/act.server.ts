@@ -3,9 +3,7 @@ import 'server-only';
 import { headers } from 'next/headers';
 import { NextResponse } from 'next/server';
 
-import { isImpersonatingSession } from '@/lib/auth/admin';
-import { isPlatformAdmin } from '@/lib/auth/admin.server';
-import { auth } from '@/lib/auth/server';
+import { getCurrentPlatformAdminSession } from '@/lib/auth/platform-admin.server';
 import { portal } from '@/lib/portal-sdk/server';
 import { APIError } from '@api7/portal-sdk';
 
@@ -20,15 +18,9 @@ export const actOnApproval = async (
   approvalId: string,
   action: 'accept' | 'reject',
 ): Promise<NextResponse> => {
-  const session = await auth.api
-    .getSession({ headers: await headers() })
-    .catch(() => null);
+  const session = await getCurrentPlatformAdminSession(await headers());
 
-  if (
-    !session?.user ||
-    !isPlatformAdmin(session.user) ||
-    isImpersonatingSession(session.session.impersonatedBy)
-  ) {
+  if (!session?.user) {
     return NextResponse.json(
       { message: 'Forbidden. Approvals are restricted to platform admins.' },
       { status: 403 },

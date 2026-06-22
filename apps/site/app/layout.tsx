@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { Toaster } from 'sonner';
+import { Toaster } from '@/components/ui/sonner';
 import { Providers } from './providers';
 import { getConfig } from '@/lib/config';
 import { getConfigStatus } from '@/lib/config/config-status';

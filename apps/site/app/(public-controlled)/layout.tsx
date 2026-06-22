@@ -1,5 +1,8 @@
-import { verifySessionAndOrganization } from '@/lib/dal';
+import { dehydrate, HydrationBoundary } from '@tanstack/react-query';
+
 import MainLayout from '@/components/layouts/MainLayout';
+import { verifySessionAndOrganization } from '@/lib/dal';
+import { getQueryClient } from '@/lib/req';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,5 +21,9 @@ export default async function PublicControlledLayout({
 }) {
   await verifySessionAndOrganization({ respectPublicAccess: true });
 
-  return <MainLayout>{children}</MainLayout>;
+  return (
+    <HydrationBoundary state={dehydrate(getQueryClient())}>
+      <MainLayout>{children}</MainLayout>
+    </HydrationBoundary>
+  );
 }

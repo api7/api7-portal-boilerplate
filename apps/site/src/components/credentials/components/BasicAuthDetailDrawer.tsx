@@ -1,7 +1,7 @@
 'use client';
 
-import Alert from '@/components/ui-legacy/alert';
-import { DescTemplate } from '@/components/ui-legacy/desc-template';
+import { Alert } from '@/components/base/alert';
+import { DescTemplate } from './DescTemplate';
 import Drawer from '@/components/base/drawer';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import type {

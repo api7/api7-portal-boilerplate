@@ -1,7 +1,12 @@
 'use client';
 
+import {
+  type OrganizationAuthClient,
+  useListOrganizations,
+  useSession,
+} from '@better-auth-ui/react';
+
 import { authClient } from '@/lib/auth/client';
-import { useQuery } from '@tanstack/react-query';
 
 import { useOrganizationSlug } from './useOrganizationSlug';
 
@@ -10,7 +15,7 @@ import { useOrganizationSlug } from './useOrganizationSlug';
  *
  * Combines:
  * - URL-based slug extraction (via {@link useOrganizationSlug})
- * - Organization list query
+ * - Organization list from the SSR-hydrated better-auth-ui cache
  *
  * Returns:
  * - `activeOrgId` / `activeOrg`: the org matching the current URL slug
@@ -19,18 +24,12 @@ import { useOrganizationSlug } from './useOrganizationSlug';
  */
 export const useActiveOrganizationId = () => {
   const slug = useOrganizationSlug();
-  const { data: session } = authClient.useSession();
-  const userId = session?.user?.id;
+  const { data: session } = useSession(authClient);
 
-  const { data: orgs, isLoading } = useQuery({
-    queryKey: ['organizations', userId],
-    queryFn: async () => {
-      const { data } = await authClient.organization.list();
-      return data ?? [];
-    },
-    staleTime: 5 * 60 * 1000,
-    enabled: userId !== undefined,
-  });
+  const { data: orgs, isPending: isLoading } = useListOrganizations(
+    authClient as OrganizationAuthClient,
+    { enabled: !!session?.user },
+  );
 
   const activeOrg = slug ? orgs?.find((org) => org.slug === slug) : undefined;
 

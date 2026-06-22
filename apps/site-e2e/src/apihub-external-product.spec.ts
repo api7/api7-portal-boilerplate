@@ -101,7 +101,7 @@ test.describe('Test API Hub with External Product', () => {
         .first();
       await expect(getOperationLink).toBeVisible({ timeout: 15000 });
       // detail page render well
-      await expect(page.getByText('ID:')).toBeVisible();
+      await expect(page.getByRole('button', { name: 'View ID' })).toBeVisible();
       await expect(getOperationLink).toBeVisible();
       // Subscriptions tab should NOT be visible for external products (they cannot be subscribed)
       await expect(

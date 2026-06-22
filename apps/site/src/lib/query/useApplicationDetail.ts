@@ -1,13 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import type { DeveloperApplication } from '@api7/portal-sdk/unstable-types';
 
+import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
 import { portalClient } from '@/lib/portal-sdk/client';
+import { applicationDetailKey } from '@/lib/query/keys';
 
 export type ApplicationFetcherParams = Pick<DeveloperApplication, 'id'>;
 
 const useApplicationDetail = (params: ApplicationFetcherParams) => {
+  const orgSlug = useOrganizationSlug();
   const { data, refetch, isFetching, isLoading, isError, status } = useQuery({
-    queryKey: ['application', params],
+    queryKey: applicationDetailKey(orgSlug, params.id),
     queryFn: () => portalClient.application.get(params.id),
     enabled: !!params.id,
     retry: false,

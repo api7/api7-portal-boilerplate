@@ -1,6 +1,6 @@
 import { cn } from '@/lib/utils';
 
-type HeaderProps = {
+type SectionHeaderProps = {
   wrapperProps?: React.HTMLAttributes<HTMLDivElement>;
   titleProps?: React.HTMLAttributes<HTMLDivElement>;
   title: React.ReactNode;
@@ -8,9 +8,9 @@ type HeaderProps = {
   desc?: React.ReactNode;
   descProps?: React.HTMLAttributes<HTMLDivElement>;
 } & React.HTMLAttributes<HTMLDivElement>;
-const Header = (props: HeaderProps) => {
-  const { wrapperProps, titleProps, title, afterTitle, desc, descProps, ...rootProps } =
-    props;
+
+export function SectionHeader(props: SectionHeaderProps) {
+  const { wrapperProps, titleProps, title, afterTitle, desc, descProps, ...rootProps } = props;
   return (
     <div
       {...rootProps}
@@ -20,14 +20,14 @@ const Header = (props: HeaderProps) => {
         {...wrapperProps}
         className={cn(
           'flex flex-col justify-center w-full min-h-8 space-y-1.5',
-          wrapperProps?.className
+          wrapperProps?.className,
         )}
       >
         <div
           {...titleProps}
           className={cn(
             'flex gap-2 text-primary-content text-lg font-semibold leading-none w-full',
-            titleProps?.className
+            titleProps?.className,
           )}
         >
           {title}
@@ -44,6 +44,4 @@ const Header = (props: HeaderProps) => {
       </div>
     </div>
   );
-};
-
-export default Header;
+}

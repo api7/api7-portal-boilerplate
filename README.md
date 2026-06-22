@@ -81,7 +81,7 @@ Detailed Docker build modes, runtime config mounting, preflight behavior, and E2
 
 ## Tech Stack
 
-- **Framework:** Next.js 16, React 18
+- **Framework:** Next.js 16, React 19
 - **UI:** Base UI / shadcn components, Tailwind CSS 4
 - **Database:** PostgreSQL + Drizzle ORM
 - **Auth:** Better Auth

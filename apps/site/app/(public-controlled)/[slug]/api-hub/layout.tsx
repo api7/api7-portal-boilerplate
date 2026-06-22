@@ -1,6 +1,8 @@
+import { notFound, redirect } from 'next/navigation';
+
 import { PATH_API_HUB } from '@/constants/path-prefix';
-import { verifyOrganizationAccessBySlug, verifySession } from '@/lib/dal/util';
-import { redirect } from 'next/navigation';
+import { getConfig } from '@/lib/config';
+import { verifyOrganizationAccessBySlug } from '@/lib/dal/util';
 
 export const dynamic = 'force-dynamic';
 
@@ -11,17 +13,9 @@ export default async function SlugApiHubLayout({
   children: React.ReactNode;
   params: Promise<{ slug: string }>;
 }) {
+  const { app } = getConfig();
+  if (app.apiHub?.enabled === false) notFound();
   const { slug } = await params;
-  const session = await verifySession({ redirect: false });
-
-  if (!session?.user) {
-    redirect(PATH_API_HUB);
-  }
-
-  const org = await verifyOrganizationAccessBySlug(slug);
-  if (!org) {
-    redirect(PATH_API_HUB);
-  }
-
-  return children;
+  if (!(await verifyOrganizationAccessBySlug(slug))) redirect(PATH_API_HUB);
+  return <>{children}</>;
 }

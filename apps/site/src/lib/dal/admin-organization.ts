@@ -7,6 +7,7 @@ import {
   organizations as organization,
   users as user,
 } from '@/lib/db/schema';
+import { assertCurrentPlatformAdmin } from '@/lib/auth/platform-admin.server';
 import { API7Portal } from '@api7/portal-sdk';
 import {
   and,
@@ -56,7 +57,7 @@ const buildOrganizationWhere = (search?: string) => {
   );
 };
 
-const getPortalForOrganization = (organizationId: string) => {
+export const getPortalForOrganization = (organizationId: string) => {
   const portalConfig = getConfig().portal;
   return new API7Portal({
     endpoint: portalConfig.url,
@@ -131,6 +132,8 @@ export const listAdminOrganizations = async ({
   userId,
   direction,
 }: ListAdminOrganizationsParams) => {
+  await assertCurrentPlatformAdmin();
+
   const searchWhere = buildOrganizationWhere(search);
   const userWhere = userId
     ? inArray(

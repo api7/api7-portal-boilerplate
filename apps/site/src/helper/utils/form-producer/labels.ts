@@ -1,7 +1,6 @@
 import { produce } from 'immer';
-import { set, unset } from 'lodash-es';
+import { isNil, isEmpty, set, unset } from 'lodash-es';
 
-import { noNilEmpty } from '../noNilEmpty';
 import type {
   APIFormLabel,
   FormLabel,
@@ -35,7 +34,7 @@ export const transformAPILabelToForm = (label?: APIFormLabel): FormLabel => {
 };
 
 export const produceToAPILabels = produce((draft) => {
-  if (noNilEmpty(draft.labels)) {
+  if (!isNil(draft.labels) && !isEmpty(draft.labels)) {
     set(draft, 'labels', transformFormLabelToAPI(draft?.labels));
   } else {
     unset(draft, 'labels');
@@ -43,7 +42,7 @@ export const produceToAPILabels = produce((draft) => {
 }) as (draft: ToFormLabel<object>) => ToAPILabel<object>;
 
 export const produceToFormLabels = produce((draft) => {
-  if (noNilEmpty(draft.labels)) {
+  if (!isNil(draft.labels) && !isEmpty(draft.labels)) {
     set(draft, 'labels', transformAPILabelToForm(draft?.labels));
   } else {
     unset(draft, 'labels');

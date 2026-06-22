@@ -1,7 +1,7 @@
 import { Building2 } from 'lucide-react';
 
 import OrganizationTable from '@/components/admin/OrganizationTable';
-import Header from '@/components/ui-legacy/header';
+import { SectionHeader } from '@/components/base/section-header';
 import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
@@ -65,7 +65,7 @@ export default async function AdminOrganizationsPage({
 
   return (
     <div className="card-container">
-      <Header
+      <SectionHeader
         title="Organizations"
         afterTitle={<Building2 className="h-5 w-5" />}
         desc="Inspect organizations and enter impersonation mode as the organization owner."

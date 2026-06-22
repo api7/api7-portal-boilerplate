@@ -1,21 +1,22 @@
-import { Suspense } from 'react';
+import { redirect } from 'next/navigation';
 
-import ApprovalTable from '@/components/approvals/ApprovalTable';
-import Header from '@/components/ui-legacy/header';
+import ApprovalTable from '@/components/admin/approvals/ApprovalTable';
+import { SectionHeader } from '@/components/base/section-header';
+import { PATH_ROOT } from '@/constants/path-prefix';
+import { getCurrentPlatformAdminSession } from '@/lib/auth/platform-admin.server';
 
 export const dynamic = 'force-dynamic';
 
 export default async function AdminApprovalsPage() {
+  if (!(await getCurrentPlatformAdminSession())) redirect(PATH_ROOT);
   return (
     <div className="card-container">
-      <Header
+      <SectionHeader
         title="Approvals"
         desc="Review and process subscription and registration requests."
         className="mb-6"
       />
-      <Suspense>
-        <ApprovalTable />
-      </Suspense>
+      <ApprovalTable />
     </div>
   );
 }

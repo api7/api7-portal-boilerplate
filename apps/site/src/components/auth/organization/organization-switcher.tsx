@@ -2,12 +2,10 @@
 
 import {
   type OrganizationAuthClient,
-  useActiveOrganization,
   useAuth,
   useAuthPlugin,
   useListOrganizations,
   useSession,
-  useSetActiveOrganization
 } from "@better-auth-ui/react"
 import type { Organization } from "better-auth/client"
 import {
@@ -82,21 +80,18 @@ export function OrganizationSwitcher({
 
   const isAuthorized = authorized ?? !!session
 
-  const { data: activeOrganization, isPending: activeOrganizationPending } =
-    useActiveOrganization(authClient as OrganizationAuthClient)
-
   const { data: organizations, isPending: organizationsPending } =
     useListOrganizations(authClient as OrganizationAuthClient, {
       enabled: isAuthorized
     })
 
-  const { mutate: setActiveOrganization } = useSetActiveOrganization(
-    authClient as OrganizationAuthClient
-  )
+  // Derive active org from the already-hydrated list using the URL slug.
+  // Avoids a separate getFullOrganization call and any session-based active org tracking.
+  const activeOrganization = slug ? organizations?.find((org) => org.slug === slug) : undefined
 
   const isPending =
     sessionPending ||
-    (isAuthorized && (organizationsPending || activeOrganizationPending))
+    (isAuthorized && organizationsPending)
 
   const [createOpen, setCreateOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -124,14 +119,12 @@ export function OrganizationSwitcher({
 
     if (setActive) {
       setActive(organization)
-    } else if (slug !== undefined) {
+    } else {
       router.push(
         organization
           ? switchOrgHref(organization.slug!)
           : `${basePaths.settings}/${viewPaths.settings.account}`
       )
-    } else {
-      setActiveOrganization({ organizationId: organization?.id ?? null })
     }
   }
 

@@ -3,6 +3,7 @@ import { isOwnerOrAdminRole } from '@/lib/auth/role';
 import { auth } from '@/lib/auth/server';
 import { portal } from '@/lib/portal-sdk/server';
 import { ReqError } from '@/types/portal-sdk';
+import { HEADER_DEVELOPER_ID } from '@api7/portal-sdk';
 import { isAxiosError } from 'axios';
 import { headers } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
@@ -87,7 +88,7 @@ async function proxyRequest(
       headers: Record<string, string>;
     } = {
       params: Object.fromEntries(searchParams),
-      headers: { 'X-Portal-Developer-ID': org.id },
+      headers: { [HEADER_DEVELOPER_ID]: org.id },
     };
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {

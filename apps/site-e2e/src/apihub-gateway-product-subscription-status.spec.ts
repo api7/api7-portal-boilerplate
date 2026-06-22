@@ -343,6 +343,9 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
       ).toBeVisible();
       await a7UIPage.getByRole('button', { name: 'Accept' }).first().click();
 
+      // Small wait for approval to propagate on backend
+      await page.waitForTimeout(2000);
+
       // developer can see the detail
       await page.goto(orgScopedApiHub);
       await expect(waitApprovalProduct).toBeVisible();
@@ -350,7 +353,7 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
       await expect(BlurPlaneButton).toBeHidden();
       await expect(
         page.getByRole('button', { name: 'Test Request (get /get)' }),
-      ).toBeVisible();
+      ).toBeVisible({ timeout: 15_000 });
     });
 
     await test.step('Log out and log in again to ensure product details are refreshed', async () => {

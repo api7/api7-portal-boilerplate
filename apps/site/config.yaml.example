@@ -55,6 +55,8 @@ auth:
   # baseURL: "http://localhost:3001"                          # Public base URL for links, SEO, and auth callbacks
   # trustedOrigins:                                           # Include every browser origin that can access this app
   #  - "http://localhost:3001"
+  # apiHub:
+  #   enabled: true                                           # Enable the API Hub (show nav item, routes, and sitemap entries). Default: true
   # applicationDetail:
   #  subscriptions: false                                      # Show Subscriptions tab (default: true)
   #  usage: false                                              # Show Usage tab (default: true)

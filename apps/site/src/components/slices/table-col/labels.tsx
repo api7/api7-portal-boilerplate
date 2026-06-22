@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table';
 
-import A7LabelList from '@/components/api7/api7-label-list';
+import { BadgeList } from '@/components/base/badge-list';
 
 export const tableColLabels = <T,>(param: ColumnDef<T>): ColumnDef<T> => ({
   enableSorting: false,
@@ -8,8 +8,7 @@ export const tableColLabels = <T,>(param: ColumnDef<T>): ColumnDef<T> => ({
   cell: ({ getValue }) => {
     const data = getValue() as Record<string, string> | undefined;
     return (
-      <A7LabelList
-        color="blue"
+      <BadgeList
         limitCount={3}
         data={Object.keys(data || {}).map((k) => `${k}:${data![k]}`)}
       />

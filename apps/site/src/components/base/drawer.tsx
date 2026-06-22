@@ -4,8 +4,8 @@ import { motion } from 'framer-motion';
 import { debounce } from 'lodash-es';
 import { XIcon } from 'lucide-react';
 
-import Alert from '@/components/ui-legacy/alert';
-import type { AlertProps } from '@/components/ui-legacy/alert';
+
+import { Alert, type AlertProps } from '@/components/base/alert';
 import { Button } from '@/components/ui/button';
 import {
   Sheet,
