@@ -50,3 +50,6 @@ api7ee3-dev.tgz
 /apps/site/config.yaml
 apps/site/migrate.js
 **/playwright-report/
+
+# fumadocs-mdx generated source
+apps/site/.source/

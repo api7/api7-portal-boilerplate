@@ -1,5 +1,5 @@
 import { request, test as setup } from '@playwright/test';
-import { API_PRODUCTS, AUTH_BASE_PATH } from '@site/constants/api-prefix';
+import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
 
 import { E2E_TARGET_URL } from '../constant';
 import { API_PORTALS, API_PORTAL_TOKEN } from '../req/dashboard/constant';
@@ -282,7 +282,7 @@ async function verifyDeployment(baseUrl: string) {
 
   try {
     // Verify can get products
-    const productsRes = await portalCtx.get(API_PRODUCTS, {
+    const productsRes = await portalCtx.get('/api/api_products', {
       failOnStatusCode: false,
     });
     if (productsRes.status() !== 200) {

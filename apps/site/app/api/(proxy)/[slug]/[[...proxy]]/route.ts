@@ -1,12 +1,12 @@
+import { HEADER_DEVELOPER_ID } from '@api7/portal-sdk';
+import type { AxiosRequestConfig } from 'axios';
+import { headers } from 'next/headers';
+import { NextRequest, NextResponse } from 'next/server';
+
 import { API_PREFIX } from '@/constants/api-prefix';
 import { isOwnerOrAdminRole } from '@/lib/auth/role';
 import { auth } from '@/lib/auth/server';
 import { portal } from '@/lib/portal-sdk/server';
-import { ReqError } from '@/types/portal-sdk';
-import { HEADER_DEVELOPER_ID } from '@api7/portal-sdk';
-import { isAxiosError } from 'axios';
-import { headers } from 'next/headers';
-import { NextRequest, NextResponse } from 'next/server';
 
 /** Resources accessible via org-scoped URLs: /api/{slug}/{resource}/... */
 const ORG_SCOPED_RESOURCES = new Set([
@@ -82,13 +82,10 @@ async function proxyRequest(
       }
     }
 
-    const config: {
-      params: Record<string, string>;
-      data?: unknown;
-      headers: Record<string, string>;
-    } = {
+    const config: AxiosRequestConfig = {
       params: Object.fromEntries(searchParams),
       headers: { [HEADER_DEVELOPER_ID]: org.id },
+      validateStatus: () => true,
     };
 
     if (request.method !== 'GET' && request.method !== 'HEAD') {
@@ -106,20 +103,9 @@ async function proxyRequest(
     if (response.status === 204) {
       return new NextResponse(null, { status: 204 });
     }
-    if (response.status === 404) {
-      return new NextResponse(null, { status: 404 });
-    }
     return NextResponse.json(response.data, { status: response.status });
   } catch (error) {
-    if (isAxiosError(error)) {
-      const status = error.response?.status || 500;
-      if (status === 404) {
-        return new NextResponse(null, { status: 404 });
-      }
-      const err = error.response?.data as ReqError | undefined;
-      return NextResponse.json(err ?? { message: 'Internal server error' }, { status: err?.status || status });
-    }
-    console.error('Proxy request error:', error instanceof Error ? error.name : 'UnknownError');
+    console.error('Proxy network error:', error instanceof Error ? error.message : String(error));
     return NextResponse.json({ message: 'Proxy server error' }, { status: 500 });
   }
 }

@@ -3,6 +3,8 @@
 import { map } from 'lodash-es';
 import { useRouter } from 'next/navigation';
 
+import type { ApiProduct } from '@api7/portal-sdk/unstable-types';
+
 import ProductExternalAPI from './ProductExternalAPI';
 import ProductGatewayAPI from './ProductGatewayAPI';
 import ProductSubscriptions from './ProductSubscriptions';
@@ -10,89 +12,82 @@ import { BadgeList } from '@/components/base/badge-list';
 import Back from '@/components/base/back';
 import { MetaCardAvatar } from '@/components/base/meta-card/avatar';
 import { MetaCard } from '@/components/base/meta-card';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
-import useProductDetail, {
-  type UseProductDetailReturn,
-} from '@/lib/query/useProductDetail';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import { cn } from '@/lib/utils';
-import { authClient } from '@/lib/auth/client';
+import { type ApiProductExternal, type ApiProductGateway } from '../utils';
 
 type Props = {
-  req: UseProductDetailReturn;
+  product: ApiProduct;
   id: string;
+  isAuthenticated: boolean;
+  basePath: string;
 };
 
-type ReqProps = Pick<Props, 'req'>;
-
-const MetaPart = ({ req }: ReqProps) => {
+const MetaPart = ({ product }: { product: ApiProduct }) => {
   const finalTags =
-    req.data?.type === 'external'
-      ? req.data?.tags
-      : map(req.data?.labels, (v, k) => `${k}:${v}`);
+    product.type === 'external'
+      ? product.tags
+      : map(product.labels, (v, k) => `${k}:${v}`);
 
   return (
     <MetaCard
-      isLoading={req.isLoading}
-      name={req.data?.name}
-      description={req.data?.desc}
-      viewID={req.data?.id ? { data: [{ id: req.data.id }] } : undefined}
+      isLoading={false}
+      name={product.name}
+      description={product.desc}
+      viewID={product.id ? { data: [{ id: product.id }] } : undefined}
       avatar={
         <MetaCardAvatar
-          name={req.data?.name ?? ''}
-          src={req.data?.type === 'gateway' ? req.data?.logo : undefined}
-          isLoading={req.isLoading}
+          name={product.name ?? ''}
+          src={product.type === 'gateway' ? product.logo : undefined}
+          isLoading={false}
         />
       }
-      customLabels={
-        <BadgeList data={finalTags ?? []} />
-      }
+      customLabels={<BadgeList data={finalTags ?? []} />}
     />
   );
 };
 
-const OpenAPISpecTabContent = ({ req, id }: Props) => {
+const OpenAPISpecTabContent = ({ product, id, isAuthenticated }: Omit<Props, 'basePath'>) => {
   const orgSlug = useOrganizationSlug();
   const subscribedApps = useSubscriptionList({
     api_product_id: id,
     status: ['subscribed'],
-    enabled: !!orgSlug,
+    enabled: !!orgSlug && isAuthenticated,
   });
 
   return (
     <div
       className={cn(
-        'card-container relative min-h-screen p-0',
-        req.data?.type === 'gateway' &&
-          !req.data.can_view_unsubscribed &&
+        'relative min-h-screen',
+        product.type === 'gateway' &&
+          !!orgSlug &&
+          !(product as ApiProductGateway).can_view_unsubscribed &&
           subscribedApps.total === 0 &&
           'h-[70vh] overflow-hidden'
       )}
     >
-      {(req.isLoading || !req.data?.type) && (
-        <Skeleton className="w-full h-full" />
+      {product.type === 'external' && (
+        <ProductExternalAPI data={product as ApiProductExternal} />
       )}
-      {req.data?.type === 'external' && <ProductExternalAPI id={id} />}
-      {req.data?.type === 'gateway' && <ProductGatewayAPI id={id} />}
+      {product.type === 'gateway' && (
+        <ProductGatewayAPI data={product as ApiProductGateway} isAuthenticated={!!orgSlug && isAuthenticated} />
+      )}
     </div>
   );
 };
 
-const MainPart = ({ req, id }: Props) => {
-  const session = authClient.useSession();
+const MainPart = ({ product, id, isAuthenticated }: Omit<Props, 'basePath'>) => {
   const orgSlug = useOrganizationSlug();
-  const isGatewayProduct = req.data?.type === 'gateway';
+  const isGatewayProduct = product.type === 'gateway';
   const items = [
     {
       key: 'openapi',
       label: 'OpenAPI Specification',
-      children: <OpenAPISpecTabContent req={req} id={id} />,
+      children: <OpenAPISpecTabContent product={product} id={id} isAuthenticated={isAuthenticated} />,
     },
-    // Only show Subscriptions tab for gateway products with an org context (external products cannot be subscribed; no-slug public pages have no developer identity)
-    ...(orgSlug && session.data?.user && isGatewayProduct
+    ...(orgSlug && isAuthenticated && isGatewayProduct
       ? [
           {
             key: 'subscriptions',
@@ -105,7 +100,7 @@ const MainPart = ({ req, id }: Props) => {
 
   return (
     <>
-      <MetaPart req={req} />
+      <MetaPart product={product} />
       <Tabs defaultValue={items[0]?.key} className="card-container p-4 relative">
         <TabsList variant="line">
           {items.map((tab) => (
@@ -120,17 +115,15 @@ const MainPart = ({ req, id }: Props) => {
   );
 };
 
-const AuthProductDetail = ({ id }: { id: string }) => {
+const ProductDetail = ({ product, id, isAuthenticated, basePath }: Props) => {
   const router = useRouter();
-  const apiHubBasePath = useApiHubBasePath();
-  const req = useProductDetail(id);
 
   return (
     <>
-      <Back onClick={() => router.push(apiHubBasePath)} />
-      <MainPart req={req} id={id} />
+      <Back onClick={() => router.push(basePath)} />
+      <MainPart product={product} id={id} isAuthenticated={isAuthenticated} />
     </>
   );
 };
 
-export default AuthProductDetail;
+export default ProductDetail;

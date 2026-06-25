@@ -343,14 +343,11 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
       ).toBeVisible();
       await a7UIPage.getByRole('button', { name: 'Accept' }).first().click();
 
-      // Small wait for approval to propagate on backend
-      await page.waitForTimeout(2000);
-
       // developer can see the detail
       await page.goto(orgScopedApiHub);
       await expect(waitApprovalProduct).toBeVisible();
       await waitApprovalProduct.click();
-      await expect(BlurPlaneButton).toBeHidden();
+      await expect(BlurPlaneButton).toBeHidden({ timeout: 10_000 });
       await expect(
         page.getByRole('button', { name: 'Test Request (get /get)' }),
       ).toBeVisible({ timeout: 15_000 });

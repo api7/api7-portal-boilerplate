@@ -8,6 +8,7 @@ import {
 } from '../../req/dashboard/product';
 import { expect } from '@playwright/test';
 import { genCanViewPages, genNotFoundPages } from './utils/helper';
+import { restartDevPortal } from '../../utils/shell';
 
 // Reset storage state for this file to avoid being authenticated
 test.use({ storageState: { cookies: [], origins: [] } });
@@ -18,16 +19,23 @@ test.describe('public access is `false`, test the behavior of guest users visiti
   let productId: string;
 
   test.beforeAll(async ({ a7Ctx }) => {
+    test.setTimeout(150_000);
     // create product
     productId = (await a7PostExternalProduct(a7Ctx)).value.id;
-    // set site public access off
+    // set site public access off, then restart to clear the server-side cache
     await a7PutPublicAccess(a7Ctx, false);
+    await restartDevPortal();
   });
 
   test.afterAll(async ({ a7Ctx }) => {
-    await a7DeleteProductList(a7Ctx, [productId]);
-    // set site public access on
-    await a7PutPublicAccess(a7Ctx, true);
+    test.setTimeout(150_000);
+    try {
+      await a7DeleteProductList(a7Ctx, [productId]);
+    } finally {
+      // restore public access, restart to clear cache so subsequent tests see true
+      await a7PutPublicAccess(a7Ctx, true);
+      await restartDevPortal();
+    }
   });
 
   autoJumpPages.forEach(async (url) => {

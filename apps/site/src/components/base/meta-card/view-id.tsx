@@ -1,12 +1,30 @@
 import { type FC, type ReactNode, useMemo } from 'react';
 
-import { CopyButton } from '@/components/api-hub/CopyButton';
+import { CheckIcon, CopyIcon } from 'lucide-react';
+
 import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover';
+import { cn } from '@/lib/utils';
+import { useClipboard } from '@/lib/hooks/useClipboard';
+
+const CopyButton: FC<{ content: string }> = ({ content }) => {
+  const { hasCopied, onCopy } = useClipboard(content);
+  return (
+    <Button
+      className={cn('ml-1')}
+      size="icon-xs"
+      variant="outline"
+      aria-label={hasCopied ? 'Copied' : 'Copy'}
+      onClick={onCopy}
+    >
+      {hasCopied ? <CheckIcon /> : <CopyIcon />}
+    </Button>
+  );
+};
 
 export type IDProps = {
   id: string;
@@ -25,7 +43,7 @@ export const ID: FC<IDProps> = (props) => {
         <div className="font-medium mr-1 inline-block">{label ?? 'ID'}:</div>{' '}
         {id}
       </div>
-      <CopyButton content={id}></CopyButton>
+      <CopyButton content={id} />
     </div>
   );
 };

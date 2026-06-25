@@ -2,7 +2,8 @@
 
 import { useCreation } from 'ahooks';
 import { CheckIcon, EllipsisVerticalIcon, XIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useState } from 'react';
 
 import { StatusBadge } from '@/components/base/status-badge';
 import { DataTable } from '@/components/base/data-table';
@@ -18,7 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import { type Approval, resolveOperatorName } from '@/lib/portal-sdk/approval';
-import useApprovalList from '@/lib/query/useApprovalList';
+import { PATH_APPROVALS } from '@/constants/path-prefix';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import ApprovalActionModal, {
@@ -38,11 +39,7 @@ const RESULT_STATUS: Record<string, { color: string; text: string }> = {
 
 const renderStatus = (approval: Approval) => {
   if (approval.status === 'pending') {
-    return (
-      <StatusBadge color="orange">
-        Pending
-      </StatusBadge>
-    );
+    return <StatusBadge color="orange">Pending</StatusBadge>;
   }
   const config = approval.result ? RESULT_STATUS[approval.result] : undefined;
   return (
@@ -52,17 +49,40 @@ const renderStatus = (approval: Approval) => {
   );
 };
 
-const ApprovalTable: React.FC = () => {
-  const req = useApprovalList({ savePage: true });
+type Props = {
+  data: Approval[];
+  total: number;
+  page: number;
+  pageSize: number;
+};
+
+const ApprovalTable: React.FC<Props> = ({ data, total, page, pageSize }) => {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const actionDisclosure = useDisclosure();
   const [curApproval, setCurApproval] = useState<Approval | undefined>();
   const [action, setAction] = useState<ApprovalAction>('accept');
 
-  const openAction = (next: ApprovalAction, data: Approval) => {
-    setCurApproval(data);
-    setAction(next);
-    actionDisclosure.setOpen();
-  };
+  const makeHref = useCallback(
+    (overrides: Record<string, string | undefined>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [k, v] of Object.entries(overrides)) {
+        if (v === undefined) params.delete(k);
+        else params.set(k, v);
+      }
+      return `${PATH_APPROVALS}?${params.toString()}`;
+    },
+    [searchParams],
+  );
+
+  const openAction = useCallback(
+    (next: ApprovalAction, row: Approval) => {
+      setCurApproval(row);
+      setAction(next);
+      actionDisclosure.setOpen();
+    },
+    [actionDisclosure.setOpen],
+  );
 
   const columns = useCreation<ColumnDef<Approval>[]>(
     () => [
@@ -152,7 +172,7 @@ const ApprovalTable: React.FC = () => {
         },
       },
     ],
-    [req],
+    [openAction],
   );
 
   return (
@@ -160,14 +180,36 @@ const ApprovalTable: React.FC = () => {
       <DataTable
         data-testid="approval-table"
         columns={columns}
-        {...req}
+        data={data}
+        isLoading={false}
         nameSearch
         text={{ searchPlaceholder: 'Search type, resource, applicant' }}
+        onParamsChange={(params: Record<string, unknown>) => {
+          const overrides: Record<string, string | undefined> = { page: '1' };
+          if ('search' in params)
+            overrides.search = (params.search as string | undefined) || undefined;
+          if ('page_size' in params)
+            overrides.page_size = String(params.page_size);
+          if ('order_by' in params)
+            overrides.order_by = (params.order_by as string | undefined) || undefined;
+          if ('direction' in params)
+            overrides.direction = (params.direction as string | undefined) || undefined;
+          router.push(makeHref(overrides));
+        }}
+        pagination={{
+          total,
+          pageIndex: page - 1,
+          pageSize,
+          goToPage: (targetPage) =>
+            router.push(makeHref({ page: String(targetPage + 1) })),
+          text: { results: 'Results:', of: 'of' },
+        }}
       />
       <ApprovalActionModal
         {...actionDisclosure}
         action={action}
         approval={curApproval}
+        onOk={() => router.refresh()}
       />
     </>
   );

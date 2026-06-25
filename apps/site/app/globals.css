@@ -1,8 +1,9 @@
 @import "tw-animate-css";
 @import "tailwindcss";
 @import "shadcn/tailwind.css";
+@import "fumadocs-ui/css/shadcn.css";
+@import "fumadocs-ui/css/preset.css";
 
-@plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
 

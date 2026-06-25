@@ -1,27 +1,33 @@
 import type { NextConfig } from "next";
 
-const nextConfig: NextConfig = {
-  output: 'standalone',
-  // Output directory for production builds
-  distDir: '.next',
-  // Enable React strict mode
-  reactStrictMode: true,
-  // Transpile packages if needed
-  transpilePackages: [],
-  serverExternalPackages: ['drizzle-orm', 'pg'],
-  // Docs content is read with fs at request time. Ensure those files are
-  // bundled into the standalone output.
-  outputFileTracingIncludes: {
-    '/docs': ['./content/**/*'],
-    '/docs/[...slug]': ['./content/**/*'],
-    '/docs-search': ['./content/**/*'],
-  },
-  // Turbopack configuration
-  turbopack: {
-    resolveAlias: {
-      '@': './src',
+const nextConfig = async (): Promise<NextConfig> => {
+  const { createMDX } = await import('fumadocs-mdx/next');
+  const withMDX = createMDX();
+
+  return withMDX({
+    output: 'standalone',
+    distDir: '.next',
+    reactStrictMode: true,
+    transpilePackages: [],
+    serverExternalPackages: ['drizzle-orm', 'pg'],
+    async rewrites() {
+      return [
+        {
+          source: '/docs.md',
+          destination: '/llms.mdx/docs',
+        },
+        {
+          source: '/docs/:path*.md',
+          destination: '/llms.mdx/docs/:path*',
+        },
+      ];
     },
-  },
+    turbopack: {
+      resolveAlias: {
+        '@': './src',
+      },
+    },
+  });
 };
 
 export default nextConfig;

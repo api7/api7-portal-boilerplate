@@ -4,13 +4,23 @@ import { useState } from 'react';
 
 import { toast } from 'sonner';
 
-import Modal from '@/components/base/modal';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { actOnApproval } from '@/lib/approvals/actions';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { approvalApi, type Approval } from '@/lib/portal-sdk/approval';
+import { type Approval } from '@/lib/portal-sdk/approval';
 
 export type ApprovalAction = 'accept' | 'reject';
 
-type ApprovalActionModalProps = UseDisclosureReturn & {
+type Props = UseDisclosureReturn & {
   action: ApprovalAction;
   approval?: Approval;
 };
@@ -33,8 +43,13 @@ const ACTION_CONFIG: Record<
   },
 };
 
-const ApprovalActionModal = (props: ApprovalActionModalProps) => {
-  const { action, approval, onOk, onClose, ...rest } = props;
+const ApprovalActionModal = ({
+  action,
+  approval,
+  open,
+  onClose,
+  onOk,
+}: Props) => {
   const [submitting, setSubmitting] = useState(false);
 
   if (!approval) return null;
@@ -50,12 +65,11 @@ const ApprovalActionModal = (props: ApprovalActionModalProps) => {
     if (submitting) return;
     setSubmitting(true);
     try {
-      await approvalApi[action](approval.id);
+      await actOnApproval(approval.id, action);
       onOk?.();
       toast.success(config.success);
       onClose();
     } catch {
-      // Don't surface raw backend errors to users.
       toast.error('Operation failed. Please try again.');
     } finally {
       setSubmitting(false);
@@ -63,31 +77,43 @@ const ApprovalActionModal = (props: ApprovalActionModalProps) => {
   };
 
   return (
-    <Modal
-      title={config.title}
-      okType={config.danger ? 'danger' : 'default'}
-      okText="Confirm"
-      onOk={handleAction}
-      okButtonProps={{ disabled: submitting }}
-      {...rest}
-    >
-      <p className="text-base text-gray-800">
-        {config.lead} this {requestKind} request
-        {applicant ? (
-          <>
-            {' '}
-            from <strong className="font-bold break-all">{applicant}</strong>
-          </>
-        ) : null}
-        {approval.resource_name ? (
-          <>
-            {' '}
-            for <strong className="font-bold">{approval.resource_name}</strong>
-          </>
-        ) : null}
-        ?
-      </p>
-    </Modal>
+    <AlertDialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>{config.title}</AlertDialogTitle>
+        </AlertDialogHeader>
+        <AlertDialogDescription>
+          {config.lead} this {requestKind} request
+          {applicant ? (
+            <>
+              {' '}from{' '}
+              <strong className="font-semibold text-foreground break-all">
+                {applicant}
+              </strong>
+            </>
+          ) : null}
+          {approval.resource_name ? (
+            <>
+              {' '}for{' '}
+              <strong className="font-semibold text-foreground">
+                {approval.resource_name}
+              </strong>
+            </>
+          ) : null}
+          ?
+        </AlertDialogDescription>
+        <AlertDialogFooter>
+          <AlertDialogCancel disabled={submitting}>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            variant={config.danger ? 'destructive' : 'default'}
+            disabled={submitting}
+            onClick={handleAction}
+          >
+            Confirm
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };
 

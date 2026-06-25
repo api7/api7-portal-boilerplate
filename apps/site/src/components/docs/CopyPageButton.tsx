@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Check, ChevronDown, Copy, ExternalLink, FileText } from 'lucide-react';
 
 import {
@@ -11,18 +12,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { copyToClipboard } from '@/lib/docs/clipboard';
 
-/**
- * Split "Copy page" control: the main button copies the page's raw Markdown;
- * the chevron opens a menu with more ways to take the content elsewhere
- * (view as Markdown, hand off to an LLM).
- */
-export default function CopyPageButton({
-  source,
-  title,
-}: {
-  source: string;
-  title: string;
-}) {
+export default function CopyPageButton({ title }: { title: string }) {
+  const pathname = usePathname();
   const [copied, setCopied] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -33,24 +24,20 @@ export default function CopyPageButton({
     []
   );
 
+  const fetchMarkdown = () => fetch(`${pathname}.md`).then((r) => r.text());
+
   const copyPage = async () => {
-    if (await copyToClipboard(source)) {
+    const text = await fetchMarkdown();
+    if (await copyToClipboard(text)) {
       setCopied(true);
       if (timerRef.current) clearTimeout(timerRef.current);
       timerRef.current = setTimeout(() => setCopied(false), 1500);
     }
   };
 
-  const viewMarkdown = () => {
-    const blob = new Blob([source], { type: 'text/plain;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    window.open(url, '_blank', 'noopener,noreferrer');
-    // Release the Blob URL once the new tab has had a chance to load it.
-    setTimeout(() => URL.revokeObjectURL(url), 10_000);
-  };
-
-  const openInLLM = (base: string) => {
-    const prompt = `Read this documentation page titled "${title}" and help me with it:\n\n${source}`;
+  const openInLLM = async (base: string) => {
+    const text = await fetchMarkdown();
+    const prompt = `Read this documentation page titled "${title}" and help me with it:\n\n${text}`;
     window.open(base + encodeURIComponent(prompt), '_blank', 'noopener,noreferrer');
   };
 
@@ -83,7 +70,7 @@ export default function CopyPageButton({
               Markdown
             </span>
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={viewMarkdown}>
+          <DropdownMenuItem onClick={() => window.open(`${pathname}.md`, '_blank', 'noopener,noreferrer')}>
             <FileText className="size-4" />
             View as Markdown
           </DropdownMenuItem>

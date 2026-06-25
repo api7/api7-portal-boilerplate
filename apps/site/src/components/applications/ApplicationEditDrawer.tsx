@@ -1,22 +1,19 @@
 'use client';
 
-import { useEffect } from 'react';
-
+import type { DeveloperApplication } from '@api7/portal-sdk/unstable-types';
 import { useForm } from '@tanstack/react-form';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 
-import FormPartBasics from '@/components/slices/form/FormPartBasics';
 import Drawer from '@/components/base/drawer';
+import FormPartBasics from '@/components/slices/form/FormPartBasics';
+import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
+import { portalClient } from '@/lib/portal-sdk/client';
+import type { FormLabel } from '@/types/utils';
 import {
   transformAPILabelToForm,
   transformFormLabelToAPI,
-} from '@/helper/utils/form-producer/labels';
-import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { portalClient } from '@/lib/portal-sdk/client';
-import type {
-  DeveloperApplication,
-} from '@api7/portal-sdk/unstable-types';
-import type { FormLabel } from '@/types/utils';
+} from '@/utils/form-producer/labels';
 
 const ApplicationEditDrawer = (
   props: UseDisclosureReturn & { data?: DeveloperApplication },
@@ -49,7 +46,7 @@ const ApplicationEditDrawer = (
         labels: transformAPILabelToForm(data?.labels) as FormLabel,
       });
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   return (
@@ -62,7 +59,12 @@ const ApplicationEditDrawer = (
       okText="Save"
       {...rest}
     >
-      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
         <FormPartBasics
           form={form}
           labelProps={{ resourceType: 'developer_application' }}

@@ -18,7 +18,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
+import { useApiHubBasePathContext } from '@/components/api-hub/ApiHubBasePathContext';
 import type {
   ApiProductListItem,
   ProductSubscriptionStatus as SubscriptionStatus,
@@ -52,7 +52,7 @@ const SubsStatusTag = (props: {
 
 const ProductCard = (props: ApiProductListItem) => {
   const { name, id, desc = '', subscription_status = 'unsubscribed' } = props;
-  const apiHubBasePath = useApiHubBasePath();
+  const apiHubBasePath = useApiHubBasePathContext();
   const finalTags =
     props.type === 'external'
       ? props?.tags

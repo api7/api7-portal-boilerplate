@@ -1,5 +1,7 @@
 import { Page, expect } from '@playwright/test';
-import { API_DEVELOPERS, AUTH_BASE_PATH } from '@site/constants/api-prefix';
+import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
+
+const API_DEVELOPERS = '/api/developers';
 import { PATH_ACCOUNT, PATH_ROOT } from '@site/constants/path-prefix';
 
 import { test } from '../fixture';

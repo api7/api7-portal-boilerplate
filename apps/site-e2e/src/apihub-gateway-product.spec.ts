@@ -1,5 +1,5 @@
 import { expect } from '@playwright/test';
-import { API_PRODUCTS } from '@site/constants/api-prefix';
+const API_PRODUCTS = '/api/api_products';
 import { PATH_API_HUB } from '@site/constants/path-prefix';
 import type { ProductGateway, ProductListRes } from '@site/types/portal-sdk';
 

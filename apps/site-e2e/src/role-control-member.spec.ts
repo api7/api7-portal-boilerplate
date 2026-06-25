@@ -602,7 +602,7 @@ test.describe('Role Control - Admin', () => {
     const adminCtx = await genCtx({
       storageState: adminStatePath,
       extraHTTPHeaders: {
-        origin: process.env.E2E_TARGET_URL || 'http://localhost:3001',
+        origin: E2E_TARGET_URL,
       },
     });
 

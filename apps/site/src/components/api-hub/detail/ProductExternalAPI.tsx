@@ -1,12 +1,10 @@
 import { useTheme } from 'next-themes';
 
 import ScalarDocs from './ScalarDocs';
-import { ApiProductExternal, getServerUrls } from '../utils';
-import useProductDetail from '@/lib/query/useProductDetail';
+import { type ApiProductExternal, getServerUrls } from '../utils';
 
-const ProductExternalAPI = ({ id }: { id: string }) => {
-  const { data } = useProductDetail(id);
-  const serverUrls = getServerUrls(data as ApiProductExternal);
+const ProductExternalAPI = ({ data }: { data: ApiProductExternal }) => {
+  const serverUrls = getServerUrls(data);
   const { resolvedTheme } = useTheme();
   return (
     <ScalarDocs
@@ -17,7 +15,7 @@ const ProductExternalAPI = ({ id }: { id: string }) => {
         darkMode: false,
         defaultOpenAllTags: false,
         forceDarkModeState: resolvedTheme === 'dark' ? 'dark' : 'light',
-        sources: data?.raw_openapis?.map((raw) => ({ content: raw })) ?? [],
+        sources: data.raw_openapis?.map((raw) => ({ content: raw })) ?? [],
       }}
     />
   );

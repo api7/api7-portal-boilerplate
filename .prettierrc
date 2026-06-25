@@ -6,9 +6,11 @@
   "plugins": ["@trivago/prettier-plugin-sort-imports"],
   "importOrder": [
     "^server-only$",
+    "<SEPARATOR>",
     "<BUILTIN_MODULES>",
     "<THIRD_PARTY_MODULES>",
-    "^[@/]",
+    "<SEPARATOR>",
+    "^@/(.+)$",
     "^[./]"
   ],
   "importOrderParserPlugins": ["typescript", "jsx", "decorators-legacy"],

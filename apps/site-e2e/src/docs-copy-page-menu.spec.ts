@@ -58,8 +58,8 @@ test.describe('docs "Copy page" menu', () => {
 
     const opened = await recordedOpens(page);
     expect(opened).toHaveLength(1);
-    // viewMarkdown opens an object URL for an in-memory text/plain Blob.
-    expect(opened[0]).toMatch(/^blob:/);
+    // viewMarkdown navigates to the page's .md endpoint.
+    expect(opened[0]).toMatch(/\.md$/);
   });
 
   test('Open in ChatGPT hands the page off to ChatGPT', async ({ page }) => {

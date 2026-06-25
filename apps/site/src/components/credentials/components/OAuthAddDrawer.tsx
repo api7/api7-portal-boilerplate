@@ -1,7 +1,5 @@
 'use client';
 
-import { useEffect } from 'react';
-
 import { useForm } from '@tanstack/react-form';
 import type {
   AnyFieldApi,
@@ -11,6 +9,7 @@ import type {
 } from '@tanstack/react-form';
 import { omit } from 'lodash-es';
 import { TrashIcon } from 'lucide-react';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
@@ -24,16 +23,15 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { transformRedirectURIsToAPI } from '@/helper/utils/form-producer/redirect_uris';
-import { cn } from '@/lib/utils';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
 import useDCRProviderList from '@/lib/query/useDCRProviderList';
+import { cn } from '@/lib/utils';
 import type {
   OAuthCredential,
   OAuthCredentialBasics,
 } from '@/types/portal-sdk';
-
+import { transformRedirectURIsToAPI } from '@/utils/form-producer/redirect_uris';
 import { useApplicationId } from '../hook';
 
 type OAuthFormValues = {
@@ -47,7 +45,17 @@ type VA = FormAsyncValidateOrFn<OAuthFormValues> | undefined;
 
 type OAuthForm = ReactFormExtendedApi<
   OAuthFormValues,
-  V, V, VA, V, VA, V, VA, V, VA, VA, unknown
+  V,
+  V,
+  VA,
+  V,
+  VA,
+  V,
+  VA,
+  V,
+  VA,
+  VA,
+  unknown
 >;
 
 const FieldError = ({ errors }: { errors: (string | undefined)[] }) => {
@@ -90,9 +98,13 @@ export const FormItemOAuth = ({
             </label>
             <Select
               value={field.state.value ?? ''}
-              onValueChange={(val) => { if (val) field.handleChange(val); }}
+              onValueChange={(val) => {
+                if (val) field.handleChange(val);
+              }}
               disabled={isEdit}
-              itemToStringLabel={(v: string) => data?.find((item) => item.id === v)?.name ?? v}
+              itemToStringLabel={(v: string) =>
+                data?.find((item) => item.id === v)?.name ?? v
+              }
             >
               <SelectTrigger
                 id="dcr_provider_id"
@@ -123,7 +135,9 @@ export const FormItemOAuth = ({
             <div className="flex flex-col gap-1.5 mb-4">
               <label className="text-sm font-medium">
                 Redirect URIs{' '}
-                <span className="text-muted-foreground text-xs">(Required)</span>
+                <span className="text-muted-foreground text-xs">
+                  (Required)
+                </span>
               </label>
               {uris.map((_, i) => (
                 <form.Field
@@ -142,7 +156,9 @@ export const FormItemOAuth = ({
                         <Input
                           id={`redirect_uris_${i}_redirect_url`}
                           value={urlField.state.value ?? ''}
-                          onChange={(e) => urlField.handleChange(e.target.value)}
+                          onChange={(e) =>
+                            urlField.handleChange(e.target.value)
+                          }
                           onBlur={urlField.handleBlur}
                           aria-invalid={urlField.state.meta.errors.length > 0}
                         />
@@ -168,9 +184,7 @@ export const FormItemOAuth = ({
                 type="button"
                 variant="outline"
                 className="w-fit"
-                onClick={() =>
-                  urisField.pushValue({ redirect_url: '' })
-                }
+                onClick={() => urisField.pushValue({ redirect_url: '' })}
               >
                 Add
               </Button>
@@ -248,7 +262,12 @@ const OAuthAddDrawer = (
       loading={form.state.isSubmitting}
       {...rest}
     >
-      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
         <FormItemOAuth form={form} />
       </form>
     </Drawer>

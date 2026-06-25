@@ -1,22 +1,18 @@
 'use client';
 
-import { Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { Check, ChevronDown, Eye, Globe } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useTransition } from 'react';
 import {
   type OrganizationAuthClient,
   useAuth,
   useListOrganizations,
 } from '@better-auth-ui/react';
+
 import CardList from '@/components/api-hub/card-list';
-import Filter from '@/components/api-hub/Filter';
+import Filter, { type FilterParamProps } from '@/components/api-hub/Filter';
 import ProductCard from '@/components/api-hub/ProductCard';
-import { DEFAULT_LIST_PARAMS } from '@/constants/common';
-import { PATH_API_HUB } from '@/constants/path-prefix';
-import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
-import useProductList from '@/lib/query/useProductList';
-import { cn } from '@/lib/utils';
-import type { ApiProductListItem as ProductResVal } from '@/types/portal-sdk';
-import { Check, ChevronDown, Eye, Globe } from 'lucide-react';
+import { ApiHubBasePathContext } from '@/components/api-hub/ApiHubBasePathContext';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -27,6 +23,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PATH_API_HUB } from '@/constants/path-prefix';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
+import { cn } from '@/lib/utils';
+import type { ApiProductListItem } from '@/types/portal-sdk';
 
 function OrgSelector() {
   const { authClient } = useAuth();
@@ -78,53 +78,82 @@ function OrgSelector() {
   );
 }
 
-const Products = () => {
-  const {
-    data,
-    pagination,
-    isLoading,
-    isValidating,
-    refetch,
-    onParamsChange,
-    params,
-  } = useProductList({
-    initParams: DEFAULT_LIST_PARAMS,
-    savePage: true,
-  });
+export type ApiHubPageProps = {
+  data: ApiProductListItem[];
+  total: number;
+  page: number;
+  pageSize: number;
+  search?: string;
+  subscriptionStatus?: FilterParamProps['subscription_status'];
+  basePath: string;
+};
+
+export default function ApiHubPage({
+  data,
+  total,
+  page,
+  pageSize,
+  search,
+  subscriptionStatus,
+  basePath,
+}: ApiHubPageProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
+
+  const makeHref = useCallback(
+    (overrides: Record<string, string | undefined>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      for (const [k, v] of Object.entries(overrides)) {
+        if (v === undefined) params.delete(k);
+        else params.set(k, v);
+      }
+      return `${basePath}?${params.toString()}`;
+    },
+    [searchParams, basePath],
+  );
+
+  const navigate = (overrides: Record<string, string | undefined>) =>
+    startTransition(() => router.push(makeHref(overrides)));
+
+  const onParamsChange = (params: Partial<TableParams & FilterParamProps>) => {
+    const overrides: Record<string, string | undefined> = { page: '1' };
+    if ('search' in params)
+      overrides.search = (params.search as string | undefined) || undefined;
+    if ('page_size' in params)
+      overrides.page_size = String(params.page_size);
+    if ('subscription_status' in params)
+      overrides.subscription_status = params.subscription_status || undefined;
+    navigate(overrides);
+  };
 
   return (
-    <div
-      className={cn(
-        'flex flex-col gap-4 lg:flex-row',
-        isLoading && 'min-h-[50vh]'
-      )}
-    >
-      <Filter
-        onParamsChange={onParamsChange}
-        defaultFilter={params.subscription_status}
-      />
-      <CardList<ProductResVal>
+    <ApiHubBasePathContext.Provider value={basePath}>
+    <div className={cn('flex flex-col gap-4 lg:flex-row', isPending && 'min-h-[50vh]')}>
+      <Filter onParamsChange={onParamsChange} defaultFilter={subscriptionStatus} />
+      <CardList<ApiProductListItem>
         CardItem={ProductCard}
-        data={data as ProductResVal[]}
-        isLoading={isLoading}
-        isValidating={isValidating}
-        pagination={pagination}
-        reload={refetch}
+        data={data}
+        isLoading={false}
+        isValidating={isPending}
+        pagination={{
+          total,
+          page,
+          pageSize,
+          // CardList translates DataTablePagination's 0-based index to 1-based before
+          // calling this. page=0 is the reset signal from onPageSizeChange; we ignore
+          // it because onParamsChange already handles page_size + page=1 in one push.
+          goToPage: (p) => { if (p > 0) navigate({ page: String(p) }); },
+        }}
+        reload={router.refresh}
         onParamsChange={onParamsChange}
         showSearch
-        defaultSearch={params.search}
+        defaultSearch={search}
         searchPrefix={<OrgSelector />}
-        skeletonCount={params.page_size}
+        skeletonCount={pageSize}
         className="card-container"
       />
     </div>
-  );
-};
-
-export default function ApiHubPage() {
-  return (
-    <Suspense>
-      <Products />
-    </Suspense>
+    </ApiHubBasePathContext.Provider>
   );
 }

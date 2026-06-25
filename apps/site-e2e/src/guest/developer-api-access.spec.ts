@@ -2,8 +2,6 @@ import { expect, request, test } from '@playwright/test';
 import {
   API_APPLICATIONS,
   API_CREDENTIALS,
-  API_DEVELOPERS,
-  API_PRODUCTS,
   API_PUBLIC_ACCESS,
   API_SUBSCRIPTIONS,
 } from '@site/constants/api-prefix';
@@ -22,7 +20,7 @@ test.describe('Guest access to BFF proxy routes', () => {
   test('GET /api/api_products is accessible without session', async () => {
     const ctx = await newCtx();
     try {
-      const res = await ctx.get(API_PRODUCTS, { failOnStatusCode: false });
+      const res = await ctx.get('/api/api_products', { failOnStatusCode: false });
       expect(res.status()).toBe(200);
     } finally {
       await ctx.dispose();
@@ -32,7 +30,7 @@ test.describe('Guest access to BFF proxy routes', () => {
   test('GET /api/developers returns 404 (route does not exist)', async () => {
     const ctx = await newCtx();
     try {
-      const res = await ctx.get(API_DEVELOPERS, { failOnStatusCode: false });
+      const res = await ctx.get('/api/developers', { failOnStatusCode: false });
       expect(res.status()).toBe(404);
     } finally {
       await ctx.dispose();

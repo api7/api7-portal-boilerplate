@@ -1,14 +1,11 @@
 'use client';
 
+import { useForm } from '@tanstack/react-form';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
-import {
-  transformAPILabelToForm,
-  transformFormLabelToAPI,
-} from '@/helper/utils/form-producer/labels';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
 import type {
@@ -16,8 +13,10 @@ import type {
   UpdateApplicationCredentialReq,
 } from '@/types/portal-sdk';
 import type { FormLabel } from '@/types/utils';
-import { useForm } from '@tanstack/react-form';
-
+import {
+  transformAPILabelToForm,
+  transformFormLabelToAPI,
+} from '@/utils/form-producer/labels';
 import { useApplicationId } from '../hook';
 
 export type CredentialEditDrawerProps = UseDisclosureReturn & {

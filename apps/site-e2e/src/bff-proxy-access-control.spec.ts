@@ -15,12 +15,13 @@ import { expect, request } from '@playwright/test';
 import {
   API_APPLICATIONS,
   API_CREDENTIALS,
-  API_DEVELOPERS,
   API_PREFIX,
-  API_PRODUCTS,
   API_PUBLIC_ACCESS,
   API_SUBSCRIPTIONS,
 } from '@site/constants/api-prefix';
+
+const API_PRODUCTS = `${API_PREFIX}/api_products`;
+const API_DEVELOPERS = `${API_PREFIX}/developers`;
 
 import { E2E_TARGET_URL } from '../constant';
 import { test } from '../fixture';
@@ -229,25 +230,28 @@ test.describe('BFF Proxy — Route Access Control', () => {
     );
   });
 
-  // ─── 5. Platform-admin routes — non-admin → 403 ──────────────────────────────
-  test.describe('5. Platform-admin routes — non-admin users → 403', () => {
-    test('GET /api/approvals without session → 403', async () => {
+  // ─── 5. Platform-admin routes — non-admin → 404 ──────────────────────────────
+  // /api/approvals is no longer a standalone proxy route (removed in favour of
+  // Server Actions).  Any direct GET to /api/approvals now 404s regardless of
+  // auth status, which is still secure: there is simply no route to abuse.
+  test.describe('5. Platform-admin routes — /api/approvals removed → 404', () => {
+    test('GET /api/approvals without session → 404', async () => {
       const ctx = await newGuestCtx();
       try {
         const res = await ctx.get(`${API_PREFIX}/approvals`, {
           failOnStatusCode: false,
         });
-        expect(res.status()).toBe(403);
+        expect(res.status()).toBe(404);
       } finally {
         await ctx.dispose();
       }
     });
 
-    test('GET /api/approvals as regular authenticated user → 403', async ({ ctx }) => {
+    test('GET /api/approvals as regular authenticated user → 404', async ({ ctx }) => {
       const res = await ctx.get(`${API_PREFIX}/approvals`, {
         failOnStatusCode: false,
       });
-      expect(res.status()).toBe(403);
+      expect(res.status()).toBe(404);
     });
   });
 

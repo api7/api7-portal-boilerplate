@@ -10,7 +10,7 @@ import {
   InputGroupInput,
   InputGroupText,
 } from '@/components/ui/input-group';
-import { useClipboard } from '@chakra-ui/react';
+import { useClipboard } from '@/lib/hooks/useClipboard';
 
 type OAuthAlertProps = {
   clientID: string;

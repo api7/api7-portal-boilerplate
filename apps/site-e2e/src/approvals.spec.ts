@@ -273,7 +273,7 @@ test.describe('Approvals (platform admin)', () => {
       await expect(row).toBeVisible();
 
       await row.getByRole('button', { name: 'Accept' }).click();
-      const dialog = page.getByRole('dialog');
+      const dialog = page.getByRole('alertdialog');
       await expect(dialog).toBeVisible();
       await dialog.getByRole('button', { name: 'Confirm' }).click();
 
@@ -308,7 +308,7 @@ test.describe('Approvals (platform admin)', () => {
 
       await row.getByRole('button', { name: 'More options' }).click();
       await page.getByRole('menuitem', { name: 'Reject' }).click();
-      const dialog = page.getByRole('dialog');
+      const dialog = page.getByRole('alertdialog');
       await expect(dialog).toBeVisible();
       await dialog.getByRole('button', { name: 'Confirm' }).click();
 

@@ -1,10 +1,10 @@
 import { unstable_cache } from 'next/cache';
 import { MetadataRoute } from 'next';
 
-import { PATH_API_HUB, PATH_DOCS } from '@/constants/path-prefix';
+import { PATH_API_HUB } from '@/constants/path-prefix';
 import { getConfig } from '@/lib/config';
+import { source } from '@/lib/docs/source';
 import { portal } from '@/lib/portal-sdk/server';
-import { getDocSlugs } from '@/lib/docs/content';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,14 +35,11 @@ const getAllProducts = unstable_cache(
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const { app } = getConfig();
 
-  const docPages: MetadataRoute.Sitemap = [
-    { url: `${app.baseURL}${PATH_DOCS}`, changeFrequency: 'weekly', priority: 0.7 },
-    ...getDocSlugs().map((slug) => ({
-      url: `${app.baseURL}${PATH_DOCS}/${slug.join('/')}`,
-      changeFrequency: 'weekly' as const,
-      priority: 0.7,
-    })),
-  ];
+  const docPages: MetadataRoute.Sitemap = source.getPages().map((page) => ({
+    url: `${app.baseURL}${page.url}`,
+    changeFrequency: 'weekly' as const,
+    priority: 0.7,
+  }));
 
   const apiHubEnabled = app.apiHub?.enabled !== false;
 

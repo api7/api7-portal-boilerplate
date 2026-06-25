@@ -21,7 +21,8 @@
     ],
     "paths": {
       "@/*": ["./src/*"],
-      "@site/*": ["./src/*"]
+      "@site/*": ["./src/*"],
+      "collections/*": ["./.source/*"]
     }
   },
   "include": [

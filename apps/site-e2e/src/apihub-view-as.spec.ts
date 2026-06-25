@@ -2,6 +2,7 @@ import { Page, expect } from '@playwright/test';
 import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
 import { PATH_API_HUB, PATH_ROOT } from '@site/constants/path-prefix';
 
+import { E2E_TARGET_URL } from '../constant';
 import { test } from '../fixture';
 
 const createOrganization = async (
@@ -16,6 +17,7 @@ const createOrganization = async (
         slug: orgName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
         keepCurrentActiveOrganization: false,
       },
+      headers: { origin: E2E_TARGET_URL },
       failOnStatusCode: false,
     },
   );

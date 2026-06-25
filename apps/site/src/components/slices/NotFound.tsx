@@ -1,12 +1,11 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
 import { Button } from '@/components/ui/button';
 import { PATH_ROOT } from '@/constants/path-prefix';
-
-import Image from 'next/image';
 
 export const BarePageNotFound = () => {
   const router = useRouter();
@@ -27,11 +26,12 @@ export const BarePageNotFound = () => {
             height={449}
             className="min-h-[432.35px] min-w-[449.92px]"
             unoptimized
+            loading="eager"
           />
         </div>
       </motion.div>
       <div className="text-center my-4">
-        <Button onClick={goHome} className="w-[129px]">
+        <Button onClick={goHome} className="w-32.25">
           Go Back
         </Button>
       </div>

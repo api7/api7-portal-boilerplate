@@ -12,9 +12,7 @@ export const DEFAULT_LIST_PARAMS = {
 export const NON_ORG_PREFIX_ROUTE_SEGMENTS = new Set([
   'auth',
   'account',
-  'user-profile',
   'docs',
-  'api-reference',
 ]);
 
 /**

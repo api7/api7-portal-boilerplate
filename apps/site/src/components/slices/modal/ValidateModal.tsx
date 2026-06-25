@@ -17,7 +17,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { useClipboard } from '@chakra-ui/react';
+import { useClipboard } from '@/lib/hooks/useClipboard';
 
 type Props = ModalProps &
   UseDisclosureReturn & {

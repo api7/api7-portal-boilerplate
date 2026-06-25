@@ -4,8 +4,6 @@ import {
   PATH_LOGIN,
   PATH_ROOT,
 } from '@site/constants/path-prefix';
-import type { ProductExternal, ProductListRes } from '@site/types/portal-sdk';
-
 import { HTTPBIN_URL } from '../constant';
 import { test } from '../fixture';
 import {
@@ -49,39 +47,17 @@ test.describe('Test API Hub with External Product', () => {
     });
 
     await test.step('Search exist api', async () => {
-      const productsResPromise = page.waitForResponse((response) => {
-        if (
-          response.request().method() !== 'GET' ||
-          response.status() !== 200
-        ) {
-          return false;
-        }
-
-        const url = new URL(response.url());
-        return (
-          url.pathname.endsWith('/api_products') &&
-          url.searchParams.get('page') === '1' &&
-          url.searchParams.get('search') === productName
-        );
-      });
-
       // search to get a exist api
       await search.click();
       await search.clear();
       await search.fill(productName);
       await search.press('Enter');
 
-      const productsRes = await productsResPromise;
-      const data = (await productsRes.json()) as ProductListRes;
-      expect(data.total).toBe(1);
-      const httpbinInfo = data.list[0] as ProductExternal;
-      expect(httpbinInfo.name).toBe(productName);
-
+      // API hub is now SSR: no client-side /api_products fetch; wait for UI instead.
       const link = page.getByRole('link', { name: productName }).first();
       await expect(link).toBeVisible();
       await expect(page.getByText('No Data')).toBeHidden();
       await expect(page.getByText('API Count')).toBeVisible();
-      await expect(page.getByText(String(httpbinInfo.api_count))).toBeVisible();
     });
 
     await test.step('Check exist api detail page', async () => {

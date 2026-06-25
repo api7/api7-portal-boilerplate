@@ -1,5 +1,12 @@
 'use client';
 
+import { useForm } from '@tanstack/react-form';
+import type {
+  AnyFieldApi,
+  FormAsyncValidateOrFn,
+  FormValidateOrFn,
+  ReactFormExtendedApi,
+} from '@tanstack/react-form';
 import { nanoid } from 'nanoid';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
@@ -8,7 +15,6 @@ import Drawer from '@/components/base/drawer';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { transformFormLabelToAPI } from '@/helper/utils/form-producer/labels';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
 import type {
@@ -16,14 +22,7 @@ import type {
   BasicAuthPluginValue,
 } from '@/types/portal-sdk';
 import type { FormLabel } from '@/types/utils';
-import { useForm } from '@tanstack/react-form';
-import type {
-  AnyFieldApi,
-  FormAsyncValidateOrFn,
-  FormValidateOrFn,
-  ReactFormExtendedApi,
-} from '@tanstack/react-form';
-
+import { transformFormLabelToAPI } from '@/utils/form-producer/labels';
 import { useApplicationId } from '../hook';
 
 // Minimal form values required by FormItemBasicAuth (shared with RotateModal)
@@ -187,7 +186,12 @@ const BasicAuthAddDrawer = (props: BasicAuthAddDrawerProps) => {
       loading={form.state.isSubmitting}
       {...rest}
     >
-      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
         <FormPartBasics
           form={form}
           labelProps={{ resourceType: 'developer_credential' }}

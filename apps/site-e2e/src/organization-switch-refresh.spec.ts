@@ -7,6 +7,7 @@ import {
   PATH_ROOT,
 } from '@site/constants/path-prefix';
 
+import { E2E_TARGET_URL } from '../constant';
 import { test } from '../fixture';
 
 /**
@@ -39,6 +40,7 @@ const createOrganization = async (
         slug: orgName.toLowerCase(),
         keepCurrentActiveOrganization: false,
       },
+      headers: { origin: E2E_TARGET_URL },
       failOnStatusCode: false,
     },
   );

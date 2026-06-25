@@ -2,6 +2,7 @@ import 'server-only';
 
 import { ensureListOrganizations, ensureSession } from '@better-auth-ui/react/server';
 import { PATH_AUTH, PATH_LANDING, PATH_LOGIN } from '@/constants/path-prefix';
+import { unstable_cache } from 'next/cache';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 import { cache } from 'react';
@@ -10,6 +11,12 @@ import { auth } from '../auth/server';
 import { getQueryClient } from '../req';
 import { portal } from '../portal-sdk/server';
 
+const _fetchPublicAccess = unstable_cache(
+  () => portal.systemSetting.getPublicAccess(),
+  ['public-access'],
+  { revalidate: 300 },
+);
+
 /**
  * Check if public access is enabled
  * @param respectPublicAccess - If false, skip API call and return false. Default: true
@@ -17,11 +24,8 @@ import { portal } from '../portal-sdk/server';
  */
 export const isPublicAccessEnabled = cache(
   async (respectPublicAccess: boolean = true): Promise<boolean> => {
-    if (!respectPublicAccess) {
-      return false;
-    }
-
-    return portal.systemSetting.getPublicAccess();
+    if (!respectPublicAccess) return false;
+    return _fetchPublicAccess();
   },
 );
 

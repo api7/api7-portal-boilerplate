@@ -41,5 +41,4 @@ export function getQueryClient() {
   return browserQueryClient;
 }
 
-export const queryClient = getQueryClient();
 export const req = axios.create();

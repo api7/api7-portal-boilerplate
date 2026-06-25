@@ -6,12 +6,11 @@ import {
 } from './MaskBtns';
 import { usePreventHashScroll } from './usePreventHashScroll';
 import ScalarDocs from './ScalarDocs';
-import { ApiProductGateway, useParsedProduct } from '../utils';
+import { type ApiProductGateway, useParsedProduct } from '../utils';
 import { Skeleton } from '@/components/ui/skeleton';
 import { placeholderOpenAPI } from '@/constants/placeholder-openapi';
-import { authClient } from '@/lib/auth/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
-import useProductDetail from '@/lib/query/useProductDetail';
 
 type RealDocProps = {
   data: ApiProductGateway;
@@ -75,20 +74,20 @@ const ProductGatewayMockDoc = () => {
  *   if authorized=true, return Mock Doc + Sub Btn or Real Doc
  *   if authorized=false, return Mock Doc + Login Then Subscribe To Unlock
  */
-const ProductGatewayAPI = ({ id }: { id: string }) => {
-  const session = authClient.useSession();
-  const authorized = !!session.data?.user;
-  const { data } = useProductDetail(id);
+const ProductGatewayAPI = ({ data, isAuthenticated }: { data: ApiProductGateway; isAuthenticated: boolean }) => {
+  const authorized = isAuthenticated;
+  const orgSlug = useOrganizationSlug();
   const subscribedApps = useSubscriptionList({
-    api_product_id: id,
+    api_product_id: data.id,
     status: ['subscribed'],
+    enabled: !!orgSlug,
   });
   const waitingForApprovalApps = useSubscriptionList({
-    api_product_id: id,
+    api_product_id: data.id,
     status: ['wait_for_approval'],
+    enabled: !!orgSlug,
   });
 
-  if (!data || data.type !== 'gateway') return null;
   if (subscribedApps.isLoading || waitingForApprovalApps.isLoading) {
     return <Skeleton className="w-full h-full absolute left-0 top-0 z-10" />;
   }

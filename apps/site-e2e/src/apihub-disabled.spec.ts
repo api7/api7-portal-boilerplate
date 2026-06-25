@@ -8,6 +8,7 @@ import { restartDevPortal } from '../utils/shell';
 import { uiShowNotFound } from '../utils/ui';
 
 test.describe('Test API Hub Disabled Configuration', () => {
+  test.describe.configure({ mode: 'serial' });
   test.setTimeout(600_000);
 
   let defaultConfig: string | null = null;

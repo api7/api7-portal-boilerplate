@@ -11,7 +11,10 @@ import { getLastEmail } from '../req/email';
 import { BetterAuthLogin } from '../req/type';
 
 export const getOrgScopedPath = (page: Page, path: string) => {
-  const pathname = new URL(page.url()).pathname;
+  const url = page.url();
+  // Non-HTTP URLs (e.g. about:blank on a fresh page) have no org context.
+  if (!url.startsWith('http')) return path;
+  const pathname = new URL(url).pathname;
   const firstSegment = pathname.split('/').filter(Boolean)[0];
 
   if (!firstSegment || RESERVED_FIRST_SEGMENTS.has(firstSegment)) {

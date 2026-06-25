@@ -1,8 +1,8 @@
 import { APIRequest, expect, request } from '@playwright/test';
-import { API_DEVELOPERS } from '@site/constants/api-prefix';
-
 import { ONETIME_PASSWORD } from '../../constant';
 import { API_ME } from './constant';
+
+const API_DEVELOPERS = '/api/developers';
 import { API_PORTALS, API_PROVIDER_PUBLIC_ACCESS } from './constant';
 import { A7Login } from './type';
 

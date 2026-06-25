@@ -2,7 +2,6 @@ import type { WithSavePage } from '@/types/utils';
 import { ListSubscriptionsData } from '@api7/portal-sdk/unstable-types';
 import { useQuery } from '@tanstack/react-query';
 
-import { authClient } from '../auth/client';
 import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
 import { useParams } from '../hooks/useParams';
 import { useSavePage } from '../hooks/useSavePage';
@@ -28,8 +27,6 @@ export const useSubscriptionList = (params: UseSubscriptionListParams = {}) => {
     updateParams,
   });
   const orgSlug = useOrganizationSlug();
-  const { data: session } = authClient.useSession();
-  const isAuthenticated = !!session?.user;
 
   const goToPage = (page: number) =>
     onParamsChange({ page: page < 1 ? 1 : page });
@@ -37,7 +34,7 @@ export const useSubscriptionList = (params: UseSubscriptionListParams = {}) => {
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
     queryKey: subscriptionListKey(orgSlug, paramsOnlyStr),
     queryFn: () => portalClient.subscription.list(paramsOnlyStr),
-    enabled: enabled !== false && isAuthenticated,
+    enabled: enabled !== false,
   });
 
   return {

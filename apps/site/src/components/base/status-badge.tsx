@@ -37,7 +37,7 @@ export function StatusBadge({ color, children, className }: StatusBadgeProps) {
       variant="secondary"
       className={cn("flex items-center py-[2px] text-xs", classes.badge, className)}
     >
-      <div className={cn("mr-1 h-2 w-2 rounded-full", classes.dot)} />
+      <span className={cn("mr-1 h-2 w-2 rounded-full", classes.dot)} />
       {children}
     </Badge>
   )

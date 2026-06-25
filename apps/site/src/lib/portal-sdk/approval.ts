@@ -7,13 +7,18 @@
  * does not apply.
  */
 
-export type ApprovalEvent =
-  | 'api_product_subscription'
-  | 'developer_registration';
+import type { ListApprovalsResponses } from '@api7/portal-sdk/unstable-types';
 
-export type ApprovalStatus = 'pending' | 'finished';
+type SDKApproval = ListApprovalsResponses[200]['list'][number];
 
-export type ApprovalResult = 'accepted' | 'rejected' | 'cancelled' | '';
+export type Approval = SDKApproval & {
+  /**
+   * Human-readable organization name resolved from the Better Auth database
+   * (the applicant is an organization). Falls back to `applicant_name` when the
+   * organization can't be resolved.
+   */
+  applicant_org_name?: string;
+};
 
 /**
  * Marker the Control Plane stores in `operator_id` when an approval is processed
@@ -25,46 +30,6 @@ export const DEVELOPER_PORTAL_OPERATOR = 'developer_portal_admin';
 export type OperatorMetadata = {
   operator_id?: string;
   operator_name?: string;
-};
-
-export type Approval = {
-  id: string;
-  // The SDK deserializes these into Date objects, so the portal's own route
-  // serializes them as ISO strings (the raw API still uses epoch numbers).
-  created_at?: number | string;
-  updated_at?: number | string;
-  event: ApprovalEvent;
-  status: ApprovalStatus;
-  result?: ApprovalResult;
-  resource_type: string;
-  resource_id?: string;
-  resource_name?: string;
-  applicant_id?: string;
-  applicant_name?: string;
-  /**
-   * Human-readable organization name resolved from the Better Auth database
-   * (the applicant is an organization). Falls back to `applicant_name` when the
-   * organization can't be resolved.
-   */
-  applicant_org_name?: string;
-  operator_id?: string;
-  // When operator_id is the developer-portal marker, this holds the marker's
-  // human-readable label; the real operator lives in metadata.
-  operator_name?: string;
-  portal_id?: string;
-  portal_name?: string;
-  applied_at?: number;
-  operated_at?: number | null;
-  /**
-   * Opaque JSON string. When operator_id is the developer-portal marker it
-   * carries the acting platform admin's identity (see {@link OperatorMetadata}).
-   */
-  metadata?: string;
-};
-
-export type ListApprovalsResponse = {
-  list: Approval[];
-  total: number;
 };
 
 /**
@@ -87,43 +52,3 @@ export const resolveOperatorName = (approval: Approval): string => {
   }
 };
 
-const request = async (url: string, init?: RequestInit) => {
-  const res = await fetch(url, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...(init?.headers ?? {}) },
-  });
-  if (!res.ok) {
-    let message = `Request failed (${res.status})`;
-    try {
-      const body = await res.json();
-      if (body?.message) message = body.message;
-    } catch {
-      // ignore non-JSON body
-    }
-    throw new Error(message);
-  }
-  if (res.status === 204) return null;
-  return res.json();
-};
-
-export const approvalApi = {
-  list: (
-    params: Record<string, unknown> = {},
-  ): Promise<ListApprovalsResponse> => {
-    const qs = new URLSearchParams();
-    Object.entries(params).forEach(([key, value]) => {
-      if (value === undefined || value === null || value === '') return;
-      if (Array.isArray(value)) {
-        value.forEach((v) => qs.append(key, String(v)));
-      } else {
-        qs.set(key, String(value));
-      }
-    });
-    const query = qs.toString();
-    return request(`/api/approvals${query ? `?${query}` : ''}`);
-  },
-  accept: (id: string) =>
-    request(`/api/approvals/${id}/accept`, { method: 'POST' }),
-  reject: (id: string) =>
-    request(`/api/approvals/${id}/reject`, { method: 'POST' }),
-};

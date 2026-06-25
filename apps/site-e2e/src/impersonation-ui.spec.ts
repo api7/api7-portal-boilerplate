@@ -292,8 +292,9 @@ test.describe('Impersonation UI', () => {
       ).toBeVisible();
 
       await organizationRow
-        .getByRole('button', { name: 'Impersonate' })
+        .getByRole('button', { name: 'Open actions' })
         .click();
+      await page.getByRole('menuitem', { name: 'Impersonate' }).click();
 
       await expect(
         page.getByText('Currently in Impersonation Mode'),
@@ -356,8 +357,9 @@ test.describe('Impersonation UI', () => {
         })
         .first();
       await organizationRow
-        .getByRole('button', { name: 'Impersonate' })
+        .getByRole('button', { name: 'Open actions' })
         .click();
+      await page.getByRole('menuitem', { name: 'Impersonate' }).click();
       await expect(
         page.getByText('Currently in Impersonation Mode'),
       ).toBeVisible();
@@ -467,8 +469,9 @@ test.describe('Impersonation UI', () => {
         })
         .first();
       await organizationRow
-        .getByRole('button', { name: 'Impersonate' })
+        .getByRole('button', { name: 'Open actions' })
         .click();
+      await page.getByRole('menuitem', { name: 'Impersonate' }).click();
       await expect(
         page.getByText('Currently in Impersonation Mode'),
       ).toBeVisible();

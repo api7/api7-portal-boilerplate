@@ -65,7 +65,7 @@ const FormItemLabel = ({ form, name, fitWidth }: FormItemLabelProps) => (
                     const otherKeys = allKeys.filter(
                       (_: unknown, j: number) => j !== i,
                     );
-                    if (otherKeys.filter(Boolean).includes(trimmed))
+                    if (otherKeys.filter(Boolean).map((k) => k.trim()).includes(trimmed))
                       return 'Duplicate keys';
                     return undefined;
                   },

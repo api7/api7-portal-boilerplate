@@ -1,22 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
-
 import { useForm } from '@tanstack/react-form';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 
-import FormPartBasics from '@/components/slices/form/FormPartBasics';
 import { Alert } from '@/components/base/alert';
 import Drawer from '@/components/base/drawer';
-import { transformFormLabelToAPI } from '@/helper/utils/form-producer/labels';
+import FormPartBasics from '@/components/slices/form/FormPartBasics';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
-import type {
-  KeyAuthCredential,
-  KeyAuthPluginValue,
-} from '@/types/portal-sdk';
+import type { KeyAuthCredential, KeyAuthPluginValue } from '@/types/portal-sdk';
 import type { FormLabel } from '@/types/utils';
-
+import { transformFormLabelToAPI } from '@/utils/form-producer/labels';
 import { useApplicationId } from '../hook';
 
 export const FormItemKey = ({
@@ -100,7 +95,12 @@ const KeyAuthAddDrawer = (props: KeyAuthAddDrawerProps) => {
       loading={form.state.isSubmitting}
       {...rest}
     >
-      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
         <FormPartBasics
           form={form}
           labelProps={{ resourceType: 'developer_credential' }}

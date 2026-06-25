@@ -1,16 +1,17 @@
 'use client';
 
-import { useEffect } from 'react';
-
 import { useForm } from '@tanstack/react-form';
+import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
-import { transformAPIRedirectURIsToForm, transformRedirectURIsToAPI } from '@/helper/utils/form-producer/redirect_uris';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
 import type { OAuthCredential } from '@/types/portal-sdk';
-
+import {
+  transformAPIRedirectURIsToForm,
+  transformRedirectURIsToAPI,
+} from '@/utils/form-producer/redirect_uris';
 import { useApplicationId } from '../hook';
 import { FormItemOAuth } from './OAuthAddDrawer';
 
@@ -25,7 +26,9 @@ const OAuthEditDrawer = (props: OAuthEditDrawerProps) => {
 
   const defaultValues = {
     dcr_provider_id: oldData?.oauth?.dcr_provider_id ?? '',
-    redirect_uris: transformAPIRedirectURIsToForm(oldData?.oauth?.redirect_uris),
+    redirect_uris: transformAPIRedirectURIsToForm(
+      oldData?.oauth?.redirect_uris,
+    ),
     desc: oldData?.desc ?? '',
   };
 
@@ -53,15 +56,29 @@ const OAuthEditDrawer = (props: OAuthEditDrawerProps) => {
     if (open) {
       form.reset({
         dcr_provider_id: oldData?.oauth?.dcr_provider_id ?? '',
-        redirect_uris: transformAPIRedirectURIsToForm(oldData?.oauth?.redirect_uris),
+        redirect_uris: transformAPIRedirectURIsToForm(
+          oldData?.oauth?.redirect_uris,
+        ),
         desc: oldData?.desc ?? '',
       });
     }
   }, [open, oldData, form]);
 
   return (
-    <Drawer open={open} title={title} onOk={() => form.handleSubmit()} loading={form.state.isSubmitting} okText="Save" {...rest}>
-      <form onSubmit={(e) => { e.preventDefault(); form.handleSubmit(); }}>
+    <Drawer
+      open={open}
+      title={title}
+      onOk={() => form.handleSubmit()}
+      loading={form.state.isSubmitting}
+      okText="Save"
+      {...rest}
+    >
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          form.handleSubmit();
+        }}
+      >
         <FormItemOAuth form={form} isEdit />
       </form>
     </Drawer>
