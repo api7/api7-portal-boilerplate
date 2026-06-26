@@ -9,7 +9,7 @@ type PageData = {
 };
 
 export async function GET() {
-  const pages = source.getPages();
+  const pages = source.getPages().filter((page) => (page.data as PageData & { llms?: boolean }).llms !== false);
   const parts = await Promise.all(
     pages.map(async (page) => {
       const data = page.data as PageData;

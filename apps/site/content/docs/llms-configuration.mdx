@@ -1,0 +1,35 @@
+---
+title: LLM endpoint configuration
+description: How to control which pages appear in /llms.txt, /llms-full.txt, and /llms.mdx.
+llms: false
+---
+
+# LLM endpoint configuration
+
+The developer portal exposes three endpoints for LLM crawlers:
+
+| Endpoint | Description |
+| --- | --- |
+| `/llms.txt` | Flat list of all doc pages with links — the standard [llms.txt](https://llmstxt.org/) format. |
+| `/llms-full.txt` | Full Markdown content of every doc page, concatenated. |
+| `/llms.mdx/docs/[slug]` | Raw Markdown for a single page, served at its own URL. |
+
+## Excluding a page
+
+Add `llms: false` to a page's frontmatter to hide it from all three endpoints:
+
+```mdx
+---
+title: My page
+llms: false
+---
+```
+
+Excluded pages:
+- are omitted from `/llms.txt` and `/llms-full.txt`
+- return **404** at `/llms.mdx/docs/[slug]`
+- continue to appear in the regular `/docs/[slug]` route and the sidebar
+
+## Default behavior
+
+If `llms` is omitted (or set to `true`), the page appears in all LLM endpoints. This is the default for every page.
