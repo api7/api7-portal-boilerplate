@@ -1,7 +1,7 @@
 "use client"
 
 import { authQueryKeys } from "@better-auth-ui/core"
-import { useAuth } from "@better-auth-ui/react"
+import { useAuth, useListAccounts } from "@better-auth-ui/react"
 import { useQueryClient } from "@tanstack/react-query"
 import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { type SyntheticEvent, useState } from "react"
@@ -30,16 +30,25 @@ import { BackupCodesDialog } from "./backup-codes-dialog"
 export type TwoFactorPasswordDialogProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
-  isTwoFactorEnabled: boolean
+  /**
+   * "reset" behaves like "enable" (generates a new secret + backup codes)
+   * but is offered while 2FA is already on — for accounts where disabling
+   * isn't allowed but the user still needs to re-pair a new authenticator.
+   */
+  action: "enable" | "disable" | "reset"
 }
 
 export function TwoFactorPasswordDialog({
   open,
   onOpenChange,
-  isTwoFactorEnabled
+  action
 }: TwoFactorPasswordDialogProps) {
   const { basePaths, navigate } = useAuth()
   const queryClient = useQueryClient()
+
+  const { data: accounts } = useListAccounts(typedAuthClient)
+  const hasCredentialAccount =
+    accounts?.some((account) => account.providerId === "credential") ?? false
 
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
@@ -59,15 +68,17 @@ export function TwoFactorPasswordDialog({
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
-    if (!password) {
+    if (hasCredentialAccount && !password) {
       setPasswordError("Password is required")
       return
     }
 
     setIsPending(true)
     try {
-      if (isTwoFactorEnabled) {
-        const { error } = await typedAuthClient.twoFactor.disable({ password })
+      if (action === "disable") {
+        const { error } = await typedAuthClient.twoFactor.disable(
+          password ? { password } : {}
+        )
         if (error) {
           setPasswordError(error.message || "Incorrect password. Please try again.")
           setPassword("")
@@ -77,7 +88,9 @@ export function TwoFactorPasswordDialog({
         handleClose()
         queryClient.invalidateQueries({ queryKey: authQueryKeys.session })
       } else {
-        const { data, error } = await typedAuthClient.twoFactor.enable({ password })
+        const { data, error } = await typedAuthClient.twoFactor.enable(
+          password ? { password } : {}
+        )
         if (error) {
           setPasswordError(error.message || "Incorrect password. Please try again.")
           setPassword("")
@@ -114,9 +127,12 @@ export function TwoFactorPasswordDialog({
           <DialogHeader>
             <DialogTitle>Two-Factor Authentication</DialogTitle>
             <DialogDescription>
-              {isTwoFactorEnabled
-                ? "Enter your password to disable two-factor authentication."
-                : "Enter your password to enable two-factor authentication."}
+              {action === "disable" &&
+                "Enter your password to disable two-factor authentication."}
+              {action === "enable" &&
+                "Enter your password to enable two-factor authentication."}
+              {action === "reset" &&
+                "Enter your password to reset two-factor authentication. You'll set up a new authenticator app and get new backup codes."}
             </DialogDescription>
           </DialogHeader>
 
@@ -135,7 +151,7 @@ export function TwoFactorPasswordDialog({
                     setPasswordError(undefined)
                   }}
                   disabled={isPending}
-                  required
+                  required={hasCredentialAccount}
                   autoFocus
                   aria-invalid={!!passwordError}
                 />
@@ -166,9 +182,9 @@ export function TwoFactorPasswordDialog({
 
               <Button type="submit" disabled={isPending}>
                 {isPending && <Loader2 className="animate-spin" />}
-                {isTwoFactorEnabled
-                  ? "Disable Two-Factor"
-                  : "Enable Two-Factor"}
+                {action === "disable" && "Disable Two-Factor"}
+                {action === "enable" && "Enable Two-Factor"}
+                {action === "reset" && "Reset Two-Factor"}
               </Button>
             </DialogFooter>
           </form>

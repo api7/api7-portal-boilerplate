@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { authClient } from "@/lib/auth/client"
+import { useConfigStatus } from "@/lib/config/config-status-context"
 import { TwoFactorPasswordDialog } from "./two-factor-password-dialog"
 
 export type TwoFactorCardProps = {
@@ -17,6 +18,14 @@ export function TwoFactorCard({ className }: TwoFactorCardProps) {
   const { data: session, isPending } = useSession(authClient)
   const isTwoFactorEnabled = !!(session?.user as { twoFactorEnabled?: boolean })
     ?.twoFactorEnabled
+  const { twoFactorRequired } = useConfigStatus()
+  const canDisable = !twoFactorRequired
+
+  const action = !isTwoFactorEnabled
+    ? "enable"
+    : canDisable
+      ? "disable"
+      : "reset"
 
   const [showDialog, setShowDialog] = useState(false)
 
@@ -37,9 +46,11 @@ export function TwoFactorCard({ className }: TwoFactorCardProps) {
                     : "Two-factor authentication is not enabled."}
                 </p>
                 <p className="text-muted-foreground text-xs mt-0.5">
-                  {isTwoFactorEnabled
-                    ? "Your account is protected with an authenticator app."
-                    : "Add an extra layer of security to your account."}
+                  {isTwoFactorEnabled && !canDisable
+                    ? "Two-factor authentication is required and can't be disabled."
+                    : isTwoFactorEnabled
+                      ? "Your account is protected with an authenticator app."
+                      : "Add an extra layer of security to your account."}
                 </p>
               </>
             )}
@@ -47,11 +58,13 @@ export function TwoFactorCard({ className }: TwoFactorCardProps) {
 
           <Button
             size="sm"
-            variant={isTwoFactorEnabled ? "outline" : "default"}
+            variant={action === "enable" ? "default" : "outline"}
             disabled={isPending}
             onClick={() => setShowDialog(true)}
           >
-            {isTwoFactorEnabled ? "Disable Two-Factor" : "Enable Two-Factor"}
+            {action === "enable" && "Enable Two-Factor"}
+            {action === "disable" && "Disable Two-Factor"}
+            {action === "reset" && "Reset Two-Factor"}
           </Button>
         </CardContent>
       </Card>
@@ -59,7 +72,7 @@ export function TwoFactorCard({ className }: TwoFactorCardProps) {
       <TwoFactorPasswordDialog
         open={showDialog}
         onOpenChange={setShowDialog}
-        isTwoFactorEnabled={isTwoFactorEnabled}
+        action={action}
       />
     </div>
   )

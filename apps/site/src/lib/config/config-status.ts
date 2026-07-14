@@ -10,6 +10,7 @@ export type ConfigStatus = {
   genericOAuthProviders: { name: string; provider: string; ssoOnly: boolean }[];
   magicLink: boolean;
   twoFactor: boolean;
+  twoFactorRequired: boolean;
   requireEmailVerification: boolean;
   applicationDetail: {
     subscriptions: boolean;
@@ -44,6 +45,7 @@ export function getConfigStatus(): ConfigStatus {
   const twoFactor = !!auth.options.plugins.find(
     (plugin: BetterAuthPlugin) => plugin.id === 'two-factor',
   );
+  const twoFactorRequired = twoFactor && config.auth.twoFactor.required;
 
   const applicationDetail = config.app?.applicationDetail ?? {
     subscriptions: true,
@@ -54,5 +56,5 @@ export function getConfigStatus(): ConfigStatus {
   const requireEmailVerification =
     config.auth.emailAndPassword.requireEmailVerification;
 
-  return { socialProviders, genericOAuthProviders, magicLink, twoFactor, requireEmailVerification, applicationDetail };
+  return { socialProviders, genericOAuthProviders, magicLink, twoFactor, twoFactorRequired, requireEmailVerification, applicationDetail };
 }

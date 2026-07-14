@@ -29,6 +29,8 @@ import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
 import { authClient as typedAuthClient } from "@/lib/auth/client"
 import { checkEmailPolicy } from "@/lib/auth/check-email-policy"
+import { stashTwoFactorPassword } from "@/lib/auth/pending-two-factor-password"
+import { useConfigStatus } from "@/lib/config/config-status-context"
 import { cn } from "@/lib/utils"
 import { ProviderButton } from "./provider-button"
 import { ProviderButtons, type SocialLayout } from "./provider-buttons"
@@ -70,6 +72,8 @@ export function SignIn({
     } catch { /* invalid — ignore */ }
   }
 
+  const { twoFactorRequired } = useConfigStatus()
+
   const { fetchOptions, resetFetchOptions } = useFetchOptions()
 
   const [phase, setPhase] = useState<Phase>("email")
@@ -109,7 +113,24 @@ export function SignIn({
 
         resetFetchOptions()
       },
-      onSuccess: () => navigate({ to: callbackTarget ?? redirectTo })
+      onSuccess: () => {
+        const target = callbackTarget ?? redirectTo
+
+        // Reaching this branch means the password was correct and the user
+        // does not already have 2FA enabled (otherwise better-auth would
+        // have taken the twoFactorRedirect branch instead). If enrollment
+        // is mandatory, hand the just-typed password to the two-factor view
+        // so it can enroll immediately without asking for it again.
+        if (twoFactorRequired) {
+          stashTwoFactorPassword(password)
+          navigate({
+            to: `${basePaths.auth}/two-factor?redirect=${encodeURIComponent(target)}`
+          })
+          return
+        }
+
+        navigate({ to: target })
+      }
     }
   )
 

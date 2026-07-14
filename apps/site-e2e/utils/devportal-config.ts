@@ -45,7 +45,10 @@ const createDefaultConfig = (portalToken = ''): ConfigMapData => ({
     },
     twoFactor: {
       enabled: false,
+      required: false,
     },
+    genericOAuthProviders: [],
+    sso: { providers: [] },
   },
   app: {
     name: 'Developer Portal',

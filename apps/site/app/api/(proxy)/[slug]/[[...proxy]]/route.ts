@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { API_PREFIX } from '@/constants/api-prefix';
 import { isOwnerOrAdminRole } from '@/lib/auth/role';
 import { auth } from '@/lib/auth/server';
+import { getConfig } from '@/lib/config';
 import { portal } from '@/lib/portal-sdk/server';
 
 /** Resources accessible via org-scoped URLs: /api/{slug}/{resource}/... */
@@ -54,6 +55,16 @@ async function proxyRequest(
       return NextResponse.json(
         { message: 'Unauthorized. Sign in is required.' },
         { status: 401 },
+      );
+    }
+
+    const { auth: authConfig } = getConfig();
+    const twoFactorEnabled = !!(session.user as { twoFactorEnabled?: boolean })
+      .twoFactorEnabled;
+    if (authConfig.twoFactor.required && !twoFactorEnabled) {
+      return NextResponse.json(
+        { message: 'Forbidden. Two-factor authentication is required.' },
+        { status: 403 },
       );
     }
 

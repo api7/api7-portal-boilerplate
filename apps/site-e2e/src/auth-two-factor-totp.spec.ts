@@ -1,44 +1,20 @@
-import { base32 } from '@better-auth/utils/base32';
-import { createOTP } from '@better-auth/utils/otp';
 import { type Page, expect } from '@playwright/test';
 import { PATH_ACCOUNT, PATH_LOGIN } from '@site/constants/path-prefix';
 import { ConfigMapData } from '@site/lib/config/schema';
 
-import { genAuth, test } from '../fixture';
-import { createOrganization, genCtx, login } from '../req/common';
+import { test } from '../fixture';
 import {
   getConfigMapYaml,
   patchConfigMapYaml,
   updateConfigMapYaml,
 } from '../utils/devportal-config';
 import { restartDevPortal } from '../utils/shell';
-
-const getTotpChallengeConfigFromUri = (totpURI: string) => {
-  const totpSetup = new URL(totpURI);
-  const secret = totpSetup.searchParams.get('secret');
-  if (!secret) {
-    throw new Error('Missing `secret` in `totpURI`');
-  }
-
-  return {
-    secret,
-    digits: Number(totpSetup.searchParams.get('digits') || '6'),
-    period: Number(totpSetup.searchParams.get('period') || '30'),
-  };
-};
-
-const createTotpCode = async (totpURI: string) => {
-  const { secret, digits, period } = getTotpChallengeConfigFromUri(totpURI);
-  const decodedSecret = new TextDecoder().decode(base32.decode(secret));
-  return await createOTP(decodedSecret, {
-    digits,
-    period,
-  }).totp();
-};
-
-// Dialog content locator — base-ui dialog popup uses data-slot="dialog-content"
-const dialogContent = (page: Page) =>
-  page.locator('[data-slot="dialog-content"]');
+import {
+  createFreshAuth,
+  createTotpCode,
+  dialogContent,
+  signIn,
+} from '../utils/two-factor';
 
 async function openTwoFactorPasswordDialog(page: Page) {
   await expect(async () => {
@@ -68,17 +44,6 @@ async function submitEnableTwoFactorPassword(
   }).toPass({ timeout: 30_000, intervals: [500] });
 }
 
-async function createFreshAuth(label: string) {
-  const auth = genAuth(
-    `${label.replace(/[^a-z0-9]/gi, '').toLowerCase()}${Date.now()}`,
-  );
-  const ctx = await genCtx();
-  await login(ctx, auth);
-  await createOrganization(ctx, auth.organization!);
-  await ctx.dispose();
-  return auth;
-}
-
 // Keep the test idempotent: if a previous run already enabled 2FA, disable it first.
 async function ensureTwoFactorDisabled(
   page: Page,
@@ -105,14 +70,6 @@ async function ensureTwoFactorDisabled(
   await expect(
     page.getByRole('button', { name: /enable two-factor/i }),
   ).toBeVisible({ timeout: 30_000 });
-}
-
-// Sign-in is two-phase: email → Continue → password → Sign In
-async function signIn(page: Page, email: string, password: string) {
-  await page.getByLabel('Email', { exact: true }).fill(email);
-  await page.getByRole('button', { name: 'Continue' }).click();
-  await page.getByLabel('Password', { exact: true }).fill(password);
-  await page.getByRole('button', { name: /^sign in$/i }).click();
 }
 
 // Navigate to the security page. Re-authenticates if the workerStorageState session was
@@ -154,7 +111,7 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
   async function patchTwoFactorEnabled(enabled: boolean): Promise<void> {
     await patchConfigMapYaml<ConfigMapData>((configObj) => {
       configObj.auth ??= {} as ConfigMapData['auth'];
-      configObj.auth.twoFactor ??= { enabled: false };
+      configObj.auth.twoFactor ??= { enabled: false, required: false };
       configObj.auth.twoFactor.enabled = enabled;
     });
   }

@@ -113,8 +113,11 @@ const getTwoFactorConfig = () => {
   const twoFactorEnabled = config.auth.twoFactor.enabled;
   if (!twoFactorEnabled) return [];
   // TOTP-only 2FA. OTP (email/SMS code) is intentionally not configured.
+  // allowPasswordless: SSO/OAuth/magic-link-only accounts have no password
+  // credential, so they can enable/disable 2FA without one; accounts that do
+  // have a password credential are still required to confirm it.
   // Ref: https://www.better-auth.com/docs/plugins/2fa
-  return [twoFactor()] as const;
+  return [twoFactor({ allowPasswordless: true })] as const;
 };
 
 // Extract hostnames from trustedOrigins to allow dynamic baseURL resolution.

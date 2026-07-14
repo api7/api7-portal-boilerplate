@@ -41,6 +41,7 @@ auth:
   #   requireEmailVerification: false
   # twoFactor:
   #   enabled: false                                          # Enable two-factor auth (TOTP only)
+  #   required: false                                         # Force all users to enroll in 2FA (requires enabled: true)
   # socialProviders:                                          # ref: https://www.better-auth.com/docs/reference/options#socialproviders
   #   github:
   #     clientId: ${GITHUB_CLIENT_ID:}                        # GitHub OAuth App Client ID

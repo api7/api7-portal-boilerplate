@@ -77,8 +77,13 @@ export const configSchema = z.object({
     twoFactor: z
       .object({
         enabled: z.boolean().default(false),
+        required: z.boolean().default(false),
       })
-      .prefault({}),
+      .prefault({})
+      .refine((data) => !data.required || data.enabled, {
+        message: 'auth.twoFactor.required requires auth.twoFactor.enabled to be true',
+        path: ['required'],
+      }),
     socialProviders: z.record(z.string(), z.object(z.any())).optional(),
     genericOAuthProviders: z
       .array(
