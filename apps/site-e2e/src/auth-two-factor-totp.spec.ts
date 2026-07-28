@@ -1,19 +1,15 @@
 import { type Page, expect } from '@playwright/test';
 import { PATH_ACCOUNT, PATH_LOGIN } from '@site/constants/path-prefix';
-import { ConfigMapData } from '@site/lib/config/schema';
 
 import { test } from '../fixture';
-import {
-  getConfigMapYaml,
-  patchConfigMapYaml,
-  updateConfigMapYaml,
-} from '../utils/devportal-config';
+import { getConfigMapYaml, updateConfigMapYaml } from '../utils/devportal-config';
 import { restartDevPortal } from '../utils/shell';
 import {
   createFreshAuth,
   createTotpCode,
   dialogContent,
   signIn,
+  updateTwoFactorConfigAndRestart,
 } from '../utils/two-factor';
 
 async function openTwoFactorPasswordDialog(page: Page) {
@@ -108,17 +104,8 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
 
   let defaultConfig: string | null = null;
 
-  async function patchTwoFactorEnabled(enabled: boolean): Promise<void> {
-    await patchConfigMapYaml<ConfigMapData>((configObj) => {
-      configObj.auth ??= {} as ConfigMapData['auth'];
-      configObj.auth.twoFactor ??= { enabled: false, required: false };
-      configObj.auth.twoFactor.enabled = enabled;
-    });
-  }
-
   async function updateConfigAndRestart(enabled: boolean): Promise<void> {
-    await patchTwoFactorEnabled(enabled);
-    await restartDevPortal();
+    await updateTwoFactorConfigAndRestart({ enabled });
   }
 
   test.beforeAll(async () => {

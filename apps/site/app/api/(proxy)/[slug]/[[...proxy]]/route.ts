@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { API_PREFIX } from '@/constants/api-prefix';
 import { isOwnerOrAdminRole } from '@/lib/auth/role';
 import { auth } from '@/lib/auth/server';
+import { isTwoFactorEnabled, type UserWithTwoFactor } from '@/lib/auth/two-factor';
 import { getConfig } from '@/lib/config';
 import { portal } from '@/lib/portal-sdk/server';
 
@@ -59,9 +60,7 @@ async function proxyRequest(
     }
 
     const { auth: authConfig } = getConfig();
-    const twoFactorEnabled = !!(session.user as { twoFactorEnabled?: boolean })
-      .twoFactorEnabled;
-    if (authConfig.twoFactor.required && !twoFactorEnabled) {
+    if (authConfig.twoFactor.required && !isTwoFactorEnabled(session.user as UserWithTwoFactor)) {
       return NextResponse.json(
         { message: 'Forbidden. Two-factor authentication is required.' },
         { status: 403 },

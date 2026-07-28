@@ -7,6 +7,7 @@ import { Eye, EyeOff, Loader2 } from "lucide-react"
 import { type SyntheticEvent, useState } from "react"
 import { toast } from "sonner"
 
+import { Alert, AlertAction, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -46,7 +47,13 @@ export function TwoFactorPasswordDialog({
   const { basePaths, navigate } = useAuth()
   const queryClient = useQueryClient()
 
-  const { data: accounts } = useListAccounts(typedAuthClient)
+  const {
+    data: accounts,
+    isPending: isAccountsPending,
+    isError: isAccountsError,
+    refetch: refetchAccounts
+  } = useListAccounts(typedAuthClient)
+  const isAccountsUnresolved = isAccountsPending || isAccountsError
   const hasCredentialAccount =
     accounts?.some((account) => account.providerId === "credential") ?? false
 
@@ -68,6 +75,10 @@ export function TwoFactorPasswordDialog({
 
   const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
+    if (isAccountsUnresolved) {
+      toast.error("Unable to verify account details. Please try again.")
+      return
+    }
     if (hasCredentialAccount && !password) {
       setPasswordError("Password is required")
       return
@@ -97,6 +108,7 @@ export function TwoFactorPasswordDialog({
           return
         }
         handleClose()
+        queryClient.invalidateQueries({ queryKey: authQueryKeys.session })
         setBackupCodes(data?.backupCodes ?? [])
         setTotpURI(data?.totpURI ?? null)
         setTimeout(() => setShowBackupCodes(true), 250)
@@ -137,6 +149,24 @@ export function TwoFactorPasswordDialog({
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="grid gap-4">
+            {isAccountsError && (
+              <Alert variant="destructive">
+                <AlertDescription>
+                  Unable to verify account details. Please try again.
+                </AlertDescription>
+                <AlertAction>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => refetchAccounts()}
+                  >
+                    Retry
+                  </Button>
+                </AlertAction>
+              </Alert>
+            )}
+
             <Field data-invalid={!!passwordError}>
               <Label htmlFor="2fa-password">Password</Label>
 
@@ -150,7 +180,7 @@ export function TwoFactorPasswordDialog({
                     setPassword(e.target.value)
                     setPasswordError(undefined)
                   }}
-                  disabled={isPending}
+                  disabled={isPending || isAccountsUnresolved}
                   required={hasCredentialAccount}
                   autoFocus
                   aria-invalid={!!passwordError}
@@ -160,7 +190,7 @@ export function TwoFactorPasswordDialog({
                     size="icon-xs"
                     aria-label={showPassword ? "Hide password" : "Show password"}
                     onClick={() => setShowPassword(!showPassword)}
-                    disabled={isPending}
+                    disabled={isPending || isAccountsUnresolved}
                   >
                     {showPassword ? <EyeOff /> : <Eye />}
                   </InputGroupButton>
@@ -180,7 +210,7 @@ export function TwoFactorPasswordDialog({
                 Cancel
               </Button>
 
-              <Button type="submit" disabled={isPending}>
+              <Button type="submit" disabled={isPending || isAccountsUnresolved}>
                 {isPending && <Loader2 className="animate-spin" />}
                 {action === "disable" && "Disable Two-Factor"}
                 {action === "enable" && "Enable Two-Factor"}

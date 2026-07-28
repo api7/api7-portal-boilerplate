@@ -1,9 +1,12 @@
 import { base32 } from '@better-auth/utils/base32';
 import { createOTP } from '@better-auth/utils/otp';
 import { type Page } from '@playwright/test';
+import { ConfigMapData } from '@site/lib/config/schema';
 
 import { genAuth } from '../fixture';
 import { createOrganization, genCtx, login } from '../req/common';
+import { patchConfigMapYaml } from './devportal-config';
+import { restartDevPortal } from './shell';
 
 const getTotpChallengeConfigFromUri = (totpURI: string) => {
   const totpSetup = new URL(totpURI);
@@ -39,6 +42,26 @@ export const signIn = async (page: Page, email: string, password: string) => {
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: /^sign in$/i }).click();
 };
+
+// Patches `auth.twoFactor.enabled` (and, when given, `auth.twoFactor.required`)
+// in the e2e config map and restarts the dev portal for it to take effect.
+export async function updateTwoFactorConfigAndRestart({
+  enabled,
+  required,
+}: {
+  enabled: boolean;
+  required?: boolean;
+}): Promise<void> {
+  await patchConfigMapYaml<ConfigMapData>((configObj) => {
+    configObj.auth ??= {} as ConfigMapData['auth'];
+    configObj.auth.twoFactor ??= { enabled: false, required: false };
+    configObj.auth.twoFactor.enabled = enabled;
+    if (required !== undefined) {
+      configObj.auth.twoFactor.required = required;
+    }
+  });
+  await restartDevPortal();
+}
 
 export async function createFreshAuth(label: string) {
   const auth = genAuth(

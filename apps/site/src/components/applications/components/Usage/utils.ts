@@ -170,7 +170,7 @@ export function processRealData(
       dataMap[displayName][item.hour_timestamp] += item.api_calls;
     });
 
-    // Convert to ECharts series data format
+    // Convert to per-series data arrays keyed by product
     const seriesData: { [displayName: string]: number[] } = {};
     let totalCalls = 0;
 

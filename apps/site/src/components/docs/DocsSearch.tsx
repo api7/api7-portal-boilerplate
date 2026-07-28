@@ -36,7 +36,7 @@ async function fetchSearchIndex(): Promise<MiniSearch<SearchSection>> {
   return ms;
 }
 
-export default function DocsSearch({ open, onOpenChange }: SharedProps) {
+export default function DocsSearch({ open, onOpenChange, dialogHandle }: SharedProps) {
   const [search, setSearch] = useState('');
 
   const { data: mini } = useQuery({
@@ -62,7 +62,13 @@ export default function DocsSearch({ open, onOpenChange }: SharedProps) {
   }, [mini, search]);
 
   return (
-    <SearchDialog open={open} onOpenChange={onOpenChange} search={search} onSearchChange={setSearch}>
+    <SearchDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      dialogHandle={dialogHandle}
+      search={search}
+      onSearchChange={setSearch}
+    >
       <SearchDialogOverlay />
       <SearchDialogContent>
         <SearchDialogHeader>

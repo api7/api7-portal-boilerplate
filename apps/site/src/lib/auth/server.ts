@@ -174,6 +174,7 @@ export const auth = betterAuth({
   session: {
     expiresIn: config.auth.session.expiresIn,
     updateAge: config.auth.session.updateAge,
+    cookieCache: { enabled: true, maxAge: 5 * 60, refreshCache: true },
   },
   secret: config.auth.secret,
   socialProviders: config.auth.socialProviders,

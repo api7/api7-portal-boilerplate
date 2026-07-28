@@ -1,21 +1,17 @@
 import { expect } from '@playwright/test';
 import { API_PREFIX } from '@site/constants/api-prefix';
 import { PATH_ACCOUNT, PATH_LOGIN, PATH_ROOT } from '@site/constants/path-prefix';
-import { ConfigMapData } from '@site/lib/config/schema';
 
 import { test } from '../fixture';
 import { genCtx, login } from '../req/common';
-import {
-  getConfigMapYaml,
-  patchConfigMapYaml,
-  updateConfigMapYaml,
-} from '../utils/devportal-config';
+import { getConfigMapYaml, updateConfigMapYaml } from '../utils/devportal-config';
 import { restartDevPortal } from '../utils/shell';
 import {
   createFreshAuth,
   createTotpCode,
   dialogContent,
   signIn,
+  updateTwoFactorConfigAndRestart,
 } from '../utils/two-factor';
 
 test.describe('Force two-factor authentication (auth.twoFactor.required)', () => {
@@ -25,13 +21,7 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
   let defaultConfig: string | null = null;
 
   async function updateConfigAndRestart(required: boolean): Promise<void> {
-    await patchConfigMapYaml<ConfigMapData>((configObj) => {
-      configObj.auth ??= {} as ConfigMapData['auth'];
-      configObj.auth.twoFactor ??= { enabled: false, required: false };
-      configObj.auth.twoFactor.enabled = required;
-      configObj.auth.twoFactor.required = required;
-    });
-    await restartDevPortal();
+    await updateTwoFactorConfigAndRestart({ enabled: required, required });
   }
 
   test.beforeAll(async () => {

@@ -17,6 +17,7 @@ import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { authClient as typedAuthClient } from "@/lib/auth/client"
 import { consumeTwoFactorPassword } from "@/lib/auth/pending-two-factor-password"
+import { isTwoFactorEnabled } from "@/lib/auth/two-factor"
 import { BackupCodesDialog } from "./backup-codes-dialog"
 
 export type TwoFactorViewProps = {
@@ -33,14 +34,11 @@ export function TwoFactorView({ className }: TwoFactorViewProps) {
   const { data: session, isPending: isSessionPending } = useSession(typedAuthClient)
   const { data: accounts, isPending: isAccountsPending } = useListAccounts(typedAuthClient)
 
-  const isTwoFactorEnabled = !!(session?.user as { twoFactorEnabled?: boolean } | undefined)
-    ?.twoFactorEnabled
-
   // Forced enrollment: a full session already exists (unlike the mid-sign-in
   // OTP challenge below, which has no session until verifyTotp succeeds), the
   // user hasn't enabled 2FA yet, and there's no totpURI to display yet.
   const isForcedEnrollment =
-    !totpURI && !isSessionPending && !!session && !isTwoFactorEnabled
+    !totpURI && !isSessionPending && !!session && !isTwoFactorEnabled(session.user)
 
   const hasCredentialAccount =
     accounts?.some((account) => account.providerId === "credential") ?? false

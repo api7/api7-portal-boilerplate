@@ -1,13 +1,19 @@
 'use client';
 
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 
-import * as echarts from 'echarts';
-import type { EChartsOption } from 'echarts';
-import { cloneDeep } from 'lodash-es';
-import { useTheme } from 'next-themes';
+import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
 
 import { processRealData } from './utils';
+import {
+  ChartContainer,
+  ChartLegend,
+  ChartLegendContent,
+  ChartTooltip,
+  ChartTooltipContent,
+  type ChartConfig,
+} from '@/components/ui/chart';
+import { Spinner } from '@/components/ui/spinner';
 import type { UsageDataPoint } from '@/types/portal-sdk';
 
 interface ChartProps {
@@ -17,7 +23,7 @@ interface ChartProps {
   data?: UsageDataPoint[];
 }
 
-const coolColors = [
+const seriesColors = [
   '#9254de',
   '#1890ff',
   '#2f54eb',
@@ -34,225 +40,153 @@ const Chart: React.FC<ChartProps> = ({
   endTime,
   data,
 }) => {
-  const chartRef = useRef<HTMLDivElement>(null);
-  const chartInstance = useRef<echarts.ECharts | null>(null);
-
-  const { resolvedTheme } = useTheme();
-  const isDark = resolvedTheme === 'dark';
-  // Theme-aware colors so the chart (and its loading mask) match the app theme
-  // instead of flashing the ECharts default light palette in dark mode.
-  const textColor = isDark ? '#e5e5e5' : '#333333';
-  const axisLineColor = isDark ? 'rgba(255,255,255,0.25)' : '#cccccc';
-  const splitLineColor = isDark ? 'rgba(255,255,255,0.1)' : '#eeeeee';
-  const maskColor = isDark ? 'rgba(38,38,38,0.6)' : 'rgba(255,255,255,0.8)';
-
-  // Process data
-  const { timeAxis, productNames, seriesData, totalCalls } = processRealData(
-    data,
-    startTime,
-    endTime
+  const { timeAxis, productNames, seriesData, totalCalls } = useMemo(
+    () => processRealData(data, startTime, endTime),
+    [data, startTime, endTime]
   );
 
-  const reversedProductNames = useMemo(
-    () => cloneDeep(productNames).reverse(),
+  // Derive from the processed result, not the raw input: points whose
+  // hour_timestamp falls outside the startTime/endTime window are dropped
+  // during aggregation, which can leave `data` non-empty but every series at 0.
+  const hasData = totalCalls > 0;
+
+  // Product names come from API data and may contain spaces/parentheses,
+  // which are not valid in a CSS custom property name (`--color-${key}`).
+  // Use index-based keys for dataKey/config and keep the real name as the label.
+  const seriesKeys = useMemo(
+    () => productNames.map((_, index) => `series-${index}`),
     [productNames]
   );
 
-  // Show empty state if no data
-  const hasData = data && data.length > 0;
+  const chartData = useMemo(
+    () =>
+      timeAxis.map((time, index) => {
+        const row: Record<string, string | number> = { time };
+        productNames.forEach((name, seriesIndex) => {
+          row[seriesKeys[seriesIndex]] = seriesData[name]?.[index] ?? 0;
+        });
+        return row;
+      }),
+    [timeAxis, productNames, seriesData, seriesKeys]
+  );
 
-  // Stacked bar chart configuration
-  const getChartOption = (): EChartsOption => {
-    if (!hasData) {
-      return {
-        title: {
-          text: 'No Data',
-          subtext:
-            'No activity found for the selected products/credentials in the selected time range.',
-          left: 'center',
-          top: 'middle',
-          textStyle: {
-            fontSize: 18,
-            color: '#999',
-          },
-          subtextStyle: {
-            fontSize: 14,
-            color: '#ccc',
-          },
-        },
-        grid: {
-          show: false,
-        },
-        xAxis: {
-          show: false,
-        },
-        yAxis: {
-          show: false,
-        },
-      };
-    }
+  const chartConfig = useMemo(
+    () =>
+      productNames.reduce<ChartConfig>((config, name, index) => {
+        config[seriesKeys[index]] = {
+          label: name,
+          color: seriesColors[index % seriesColors.length],
+        };
+        return config;
+      }, {}),
+    [productNames, seriesKeys]
+  );
 
-    const series = productNames.map((productName) => ({
-      name: productName,
-      type: 'bar' as const,
-      stack: 'total',
-      emphasis: {
-        focus: 'series' as const,
-      },
-      data: seriesData[productName],
-    }));
+  if (loading) {
+    return (
+      <div className="flex h-[500px] w-full items-center justify-center">
+        <Spinner className="size-6" />
+      </div>
+    );
+  }
 
-    return {
-      color: coolColors,
-      textStyle: {
-        color: textColor,
-      },
-      title: {
-        text: 'Requests',
-        subtext: `Total requests: ${totalCalls.toLocaleString()}`,
-        left: 'center',
-        textStyle: {
-          color: textColor,
-        },
-        subtextStyle: {
-          color: isDark ? '#9ca3af' : '#999999',
-        },
-      },
-
-      tooltip: {
-        trigger: 'axis',
-        axisPointer: {
-          type: 'shadow',
-        },
-        formatter: function (params: unknown) {
-          const paramsArray = params as Array<{
-            axisValue: string;
-            seriesName: string;
-            marker: string;
-            value: number;
-          }>;
-          let result = `<div style="text-align: center; margin-bottom: 8px;"><strong>${paramsArray[0].axisValue}</strong></div>`;
-          let totalValue = 0;
-
-          // Maintain the same order as productNames
-          reversedProductNames.forEach((productName) => {
-            const param = paramsArray.find(
-              (p) => p.seriesName === productName
-            );
-            if (param) {
-              result += `<div style="display: flex; justify-content: space-between; align-items: center; margin: 2px 0; white-space: nowrap;">
-                <span style="display: flex; align-items: center;">${
-                  param.marker
-                }${param.seriesName}</span>
-                <span style="font-weight: bold; margin-left: 16px;">${param.value.toLocaleString()}</span>
-              </div>`;
-              totalValue += param.value;
-            }
-          });
-
-          result += `<div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px; padding-top: 8px; border-top: 1px solid #eee; white-space: nowrap;">
-            <span style="font-weight: bold;">Total requests</span>
-            <span style="font-weight: bold; margin-left: 16px;">${totalValue.toLocaleString()}</span>
-          </div>`;
-
-          return result;
-        },
-      },
-      legend: {
-        data: reversedProductNames,
-        bottom: 10,
-        textStyle: {
-          color: textColor,
-        },
-      },
-      grid: {
-        left: '3%',
-        right: '4%',
-        bottom: '15%',
-        containLabel: true,
-      },
-      xAxis: {
-        type: 'category',
-        data: timeAxis,
-        axisLabel: {
-          rotate: 30,
-          color: textColor,
-          formatter: function (value: string) {
-            return value;
-          },
-        },
-        axisLine: {
-          lineStyle: { color: axisLineColor },
-        },
-      },
-      yAxis: {
-        type: 'value',
-        minInterval: 1,
-        axisLabel: {
-          color: textColor,
-          formatter: '{value}',
-        },
-        axisLine: {
-          lineStyle: { color: axisLineColor },
-        },
-        splitLine: {
-          lineStyle: { color: splitLineColor },
-        },
-      },
-      series,
-    };
-  };
-
-  useEffect(() => {
-    if (!chartRef.current) return;
-
-    // Initialize chart
-    if (!chartInstance.current) {
-      chartInstance.current = echarts.init(chartRef.current);
-    }
-
-    const option = getChartOption();
-
-    // Set loading state
-    if (loading) {
-      chartInstance.current.showLoading({
-        text: 'Loading...',
-        color: '#1890ff',
-        textColor: textColor,
-        maskColor: maskColor,
-        zlevel: 0,
-      });
-    } else {
-      chartInstance.current.hideLoading();
-      chartInstance.current.setOption(option);
-    }
-
-    // Responsive handling
-    const handleResize = () => {
-      chartInstance.current?.resize();
-    };
-
-    window.addEventListener('resize', handleResize);
-
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      if (chartInstance.current) {
-        chartInstance.current.dispose();
-        chartInstance.current = null;
-      }
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, startTime, endTime, data, resolvedTheme]);
+  if (!hasData) {
+    return (
+      <div className="flex h-[500px] w-full flex-col items-center justify-center gap-2 text-center">
+        <p className="text-lg text-muted-foreground">No Data</p>
+        <p className="max-w-md text-sm text-muted-foreground/70">
+          No activity found for the selected products/credentials in the
+          selected time range.
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div
-      ref={chartRef}
-      style={{
-        width: '100%',
-        height: '500px',
-        minHeight: '500px',
-      }}
-    />
+    <div className="w-full space-y-4">
+      <div className="text-center">
+        <h3 className="text-base font-medium">Requests</h3>
+        <p className="text-sm text-muted-foreground">
+          Total requests: {totalCalls.toLocaleString()}
+        </p>
+      </div>
+      <ChartContainer config={chartConfig} className="h-[440px] w-full">
+        <BarChart accessibilityLayer data={chartData} margin={{ bottom: 24 }}>
+          <CartesianGrid vertical={false} />
+          <XAxis
+            dataKey="time"
+            tickLine={false}
+            tickMargin={10}
+            angle={-30}
+            textAnchor="end"
+            height={50}
+          />
+          <YAxis tickLine={false} axisLine={false} allowDecimals={false} />
+          <ChartTooltip
+            content={(tooltipProps) => {
+              // ChartTooltipContent filters out `type === 'none'` entries
+              // before indexing, so mirror that here to find the true last
+              // row instead of comparing against seriesKeys.length.
+              const visiblePayload = (tooltipProps.payload ?? []).filter(
+                (item) => item.type !== 'none'
+              );
+              const lastIndex = visiblePayload.length - 1;
+
+              return (
+                <ChartTooltipContent
+                  active={tooltipProps.active}
+                  payload={tooltipProps.payload}
+                  label={tooltipProps.label}
+                  formatter={(value, rawName, item, index) => {
+                    const name = String(rawName);
+                    const isLast = index === lastIndex;
+                    const total = seriesKeys.reduce(
+                      (sum, seriesKey) =>
+                        sum + (Number(item.payload?.[seriesKey]) || 0),
+                      0
+                    );
+
+                    return (
+                      <>
+                        <div
+                          className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
+                          style={{ backgroundColor: `var(--color-${name})` }}
+                        />
+                        <div className="flex flex-1 items-center justify-between leading-none">
+                          <span className="text-muted-foreground">
+                            {chartConfig[name]?.label ?? name}
+                          </span>
+                          <span className="font-mono font-medium tabular-nums text-foreground">
+                            {Number(value).toLocaleString()}
+                          </span>
+                        </div>
+                        {isLast && (
+                          <div className="mt-1.5 flex basis-full items-center justify-between border-t border-border/50 pt-1.5 text-xs font-medium">
+                            <span>Total requests</span>
+                            <span className="font-mono tabular-nums">
+                              {total.toLocaleString()}
+                            </span>
+                          </div>
+                        )}
+                      </>
+                    );
+                  }}
+                />
+              );
+            }}
+          />
+          <ChartLegend content={<ChartLegendContent />} />
+          {seriesKeys.map((key) => (
+            <Bar
+              key={key}
+              dataKey={key}
+              stackId="total"
+              fill={`var(--color-${key})`}
+            />
+          ))}
+        </BarChart>
+      </ChartContainer>
+    </div>
   );
 };
 

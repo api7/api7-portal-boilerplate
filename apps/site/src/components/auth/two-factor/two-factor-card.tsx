@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Skeleton } from "@/components/ui/skeleton"
 import { authClient } from "@/lib/auth/client"
+import { isTwoFactorEnabled as checkTwoFactorEnabled } from "@/lib/auth/two-factor"
 import { useConfigStatus } from "@/lib/config/config-status-context"
 import { TwoFactorPasswordDialog } from "./two-factor-password-dialog"
 
@@ -16,8 +17,7 @@ export type TwoFactorCardProps = {
 
 export function TwoFactorCard({ className }: TwoFactorCardProps) {
   const { data: session, isPending } = useSession(authClient)
-  const isTwoFactorEnabled = !!(session?.user as { twoFactorEnabled?: boolean })
-    ?.twoFactorEnabled
+  const isTwoFactorEnabled = checkTwoFactorEnabled(session?.user)
   const { twoFactorRequired } = useConfigStatus()
   const canDisable = !twoFactorRequired
 
