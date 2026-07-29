@@ -39,6 +39,7 @@ auth:
   # emailAndPassword:
   #   enabled: true
   #   requireEmailVerification: false
+  #   revokeSessionsOnPasswordReset: true                      # Revoke all other sessions when a user resets their password (default: true)
   # twoFactor:
   #   enabled: false                                          # Enable two-factor auth (TOTP only)
   #   required: false                                         # Force all users to enroll in 2FA (requires enabled: true)

@@ -69,10 +69,12 @@ export const configSchema = z.object({
       .object({
         enabled: z.boolean(),
         requireEmailVerification: z.boolean(),
+        revokeSessionsOnPasswordReset: z.boolean().default(true),
       })
       .default({
         enabled: true,
         requireEmailVerification: false,
+        revokeSessionsOnPasswordReset: true,
       }),
     twoFactor: z
       .object({

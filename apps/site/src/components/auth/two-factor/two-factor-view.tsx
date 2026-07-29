@@ -32,7 +32,11 @@ export function TwoFactorView({ className }: TwoFactorViewProps) {
   const verifiedRedirectTo = redirectParam ?? redirectTo
 
   const { data: session, isPending: isSessionPending } = useSession(typedAuthClient)
-  const { data: accounts, isPending: isAccountsPending } = useListAccounts(typedAuthClient)
+  const {
+    data: accounts,
+    isPending: isAccountsPending,
+    isError: isAccountsError
+  } = useListAccounts(typedAuthClient)
 
   // Forced enrollment: a full session already exists (unlike the mid-sign-in
   // OTP challenge below, which has no session until verifyTotp succeeds), the
@@ -40,8 +44,12 @@ export function TwoFactorView({ className }: TwoFactorViewProps) {
   const isForcedEnrollment =
     !totpURI && !isSessionPending && !!session && !isTwoFactorEnabled(session.user)
 
+  // If the account lookup errored, we can't confirm there's no credential
+  // account — default to requiring a password so we don't silently attempt
+  // a passwordless enroll() call that's bound to fail for such accounts.
   const hasCredentialAccount =
-    accounts?.some((account) => account.providerId === "credential") ?? false
+    isAccountsError ||
+    (accounts?.some((account) => account.providerId === "credential") ?? false)
 
   const [needsPasswordPrompt, setNeedsPasswordPrompt] = useState(false)
   const [enrollPassword, setEnrollPassword] = useState("")

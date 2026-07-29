@@ -1,5 +1,6 @@
 import 'server-only';
 
+import { BASE_ERROR_CODES } from '@better-auth/core/error';
 import { APIError, type BetterAuthPlugin, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createAuthMiddleware } from 'better-auth/api';
@@ -109,6 +110,40 @@ const ssoPolicyEnforcement = (): BetterAuthPlugin => ({
   },
 });
 
+// better-auth's built-in emailAndPassword.onExistingUserSignUp callback runs
+// via runInBackgroundOrAwait, which swallows any thrown error — it can only
+// run side effects, not block the response. To actually reject sign-up with
+// an existing email (instead of the anti-enumeration synthetic-user response
+// used when requireEmailVerification is on), intercept it as a before hook.
+const rejectDuplicateEmailSignUp = (): BetterAuthPlugin => ({
+  id: 'reject-duplicate-email-sign-up',
+  hooks: {
+    before: [
+      {
+        matcher: (ctx) => ctx.path === '/sign-up/email',
+        handler: createAuthMiddleware(async (ctx) => {
+          if (
+            !ctx.context.options.emailAndPassword?.enabled ||
+            ctx.context.options.emailAndPassword?.disableSignUp
+          )
+            return;
+          const email = getEmailFromBody(ctx.body);
+          if (!email) return;
+          const existingUser =
+            await ctx.context.internalAdapter.findUserByEmail(
+              email.toLowerCase(),
+            );
+          if (!existingUser) return;
+          throw APIError.from(
+            'UNPROCESSABLE_ENTITY',
+            BASE_ERROR_CODES.USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL,
+          );
+        }),
+      },
+    ],
+  },
+});
+
 const getTwoFactorConfig = () => {
   const twoFactorEnabled = config.auth.twoFactor.enabled;
   if (!twoFactorEnabled) return [];
@@ -192,6 +227,7 @@ export const auth = betterAuth({
     ),
     ...getGenericOAuthPlugin(),
     ssoPolicyEnforcement(),
+    rejectDuplicateEmailSignUp(),
     ...getTestingConfig(),
     nextCookies(),
   ],
