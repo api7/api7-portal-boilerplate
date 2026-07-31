@@ -2,6 +2,7 @@ import { relations } from 'drizzle-orm';
 import {
   boolean,
   index,
+  integer,
   pgTable,
   text,
   timestamp,
@@ -97,6 +98,8 @@ export const twoFactors = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: 'cascade' }),
     verified: boolean('verified').default(true),
+    failedVerificationCount: integer('failed_verification_count').default(0),
+    lockedUntil: timestamp('locked_until'),
   },
   (table) => [
     index('twoFactors_secret_idx').on(table.secret),
@@ -109,7 +112,7 @@ export const organizations = pgTable(
   {
     id: text('id').primaryKey(),
     name: text('name').notNull(),
-    slug: text('slug').notNull(),
+    slug: text('slug').notNull().unique(),
     logo: text('logo'),
     createdAt: timestamp('created_at').notNull(),
     metadata: text('metadata'),

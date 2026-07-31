@@ -22,6 +22,13 @@
       "when": 1779373387565,
       "tag": "0002_odd_impersonation",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1785468635157,
+      "tag": "0003_cuddly_ricochet",
+      "breakpoints": true
     }
   ]
 }
