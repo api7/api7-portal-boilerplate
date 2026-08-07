@@ -35,8 +35,24 @@
  * treats look-alike characters as separators (verified: WHATWG `URL` just
  * percent-encodes U+FF0F as ordinary path content, it doesn't split on it),
  * so there's no real mechanism in this pipeline for that to matter.
+ *
+ * The same canonicalization also has to reject a decoded `?` or `#`, and any
+ * control character (U+0000-U+001F, U+007F). Both proxy routes build the
+ * forwarded URL as a plain string and pass query params separately via
+ * axios's `config.params`; axios's `buildURL` looks for an existing `?`/`#`
+ * in that string *before* merging in `config.params`. A canonicalized
+ * segment containing a decoded `?` would be read as the start of an existing
+ * query string, letting the segment inject arbitrary query keys ahead of the
+ * legitimate params; one containing a decoded `#` would be read as a
+ * fragment and have everything after it silently stripped before the
+ * request is sent — retargeting the request the same way an unencoded `/`
+ * or `\` would, just via a different axios code path. Control characters are
+ * rejected because they can alter how the forwarded path is parsed or
+ * logged downstream.
  */
 const MAX_DECODE_ITERATIONS = 5;
+
+const CONTROL_CHAR_PATTERN = /[\x00-\x1f\x7f]/;
 
 function canonicalizeSegment(segment: string): string | null {
   let current = segment;
@@ -65,7 +81,10 @@ export function hasUnsafeProxySegment(segments: string[]): boolean {
       canonical === '.' ||
       canonical === '..' ||
       canonical.includes('/') ||
-      canonical.includes('\\')
+      canonical.includes('\\') ||
+      canonical.includes('?') ||
+      canonical.includes('#') ||
+      CONTROL_CHAR_PATTERN.test(canonical)
     );
   });
 }

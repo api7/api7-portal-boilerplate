@@ -48,4 +48,24 @@ describe('hasUnsafeProxySegment', () => {
     const segment = `..${nestSlashEncoding(6)}approvals`;
     assert.equal(hasUnsafeProxySegment(['applications', segment]), true);
   });
+
+  it('rejects a literal or percent-encoded `?`', () => {
+    assert.equal(hasUnsafeProxySegment(['applications', 'abc?foo=bar']), true);
+    assert.equal(
+      hasUnsafeProxySegment(['applications', 'abc%3Ffoo=bar']),
+      true,
+    );
+  });
+
+  it('rejects a literal or percent-encoded `#`', () => {
+    assert.equal(hasUnsafeProxySegment(['applications', 'abc#frag']), true);
+    assert.equal(hasUnsafeProxySegment(['applications', 'abc%23frag']), true);
+  });
+
+  it('rejects control characters, including a decoded null byte', () => {
+    assert.equal(hasUnsafeProxySegment(['applications', 'abc\x00def']), true);
+    assert.equal(hasUnsafeProxySegment(['applications', 'abc%00def']), true);
+    assert.equal(hasUnsafeProxySegment(['applications', 'abc\ndef']), true);
+    assert.equal(hasUnsafeProxySegment(['applications', 'abc\x7fdef']), true);
+  });
 });

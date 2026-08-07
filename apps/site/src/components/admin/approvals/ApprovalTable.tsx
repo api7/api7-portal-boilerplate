@@ -81,7 +81,7 @@ const ApprovalTable: React.FC<Props> = ({ data, total, page, pageSize }) => {
       setAction(next);
       actionDisclosure.setOpen();
     },
-    [actionDisclosure.setOpen],
+    [actionDisclosure],
   );
 
   const columns = useCreation<ColumnDef<Approval>[]>(
