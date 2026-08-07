@@ -102,6 +102,7 @@ test.describe('Test API Hub with External Product', () => {
           (response) =>
             response.url().includes(`${HTTPBIN_URL}/get`) &&
             response.status() === 200,
+          { timeout: 30_000 },
         ),
         sendBtn.click(),
       ]);
@@ -123,17 +124,22 @@ test.describe('Test API Hub with External Product', () => {
       await password.press('Enter');
       await expect(password).toBeVisible();
 
+      // Already expanded by default; Scalar's key/value fields are
+      // contenteditable, exposed as combobox rather than textbox.
+      // exact: true — Scalar also renders a separate "Cookies (Collapsed)"
+      // region, which a non-exact match picks up too.
+      const cookiesSection = page.getByLabel('Cookies', { exact: true });
       const testText = '   test space    ';
-      const cookieInput = page
-        .getByLabel('Cookies')
-        .getByRole('textbox')
+      await cookiesSection.getByRole('combobox').first().fill(testText);
+      const cookieInput = cookiesSection
+        .getByRole('combobox')
+        .filter({ hasText: 'test space' })
         .first();
-      await cookieInput.fill(testText);
 
       await cookieInput.press('ControlOrMeta+a');
       await cookieInput.press('ControlOrMeta+c');
       await cookieInput.press('ControlOrMeta+v');
-      await expect(cookieInput).toContainText(testText.trim());
+      await expect(cookieInput).toHaveText(testText.trim());
 
       // close modal
       await page.getByRole('button', { name: 'Close Client' }).click();

@@ -7,26 +7,24 @@ import {
   useInviteMember
 } from "@better-auth-ui/react"
 import { UserPlus } from "lucide-react"
-import { type SyntheticEvent, useState } from "react"
+import { type SyntheticEvent, useEffect, useState } from "react"
 import { toast } from "sonner"
-
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Field, FieldError } from "@/components/ui/field"
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue
@@ -55,12 +53,22 @@ export function InviteMemberDialog({
     useAuthPlugin(organizationPlugin)
 
   const [role, setRole] = useState(() => pickDefaultRole(Object.keys(roles)))
-  const [prevRoles, setPrevRoles] = useState(roles)
-  if (prevRoles !== roles) {
-    setPrevRoles(roles)
-    const keys = Object.keys(roles)
-    setRole((current) => keys.includes(current) ? current : pickDefaultRole(keys))
-  }
+  const [emailError, setEmailError] = useState<string>()
+  const roleItems = Object.entries(roles).map(([value, label]) => ({
+    label,
+    value
+  }))
+
+  useEffect(() => {
+    setRole((current) => {
+      const keys = Object.keys(roles)
+      return keys.includes(current) ? current : pickDefaultRole(keys)
+    })
+  }, [roles])
+
+  useEffect(() => {
+    if (!open) setEmailError(undefined)
+  }, [open])
 
   const { mutate: inviteMember, isPending: isInviting } = useInviteMember(
     authClient as OrganizationAuthClient,
@@ -89,28 +97,25 @@ export function InviteMemberDialog({
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <AlertDialogHeader>
-            <AlertDialogMedia>
+          <DialogHeader>
+            <DialogTitle>
               <UserPlus />
-            </AlertDialogMedia>
-
-            <AlertDialogTitle>
               {organizationLocalization.inviteMember}
-            </AlertDialogTitle>
+            </DialogTitle>
 
-            <AlertDialogDescription>
+            <DialogDescription>
               {organizationLocalization.inviteMemberDescription}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+            </DialogDescription>
+          </DialogHeader>
 
           <div className="flex flex-col gap-4">
-            <Field>
-              <Label htmlFor="invite-member-email">
+            <Field data-invalid={!!emailError}>
+              <FieldLabel htmlFor="invite-member-email">
                 {localization.auth.email}
-              </Label>
+              </FieldLabel>
 
               <Input
                 id="invite-member-email"
@@ -120,19 +125,30 @@ export function InviteMemberDialog({
                 required
                 placeholder={localization.auth.email}
                 disabled={isInviting}
+                onChange={() => setEmailError(undefined)}
+                onInvalid={(e) => {
+                  e.preventDefault()
+                  const el = e.target as HTMLInputElement
+                  const msg = el.validity.valueMissing
+                    ? localization.auth.fieldRequired
+                    : localization.auth.invalidEmail
+                  setEmailError(msg)
+                }}
+                aria-invalid={!!emailError}
               />
 
-              <FieldError />
+              <FieldError>{emailError}</FieldError>
             </Field>
 
             <Field>
-              <Label htmlFor="invite-member-role">
+              <FieldLabel htmlFor="invite-member-role">
                 {organizationLocalization.role}
-              </Label>
+              </FieldLabel>
 
               <Select
+                items={roleItems}
                 value={role}
-                onValueChange={(value) => { if (value) setRole(value) }}
+                onValueChange={(value) => setRole(value ?? "")}
                 disabled={isInviting}
               >
                 <SelectTrigger id="invite-member-role" className="w-full">
@@ -140,11 +156,13 @@ export function InviteMemberDialog({
                 </SelectTrigger>
 
                 <SelectContent alignItemWithTrigger={false}>
-                  {Object.entries(roles).map(([key, label]) => (
-                    <SelectItem key={key} value={key}>
-                      {label}
-                    </SelectItem>
-                  ))}
+                  <SelectGroup>
+                    {roleItems.map((item) => (
+                      <SelectItem key={item.value} value={item.value}>
+                        {item.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
                 </SelectContent>
               </Select>
 
@@ -152,19 +170,23 @@ export function InviteMemberDialog({
             </Field>
           </div>
 
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isInviting}>
+          <DialogFooter>
+            <DialogClose
+              className={buttonVariants({ variant: "outline" })}
+              disabled={isInviting}
+              type="button"
+            >
               {localization.settings.cancel}
-            </AlertDialogCancel>
+            </DialogClose>
 
             <Button type="submit" disabled={isInviting || !isRoleValid}>
               {isInviting && <Spinner />}
 
               {organizationLocalization.inviteMember}
             </Button>
-          </AlertDialogFooter>
+          </DialogFooter>
         </form>
-      </AlertDialogContent>
-    </AlertDialog>
+      </DialogContent>
+    </Dialog>
   )
 }

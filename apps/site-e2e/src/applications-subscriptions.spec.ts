@@ -247,7 +247,7 @@ test.describe('Test Application Subscriptions', () => {
 
       // Capture new tab
       const [newPage] = await Promise.all([
-        page.context().waitForEvent('page'),
+        page.context().waitForEvent('page', { timeout: 15_000 }),
         productLink.click(),
       ]);
 

@@ -8,21 +8,18 @@ import {
 } from "@better-auth-ui/react"
 import { Briefcase } from "lucide-react"
 import { type SyntheticEvent, useState } from "react"
-
+import { Button, buttonVariants } from "@/components/ui/button"
 import {
-  AlertDialog,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog"
-import { Button } from "@/components/ui/button"
-import { Field, FieldError } from "@/components/ui/field"
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
 import { organizationPlugin } from "@/lib/auth/organization-plugin"
 
@@ -48,6 +45,7 @@ export function CreateOrganizationDialog({
     useAuthPlugin(organizationPlugin)
 
   const [name, setName] = useState("")
+  const [nameError, setNameError] = useState<string>()
 
   const { mutate: createOrganization, isPending: isCreating } =
     useCreateOrganization(authClient as OrganizationAuthClient, {
@@ -60,33 +58,33 @@ export function CreateOrganizationDialog({
   }
 
   const handleOpenChange = (next: boolean) => {
-    if (!next) setName("")
+    if (!next) {
+      setName("")
+      setNameError(undefined)
+    }
     onOpenChange(next)
   }
 
   return (
-    <AlertDialog open={open} onOpenChange={handleOpenChange}>
-      <AlertDialogContent>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <AlertDialogHeader>
-            <AlertDialogMedia>
+          <DialogHeader>
+            <DialogTitle>
               <Briefcase />
-            </AlertDialogMedia>
-
-            <AlertDialogTitle>
               {organizationLocalization.createOrganization}
-            </AlertDialogTitle>
+            </DialogTitle>
 
-            <AlertDialogDescription>
+            <DialogDescription>
               {organizationLocalization.organizationsDescription}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
+            </DialogDescription>
+          </DialogHeader>
 
           <div className="flex flex-col gap-4">
-            <Field>
-              <Label htmlFor="create-organization-name">
+            <Field data-invalid={!!nameError}>
+              <FieldLabel htmlFor="create-organization-name">
                 {organizationLocalization.name}
-              </Label>
+              </FieldLabel>
 
               <Input
                 id="create-organization-name"
@@ -95,27 +93,39 @@ export function CreateOrganizationDialog({
                 required
                 placeholder={organizationLocalization.namePlaceholder}
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => {
+                  setName(e.target.value)
+                  setNameError(undefined)
+                }}
+                onInvalid={(e) => {
+                  e.preventDefault()
+                  setNameError(localization.auth.fieldRequired)
+                }}
+                aria-invalid={!!nameError}
                 disabled={isCreating}
               />
 
-              <FieldError />
+              <FieldError>{nameError}</FieldError>
             </Field>
           </div>
 
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isCreating}>
+          <DialogFooter>
+            <DialogClose
+              className={buttonVariants({ variant: "outline" })}
+              disabled={isCreating}
+              type="button"
+            >
               {localization.settings.cancel}
-            </AlertDialogCancel>
+            </DialogClose>
 
             <Button type="submit" disabled={isCreating}>
               {isCreating && <Spinner />}
 
               {organizationLocalization.createOrganization}
             </Button>
-          </AlertDialogFooter>
+          </DialogFooter>
         </form>
-      </AlertDialogContent>
-    </AlertDialog>
+      </DialogContent>
+    </Dialog>
   )
 }

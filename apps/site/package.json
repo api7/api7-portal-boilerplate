@@ -1,6 +1,6 @@
 {
   "name": "@api7ee/site",
-  "version": "0.13.1",
+  "version": "0.13.2",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -20,8 +20,8 @@
   "dependencies": {
     "@api7/portal-sdk": "^1.3.0",
     "@base-ui/react": "^1.6.0",
-    "@better-auth-ui/core": "1.6.31",
-    "@better-auth-ui/react": "1.6.31",
+    "@better-auth-ui/core": "1.6.43",
+    "@better-auth-ui/react": "1.6.43",
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@nanostores/react": "^1.1.0",
@@ -48,6 +48,7 @@
     "fumadocs-mdx": "^15.2.0",
     "fumadocs-ui": "npm:@fumadocs/base-ui@^16.12.1",
     "immer": "^10.1.1",
+    "input-otp": "^1.4.2",
     "just-diff": "^6.0.2",
     "lilconfig": "^3.1.3",
     "lodash-es": "^4.18.0",

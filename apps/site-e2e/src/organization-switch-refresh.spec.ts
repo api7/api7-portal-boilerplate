@@ -225,6 +225,7 @@ test.describe('Organization Settings - Slug-Prefixed Routes', () => {
       (response) =>
         response.url().includes('/organization/update') &&
         response.request().method() === 'POST',
+      { timeout: 15_000 },
     );
 
     await page

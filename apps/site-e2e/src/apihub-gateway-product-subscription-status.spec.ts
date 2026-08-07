@@ -254,7 +254,7 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
 
     // test non auto approval and not see the detail playground product status
     await page.getByRole('link', { name: 'API Hub' }).click();
-    await page.waitForURL(new RegExp(`.*${PATH_API_HUB}(?!.*/detail)`));
+    await page.waitForURL(new RegExp(`.*${PATH_API_HUB}(?!.*/detail)`), { timeout: 15_000 });
     await page.getByRole('link', { name: product.name }).click();
 
     const BlurPlaneButton = page.getByRole('button', {

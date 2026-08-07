@@ -145,7 +145,7 @@ export const a7UICreateGatewayProduct = async (
 ) => {
   const portalID = await a7DefaultPortalID(a7Ctx);
   await a7UIPage.goto(PROVIDER_UI_PREFIX);
-  await a7UIPage.waitForURL('**/overview*');
+  await a7UIPage.waitForURL('**/overview*', { timeout: 15_000 });
   const APIProductMenu = a7UIPage
     .locator('#menu-item-APIExposure')
     .getByText('API Products');
@@ -157,11 +157,12 @@ export const a7UICreateGatewayProduct = async (
   });
   await expect(fromAPI7Gateway).toBeVisible();
   await fromAPI7Gateway.click();
-  await a7UIPage.waitForURL(/.*\/add/);
+  await a7UIPage.waitForURL(/.*\/add/, { timeout: 15_000 });
   await a7UIPage.waitForResponse(
     (response) =>
       response.url().includes('/api/dcr_providers?') &&
       response.status() === 200,
+    { timeout: 15_000 },
   );
   await a7UIPage.locator('[name="name"]').fill(product);
   await expect(a7UIPage.locator('[data-cy="create-product"]')).toBeDisabled();

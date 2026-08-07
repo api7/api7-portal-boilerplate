@@ -13,14 +13,9 @@ import {
   Settings,
   UserPlus2
 } from "lucide-react"
-import {
-  type ComponentType,
-  isValidElement,
-  type ReactElement,
-  type ReactNode
-} from "react"
+import { isValidElement, type ReactElement, type ReactNode } from "react"
 
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -77,14 +72,21 @@ export type UserButtonProps = {
 
 function renderUserLink(
   link: UserButtonLink | ReactElement,
-  Link: ComponentType<{ href: string; children?: ReactNode }>,
+  navigate: (options: { to: string; replace?: boolean }) => void,
   fallbackKey: string
 ): ReactNode {
   if (isValidElement(link)) return link
 
   const { label, href, icon, variant } = link
   return (
-    <DropdownMenuItem key={fallbackKey} variant={variant} render={<Link href={href} />}>{icon}{label}</DropdownMenuItem>
+    <DropdownMenuItem
+      key={fallbackKey}
+      variant={variant}
+      onClick={() => navigate({ to: href })}
+    >
+      {icon}
+      {label}
+    </DropdownMenuItem>
   )
 }
 
@@ -112,7 +114,7 @@ export function UserButton({
   links,
   hideSettings = false
 }: UserButtonProps) {
-  const { authClient, basePaths, viewPaths, localization, plugins, Link } =
+  const { authClient, basePaths, viewPaths, localization, plugins, navigate } =
     useAuth()
 
   const { isPending: settingActiveSession } = useSetActiveSession(
@@ -126,26 +128,37 @@ export function UserButton({
       if (visibility === "authenticated" && !session) return []
       if (visibility === "unauthenticated" && session) return []
     }
-    return [renderUserLink(link, Link, `user-button-link-${index.toString()}`)]
+    return [
+      renderUserLink(link, navigate, `user-button-link-${index.toString()}`)
+    ]
   })
+
+  // Whether anything renders between the user info label and the
+  // sign-out item, so the leading separator isn't shown with nothing
+  // to separate (see #439).
+  const hasSessionMenuItems =
+    (userLinks?.length ?? 0) > 0 ||
+    !hideSettings ||
+    plugins.some((plugin) => (plugin.userMenuItems?.length ?? 0) > 0)
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger
-        className={cn(
-          size === "icon" && "rounded-full",
-          size === "icon" && className
-        )}
         aria-label={size === "icon" ? localization.auth.account : undefined}
+        className={
+          size === "icon"
+            ? cn("rounded-full", className)
+            : cn(
+                buttonVariants({ variant, size: "lg" }),
+                "py-2.5 h-auto font-normal",
+                className
+              )
+        }
       >
         {size === "icon" ? (
           <UserAvatar />
         ) : (
-          <Button
-            variant={variant}
-            className={cn("py-2.5 h-auto font-normal", className)}
-            size="lg"
-          >
+          <>
             {session || sessionPending || settingActiveSession ? (
               <UserView isPending={!!settingActiveSession} />
             ) : (
@@ -159,12 +172,12 @@ export function UserButton({
             )}
 
             <ChevronsUpDown className="ml-auto size-4" />
-          </Button>
+          </>
         )}
       </DropdownMenuTrigger>
 
       <DropdownMenuContent
-        className="w-[--radix-dropdown-menu-trigger-width] min-w-40 md:min-w-56 max-w-[48svw]"
+        className="min-w-40 md:min-w-56 max-w-[48svw]"
         sideOffset={sideOffset}
         align={align}
       >
@@ -176,7 +189,7 @@ export function UserButton({
               </DropdownMenuLabel>
             </DropdownMenuGroup>
 
-            <DropdownMenuSeparator />
+            {hasSessionMenuItems && <DropdownMenuSeparator />}
           </>
         )}
 
@@ -185,7 +198,17 @@ export function UserButton({
             {userLinks}
 
             {!hideSettings && (
-              <DropdownMenuItem render={<Link href={`${basePaths.settings}/${viewPaths.settings.account}`} />}><Settings className="text-muted-foreground" />{localization.settings.settings}</DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() =>
+                  navigate({
+                    to: `${basePaths.settings}/${viewPaths.settings.account}`
+                  })
+                }
+              >
+                <Settings className="text-muted-foreground" />
+
+                {localization.settings.settings}
+              </DropdownMenuItem>
             )}
 
             {plugins.flatMap((plugin) =>
@@ -196,15 +219,45 @@ export function UserButton({
 
             <DropdownMenuSeparator />
 
-            <DropdownMenuItem render={<Link href={`${basePaths.auth}/${viewPaths.auth.signOut}`} />}><LogOut className="text-muted-foreground" />{localization.auth.signOut}</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                navigate({
+                  to: `${basePaths.auth}/${viewPaths.auth.signOut}`
+                })
+              }
+            >
+              <LogOut className="text-muted-foreground" />
+
+              {localization.auth.signOut}
+            </DropdownMenuItem>
           </>
         ) : (
           <>
             {userLinks}
 
-            <DropdownMenuItem render={<Link href={`${basePaths.auth}/${viewPaths.auth.signIn}`} />}><LogIn className="text-muted-foreground" />{localization.auth.signIn}</DropdownMenuItem>
+            <DropdownMenuItem
+              onClick={() =>
+                navigate({
+                  to: `${basePaths.auth}/${viewPaths.auth.signIn}`
+                })
+              }
+            >
+              <LogIn className="text-muted-foreground" />
 
-            <DropdownMenuItem render={<Link href={`${basePaths.auth}/${viewPaths.auth.signUp}`} />}><UserPlus2 className="text-muted-foreground" />{localization.auth.signUp}</DropdownMenuItem>
+              {localization.auth.signIn}
+            </DropdownMenuItem>
+
+            <DropdownMenuItem
+              onClick={() =>
+                navigate({
+                  to: `${basePaths.auth}/${viewPaths.auth.signUp}`
+                })
+              }
+            >
+              <UserPlus2 className="text-muted-foreground" />
+
+              {localization.auth.signUp}
+            </DropdownMenuItem>
 
             {plugins.flatMap((plugin) =>
               plugin.userMenuItems?.map((Item, index) => (

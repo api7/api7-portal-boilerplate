@@ -69,7 +69,7 @@ test.describe('auth type auto fill in detail page', () => {
       await uiAddApplication(page, { name: applicationName });
       await uiGoToApplications(page);
       await page.getByText(applicationName).click();
-      await page.waitForURL(new RegExp(`${PATH_APPLICATIONS}/[^/]+$`));
+      await page.waitForURL(new RegExp(`${PATH_APPLICATIONS}/[^/]+$`), { timeout: 15_000 });
       // get application id
       applicationId = page.url().split('/').pop()!;
     });

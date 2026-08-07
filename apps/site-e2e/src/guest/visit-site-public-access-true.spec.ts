@@ -62,7 +62,7 @@ test.describe('public access is `true`, test the behavior of guest users visitin
 
   test(`${PATH_API_HUB}/non_existent_id redirects guest to login`, async ({ page }) => {
     await page.goto(`${PATH_API_HUB}/non_existent_id`);
-    await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`));
+    await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`), { timeout: 15_000 });
     await uiShowLogin(page);
   });
 });

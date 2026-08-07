@@ -88,43 +88,65 @@ export const test = baseTest.extend<
     const ctx = await genCtx({ storageState });
     await use(ctx);
   },
-  a7UIPage: async ({ browser }, use) => {
-    const { options } = genA7StateFilePath(test.info().project.outputDir);
+  a7UIPage: [
+    async ({ browser }, use) => {
+      const { options } = genA7StateFilePath(test.info().project.outputDir);
 
-    const login = async () => {
-      const a7Ctx = await a7GenCtx(options);
-      await a7ActivateLicenseAndChangePasswd(a7Ctx);
+      const login = async () => {
+        const a7Ctx = await a7GenCtx(options);
+        try {
+          await a7ActivateLicenseAndChangePasswd(a7Ctx);
+          return await a7Ctx.storageState();
+        } finally {
+          await a7Ctx.dispose();
+        }
+      };
 
-      return await a7Ctx.storageState();
-    };
-
-    const storageState = await login();
-    const context = await browser.newContext({
-      baseURL: A7_URL,
-      ignoreHTTPSErrors: true,
-      storageState,
-    });
-    const sharedPage = await context.newPage();
-    await sharedPage.goto(PROVIDER_UI_PREFIX);
-    await sharedPage
-      .locator('#menu-item-APIExposure')
-      .getByText('API Products')
-      .click();
-    await sharedPage.waitForSelector('text=API7 Provider PortalOrganizationa');
-    let lock401 = false;
-    sharedPage.on('response', async (res) => {
-      if (res.status() === 401 && !lock401) {
-        console.log('401, try to login');
-        lock401 = true;
-        const state = await login();
-        await context.clearCookies();
-        await context.addCookies(state.cookies);
-        await sharedPage.reload();
-        lock401 = false;
-      }
-    });
-    await use(sharedPage);
-    await sharedPage.close();
-    await context.close();
-  },
+      const storageState = await login();
+      const context = await browser.newContext({
+        baseURL: A7_URL,
+        ignoreHTTPSErrors: true,
+        storageState,
+      });
+      const sharedPage = await context.newPage();
+      await sharedPage.goto(PROVIDER_UI_PREFIX);
+      await sharedPage
+        .locator('#menu-item-APIExposure')
+        .getByText('API Products')
+        .click();
+      // Previously matched concatenated text 'API7 Provider PortalOrganizationa'
+      // spanning the logo and the org dropdown — those aren't adjacent in the
+      // DOM (a "Control Plane: ..." label sits between them), and text= only
+      // matches contiguous text, so that locator no longer matches at all.
+      // Anchor on the API Products page actually having loaded instead.
+      await sharedPage
+        .getByRole('button', { name: 'Add API Product' })
+        .waitFor({ timeout: 15_000 });
+      let lock401 = false;
+      sharedPage.on('response', async (res) => {
+        if (res.status() === 401 && !lock401) {
+          console.log('401, try to login');
+          lock401 = true;
+          try {
+            const state = await login();
+            await context.clearCookies();
+            await context.addCookies(state.cookies);
+            await sharedPage.reload();
+          } finally {
+            lock401 = false;
+          }
+        }
+      });
+      await use(sharedPage);
+      await sharedPage.close();
+      await context.close();
+    },
+    // Logs into the gateway's own Provider Portal console and waits for its
+    // nav to render — under CI load this routinely blows the implicit 30s
+    // default. `test.setTimeout()` inside a test body doesn't help here: it
+    // only takes effect once the test body starts running, which is after
+    // fixture setup has already completed (or timed out). This needs its
+    // own explicit fixture-level timeout.
+    { timeout: 60_000 },
+  ],
 });

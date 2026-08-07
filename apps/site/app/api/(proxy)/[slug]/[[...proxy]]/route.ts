@@ -9,6 +9,7 @@ import { auth } from '@/lib/auth/server';
 import { isTwoFactorEnabled, type UserWithTwoFactor } from '@/lib/auth/two-factor';
 import { getConfig } from '@/lib/config';
 import { portal } from '@/lib/portal-sdk/server';
+import { hasUnsafeProxySegment } from '@/lib/proxy/safe-segment';
 
 /** Resources accessible via org-scoped URLs: /api/{slug}/{resource}/... */
 const ORG_SCOPED_RESOURCES = new Set([
@@ -45,13 +46,33 @@ async function proxyRequest(
       return new NextResponse(null, { status: 404 });
     }
 
+    // A segment carrying an embedded separator or dot-segment (e.g. decoded
+    // from `%2f`/`%5c`) can make the upstream URL resolve outside the
+    // resource scope validated below — see hasUnsafeProxySegment.
+    if (hasUnsafeProxySegment(proxy)) {
+      return new NextResponse(null, { status: 404 });
+    }
+
     const resource = proxy[0];
 
     if (!ORG_SCOPED_RESOURCES.has(resource)) {
       return new NextResponse(null, { status: 404 });
     }
 
-    const session = await auth.api.getSession({ headers: reqHeaders });
+    const { auth: authConfig } = getConfig();
+    // Write requests gate role/ownership checks on this session, so a stale
+    // cookie-cache read (e.g. a role just revoked, or the org's active state
+    // just changed) must not be trusted — force a fresh DB read. Reads
+    // normally keep using the cache (staleness there is harmless), but when
+    // 2FA is required the session also gates whether the request is allowed
+    // at all — e.g. right after a config change flips `twoFactor.required`
+    // on, followed by a devportal restart that alone can outlast the
+    // cache's maxAge — so that check must not run against a stale session.
+    const needsFreshSession = WRITE_METHODS.has(request.method) || authConfig.twoFactor.required;
+    const session = await auth.api.getSession({
+      headers: reqHeaders,
+      query: needsFreshSession ? { disableCookieCache: true } : undefined,
+    });
     if (!session?.user) {
       return NextResponse.json(
         { message: 'Unauthorized. Sign in is required.' },
@@ -59,7 +80,6 @@ async function proxyRequest(
       );
     }
 
-    const { auth: authConfig } = getConfig();
     if (authConfig.twoFactor.required && !isTwoFactorEnabled(session.user as UserWithTwoFactor)) {
       return NextResponse.json(
         { message: 'Forbidden. Two-factor authentication is required.' },

@@ -2,10 +2,12 @@
 
 import {
   type OrganizationAuthClient,
+  useActiveOrganization,
   useAuth,
   useAuthPlugin,
   useListOrganizations,
   useSession,
+  useSetActiveOrganization
 } from "@better-auth-ui/react"
 import type { Organization } from "better-auth/client"
 import {
@@ -13,10 +15,9 @@ import {
   PlusCircle,
   Settings as SettingsIcon
 } from "lucide-react"
-import { usePathname, useRouter } from "next/navigation"
-import { type ReactNode, useState } from "react"
+import { type ComponentProps, type ReactElement, useState } from "react"
 
-import { Button } from "@/components/ui/button"
+import { buttonVariants } from "@/components/ui/button"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,20 +29,21 @@ import { organizationPlugin } from "@/lib/auth/organization-plugin"
 import { cn } from "@/lib/utils"
 import { UserView } from "../user/user-view"
 import { CreateOrganizationDialog } from "./create-organization-dialog"
-import { OrganizationLogo } from "@/components/auth/organization/organization-logo"
+import { OrganizationLogo } from "./organization-logo"
 import { OrganizationView } from "./organization-view"
 
 /** Props for the `OrganizationSwitcher` component. */
 export type OrganizationSwitcherProps = {
   className?: string
   align?: "center" | "end" | "start"
+  side?: "top" | "right" | "bottom" | "left"
   sideOffset?: number
-  trigger?: ReactNode
+  trigger?: ReactElement<ComponentProps<typeof DropdownMenuTrigger>>
   hideCreate?: boolean
   hidePersonal?: boolean
   hideSettings?: boolean
   hideSlug?: boolean
-  /** Pass `true` from a server component to avoid client-side session flash. */
+  /** Pass `true` from a server component to avoid a client-side session flash. */
   authorized?: boolean
   /** Icon-only trigger: renders just the org logo button. */
   size?: "icon"
@@ -51,11 +53,11 @@ export type OrganizationSwitcherProps = {
 /**
  * Renders an organizations dropdown with a trigger button,
  * header summary, and a menu of organizations to switch to.
- * Switching orgs preserves the current URL path (replaces the slug segment).
  */
 export function OrganizationSwitcher({
   className,
   align,
+  side,
   sideOffset,
   hideCreate,
   hidePersonal,
@@ -66,32 +68,33 @@ export function OrganizationSwitcher({
   setActive,
   trigger
 }: OrganizationSwitcherProps) {
-  const { authClient, basePaths, viewPaths, Link } =
+  const { authClient, navigate, basePaths, localization, viewPaths, Link } =
     useAuth()
   const { data: session, isPending: sessionPending } = useSession(authClient)
   const {
     localization: organizationLocalization,
     viewPaths: organizationViewPaths,
-    slug
+    slug,
+    slugPrefix
   } = useAuthPlugin(organizationPlugin)
 
-  const pathname = usePathname()
-  const router = useRouter()
-
   const isAuthorized = authorized ?? !!session
+
+  const { data: activeOrganization, isPending: activeOrganizationPending } =
+    useActiveOrganization(authClient as OrganizationAuthClient)
 
   const { data: organizations, isPending: organizationsPending } =
     useListOrganizations(authClient as OrganizationAuthClient, {
       enabled: isAuthorized
     })
 
-  // Derive active org from the already-hydrated list using the URL slug.
-  // Avoids a separate getFullOrganization call and any session-based active org tracking.
-  const activeOrganization = slug ? organizations?.find((org) => org.slug === slug) : undefined
+  const { mutate: setActiveOrganization } = useSetActiveOrganization(
+    authClient as OrganizationAuthClient
+  )
 
   const isPending =
     sessionPending ||
-    (isAuthorized && organizationsPending)
+    (isAuthorized && (organizationsPending || activeOrganizationPending))
 
   const [createOpen, setCreateOpen] = useState(false)
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -104,42 +107,32 @@ export function OrganizationSwitcher({
   const hasOtherEntries =
     otherOrganizations.length > 0 || (!!activeOrganization && !hidePersonal)
 
-  function switchOrgHref(newSlug: string) {
-    if (slug) {
-      const segments = pathname.split("/").filter(Boolean)
-      const rest =
-        segments.length > 1 ? segments.slice(1).join("/") : "applications"
-      return `/${newSlug}/${rest}`
-    }
-    return `/${newSlug}/applications`
-  }
-
   function handleSetActive(organization: Organization | null) {
     setDropdownOpen(false)
 
     if (setActive) {
       setActive(organization)
-    } else {
-      router.push(
-        organization
-          ? switchOrgHref(organization.slug!)
+    } else if (slug !== undefined) {
+      navigate({
+        to: organization
+          ? `${basePaths.organization}/${slugPrefix}${organization.slug}/${organizationViewPaths.organization.settings}`
           : `${basePaths.settings}/${viewPaths.settings.account}`
-      )
+      })
+    } else {
+      setActiveOrganization({ organizationId: organization?.id ?? null })
     }
   }
 
   const iconTrigger = (
     <DropdownMenuTrigger
-      render={
-        <Button
-          data-testid="org-switcher"
-          aria-label="Open organization switcher"
-          size="icon"
-          className={cn("size-fit rounded-full", className)}
-          variant="ghost"
-          disabled={isPending}
-        />
-      }
+      data-testid="org-switcher"
+      aria-label="Open organization switcher"
+      className={cn(
+        buttonVariants({ variant: "ghost", size: "icon" }),
+        "size-fit rounded-full",
+        className
+      )}
+      disabled={isPending}
     >
       <OrganizationLogo
         key={activeOrganization?.logo}
@@ -149,17 +142,14 @@ export function OrganizationSwitcher({
     </DropdownMenuTrigger>
   )
 
-  const defaultTrigger = trigger ? (
-    <DropdownMenuTrigger>{trigger}</DropdownMenuTrigger>
-  ) : (
+  const defaultTrigger = (
     <DropdownMenuTrigger
-      render={
-        <Button
-          variant="ghost"
-          className={cn("h-auto px-2 py-2 text-left", className)}
-          disabled={!session || isPending}
-        />
-      }
+      className={cn(
+        buttonVariants({ variant: "ghost" }),
+        "h-auto px-2 py-2 text-left",
+        className
+      )}
+      disabled={!session || isPending}
     >
       {isPending ? (
         <OrganizationView isPending hideRole hideSlug={hideSlug} />
@@ -174,6 +164,7 @@ export function OrganizationSwitcher({
           organization={{ name: organizationLocalization.organization }}
         />
       )}
+
       <ChevronsUpDown className="size-4 shrink-0 text-muted-foreground" />
     </DropdownMenuTrigger>
   )
@@ -181,10 +172,11 @@ export function OrganizationSwitcher({
   return (
     <>
       <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
-        {size === "icon" ? iconTrigger : defaultTrigger}
+        {trigger ?? (size === "icon" ? iconTrigger : defaultTrigger)}
 
         <DropdownMenuContent
           align={align}
+          side={side}
           sideOffset={sideOffset}
           className="min-w-64 max-w-svw"
         >
@@ -197,23 +189,20 @@ export function OrganizationSwitcher({
               />
 
               {!hideSettings && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="size-8 shrink-0"
-                  render={
-                    <Link
-                      href={
-                        slug
-                          ? `${basePaths.organization}/${slug}/${organizationViewPaths.organization.settings}`
-                          : `${basePaths.organization}/${organizationViewPaths.organization.settings}`
-                      }
-                    />
+                <Link
+                  href={
+                    slug
+                      ? `${basePaths.organization}/${slugPrefix}${slug}/${organizationViewPaths.organization.settings}`
+                      : `${basePaths.organization}/${organizationViewPaths.organization.settings}`
                   }
-                  nativeButton={false}
+                  aria-label={organizationLocalization.manage}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "icon" }),
+                    "shrink-0"
+                  )}
                 >
                   <SettingsIcon className="text-muted-foreground" />
-                </Button>
+                </Link>
               )}
             </div>
           ) : !isPending && session?.user && !hidePersonal ? (
@@ -221,19 +210,16 @@ export function OrganizationSwitcher({
               <UserView hideSubtitle={hideSlug} />
 
               {!hideSettings && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="size-8 shrink-0"
-                  render={
-                    <Link
-                      href={`${basePaths.settings}/${viewPaths.settings.account}`}
-                    />
-                  }
-                  nativeButton={false}
+                <Link
+                  href={`${basePaths.settings}/${viewPaths.settings.account}`}
+                  aria-label={localization.settings.settings}
+                  className={cn(
+                    buttonVariants({ variant: "outline", size: "icon" }),
+                    "shrink-0"
+                  )}
                 >
                   <SettingsIcon className="text-muted-foreground" />
-                </Button>
+                </Link>
               )}
             </div>
           ) : null}

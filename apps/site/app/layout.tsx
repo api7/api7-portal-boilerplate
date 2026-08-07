@@ -45,7 +45,7 @@ export default function RootLayout({
         // layer prop has been tried as a mitigation but did not fully resolve
         // the issue, so the suppression is kept as a pragmatic workaround.
       >
-        <Providers initialConfigStatus={configStatus}>
+        <Providers initialConfigStatus={configStatus} baseURL={app.baseURL!}>
           <Toaster position="top-right" closeButton expand richColors />
           {children}
         </Providers>

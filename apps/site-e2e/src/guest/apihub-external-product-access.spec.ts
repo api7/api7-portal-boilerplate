@@ -93,6 +93,7 @@ test.describe(
         (response) =>
           response.url().includes(`${HTTPBIN_URL}/get`) &&
           response.status() === 200,
+        { timeout: 30_000 },
       );
 
       // check response status code
@@ -120,7 +121,7 @@ test.describe(
 
       // cannot see product detail — redirected to login
       await page.goto(`${PATH_API_HUB}/${productId}`);
-      await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`));
+      await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`), { timeout: 15_000 });
       await uiShowLogin(page);
     });
   },

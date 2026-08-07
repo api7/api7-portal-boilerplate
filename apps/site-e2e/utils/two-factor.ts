@@ -1,6 +1,6 @@
 import { base32 } from '@better-auth/utils/base32';
 import { createOTP } from '@better-auth/utils/otp';
-import { type Page } from '@playwright/test';
+import { expect, type Locator, type Page } from '@playwright/test';
 import { ConfigMapData } from '@site/lib/config/schema';
 
 import { genAuth } from '../fixture';
@@ -35,10 +35,44 @@ export const createTotpCode = async (totpURI: string) => {
 export const dialogContent = (page: Page) =>
   page.locator('[data-slot="dialog-content"]');
 
+// Fills and submits the OTP for a pending TOTP verification inside `dialog`,
+// then — unless resuming an interrupted setup, which skips straight past it
+// (see `expectBackupCodes: false`) — acknowledges the Backup Codes step that
+// follows a fresh enrollment.
+export async function completeTotpVerification(
+  dialog: Locator,
+  totpURI: string,
+  options: { expectBackupCodes?: boolean } = {},
+): Promise<void> {
+  const { expectBackupCodes = true } = options;
+  const otpInput = dialog.locator('input[autocomplete="one-time-code"]');
+
+  await expect(otpInput).toBeVisible({ timeout: 15_000 });
+  const code = await createTotpCode(totpURI);
+  await otpInput.fill(code);
+  // OtpField's `onComplete` (enable-two-factor-dialog.tsx) submits as soon as
+  // all digits are filled — the submit button is otherwise disabled until
+  // then anyway. A separate click here is redundant and racy: verification
+  // can already be in flight, sometimes advancing to the backup codes step
+  // (which has no "Verify" button) before the click ever executes, hanging
+  // until actionTimeout with no such button ever appearing.
+
+  if (expectBackupCodes) {
+    // The dialog title stays "Two-Factor Authentication" on this step too —
+    // there's no "Backup Codes" heading to match. Use the step's actual copy.
+    await expect(
+      dialog.getByText(
+        'Save these somewhere safe. Each code works once if you lose your authenticator.',
+      ),
+    ).toBeVisible({ timeout: 15_000 });
+    await dialog.getByRole('button', { name: /^done$/i }).click();
+  }
+}
+
 // Sign-in is two-phase: email → Continue → password → Sign In
 export const signIn = async (page: Page, email: string, password: string) => {
   await page.getByLabel('Email', { exact: true }).fill(email);
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByLabel('Password', { exact: true }).fill(password);
   await page.getByRole('button', { name: /^sign in$/i }).click();
 };

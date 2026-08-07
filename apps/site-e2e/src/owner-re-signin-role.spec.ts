@@ -46,7 +46,7 @@ test.describe('Owner re-sign-in role restoration', () => {
     await page.goto(PATH_LOGIN);
     await page.waitForLoadState('networkidle');
     await page.getByRole('textbox', { name: 'Email' }).fill(auth.email);
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.getByRole('textbox', { name: 'Password' }).fill(auth.password);
     await page.getByRole('button', { name: 'Sign In' }).click();
 
@@ -93,7 +93,7 @@ test.describe('Owner re-sign-in role restoration', () => {
     await page.goto(PATH_LOGIN);
     await page.waitForLoadState('networkidle');
     await page.getByRole('textbox', { name: 'Email' }).fill(auth.email);
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.getByRole('textbox', { name: 'Password' }).fill(auth.password);
     await page.getByRole('button', { name: 'Sign In' }).click();
 

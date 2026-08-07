@@ -486,9 +486,12 @@ test.describe('Impersonation UI', () => {
         });
         expect(banRes.status()).toBe(200);
 
-        // Step 3: Session should become invalid (get-session returns null body)
+        // Step 3: Session should become invalid (get-session returns null body).
+        // banUser deletes the session row immediately, but cookieCache can
+        // still serve the pre-ban snapshot for up to its maxAge — force a
+        // fresh DB read to check the ground truth.
         const sessionAfterBanRes = await page.request.get(
-          `${AUTH_BASE_PATH}/get-session`,
+          `${AUTH_BASE_PATH}/get-session?disableCookieCache=true`,
           { failOnStatusCode: false },
         );
         expect(sessionAfterBanRes.status()).toBe(200);

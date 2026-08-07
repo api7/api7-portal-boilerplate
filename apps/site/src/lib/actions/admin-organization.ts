@@ -11,7 +11,11 @@ import { members, organizations, sessions } from '@/lib/db/schema';
 import { portal } from '@/lib/portal-sdk/server';
 
 export async function takeoverOrganization(organizationId: string): Promise<void> {
-  const session = await getCurrentPlatformAdminSession(await headers());
+  // Privileged mutation — force a fresh session read, same reasoning as
+  // deleteOrganizationAsAdmin below.
+  const session = await getCurrentPlatformAdminSession(await headers(), {
+    disableCookieCache: true,
+  });
   if (!session) {
     throw new Error('Forbidden. Takeover is restricted to platform admins.');
   }
@@ -43,7 +47,11 @@ export async function takeoverOrganization(organizationId: string): Promise<void
 }
 
 export async function deleteOrganizationAsAdmin(organizationId: string): Promise<void> {
-  const session = await getCurrentPlatformAdminSession(await headers());
+  // This gates a portal-SDK write (portal.developer.delete below), so the
+  // session check must not trust a stale cookie cache.
+  const session = await getCurrentPlatformAdminSession(await headers(), {
+    disableCookieCache: true,
+  });
   if (!session) {
     throw new Error('Forbidden. Organization deletion is restricted to platform admins.');
   }

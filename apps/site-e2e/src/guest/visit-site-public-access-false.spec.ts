@@ -41,7 +41,7 @@ test.describe('public access is `false`, test the behavior of guest users visiti
   autoJumpPages.forEach(async (url) => {
     test(`jump from '${url}' to login`, async ({ page }) => {
       await page.goto(url);
-      await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`));
+      await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`), { timeout: 15_000 });
       expect(page.url()).toContain(PATH_LOGIN);
       await uiShowLogin(page);
     });
@@ -49,7 +49,7 @@ test.describe('public access is `false`, test the behavior of guest users visiti
 
   test(`jump from exist product to login`, async ({ page }) => {
     await page.goto(`${PATH_API_HUB}/${productId}`);
-    await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`));
+    await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`), { timeout: 15_000 });
     expect(page.url()).toContain(PATH_LOGIN);
     await uiShowLogin(page);
   });

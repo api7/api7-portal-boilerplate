@@ -14,7 +14,10 @@ test.describe('Create Organization Dialog UI', () => {
     await page.goto('/auth/landing');
     await page.getByRole('button', { name: 'Add' }).click();
 
-    const dialog = page.getByRole('alertdialog');
+    // CreateOrganizationDialog is a plain Dialog (role="dialog"), not an
+    // AlertDialog — only destructive-action dialogs (delete/ban) use
+    // role="alertdialog" in this app.
+    const dialog = page.getByRole('dialog');
 
     await expect(
       dialog.getByText(
@@ -37,7 +40,7 @@ test.describe('Create Organization Dialog UI', () => {
     await page.goto('/auth/landing');
     await page.getByRole('button', { name: 'Add' }).click();
 
-    const dialog = page.getByRole('alertdialog');
+    const dialog = page.getByRole('dialog');
 
     await dialog.locator('input[name="name"]').fill(uniqueName);
     await dialog.getByRole('button', { name: 'Create organization' }).click();
@@ -64,7 +67,7 @@ test.describe('Create Organization Dialog via Org Switcher', () => {
     await expect(createItem).toBeVisible();
     await createItem.click();
 
-    const dialog = page.getByRole('alertdialog');
+    const dialog = page.getByRole('dialog');
     await expect(dialog).toBeVisible();
     await expect(dialog.locator('input[name="name"]')).toBeVisible();
   });

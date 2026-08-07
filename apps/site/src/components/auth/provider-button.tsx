@@ -1,22 +1,30 @@
 "use client"
 
-import { authMutationKeys, getProviderName } from "@better-auth-ui/core"
+import {
+  type AuthView,
+  authMutationKeys,
+  getProviderName,
+  getSafeRedirectTo
+} from "@better-auth-ui/core"
 import { providerIcons, useAuth, useSignInSocial } from "@better-auth-ui/react"
 import { useIsMutating } from "@tanstack/react-query"
 import type { SocialProvider } from "better-auth/social-providers"
 import { useSearchParams } from "next/navigation"
 import { useState, type ComponentProps } from "react"
-
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { authClient as typedAuthClient } from "@/lib/auth/client"
+import { cn } from "@/lib/utils"
 import { useConfigStatus } from "@/lib/config/config-status-context"
+import { LastUsedBadge } from "./last-login-method/last-used-badge"
 
 export type ProviderButtonProps = {
   provider: SocialProvider
   display?: "full" | "name" | "icon"
+  view?: AuthView
+  /** Pre-fill the IdP login form with this value via `login_hint`. */
   loginHint?: string
 } & Omit<ComponentProps<typeof Button>, "onClick" | "children" | "disabled">
 
@@ -30,24 +38,24 @@ export type ProviderButtonProps = {
 export function ProviderButton({
   provider,
   display = "full",
+  view = "signIn",
   loginHint,
   variant = "outline",
+  className,
   ...props
 }: ProviderButtonProps) {
-  const { authClient, baseURL, localization, redirectTo } = useAuth()
+  const { authClient, baseURL, localization } = useAuth()
   const configStatus = useConfigStatus()
-  const isGenericOAuth = configStatus.genericOAuthProviders.some((p) => p.provider === provider)
+  const isGenericOAuth = configStatus.genericOAuthProviders.some(
+    (p) => p.provider === provider
+  )
 
   const searchParams = useSearchParams()
-  const rawCallback = searchParams.get("redirect")
-  let safeCallback: string | null = null
-  if (rawCallback) {
-    try {
-      const u = new URL(rawCallback, "http://x")
-      safeCallback = u.pathname + u.search
-    } catch { /* invalid — ignore */ }
-  }
-  const callbackURL = `${baseURL}${safeCallback ?? redirectTo}`
+  const safeCallback = getSafeRedirectTo(
+    searchParams.get("redirectTo"),
+    baseURL
+  )
+  const callbackURL = `${baseURL}${safeCallback}`
 
   const { mutate: signInSocial, isPending: signInSocialPending } =
     useSignInSocial(authClient)
@@ -77,7 +85,7 @@ export function ProviderButton({
           const result = await typedAuthClient.signIn.oauth2({
             providerId: provider,
             callbackURL,
-            disableRedirect: true,
+            disableRedirect: true
           })
           const url: string | undefined = result?.data?.url
           if (url) {
@@ -107,10 +115,14 @@ export function ProviderButton({
       variant={variant}
       disabled={isPending}
       onClick={handleClick}
+      className={cn("relative overflow-visible", className)}
       {...props}
-      aria-label={getProviderName(provider)}
     >
-      {signInSocialPending || isHinting ? <Spinner /> : <ProviderIcon />}
+      {signInSocialPending || isHinting ? (
+        <Spinner />
+      ) : ProviderIcon ? (
+        <ProviderIcon />
+      ) : null}
 
       {display === "full"
         ? localization.auth.continueWith.replace(
@@ -120,6 +132,12 @@ export function ProviderButton({
         : display === "name"
           ? getProviderName(provider)
           : null}
+
+      {display === "icon" && (
+        <span className="sr-only">{getProviderName(provider)}</span>
+      )}
+
+      {view !== "signUp" && <LastUsedBadge method={provider} floating />}
     </Button>
   )
 }

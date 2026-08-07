@@ -8,15 +8,14 @@ import {
 } from "@better-auth-ui/react"
 import { useDebouncer } from "@tanstack/react-pacer"
 import { Check, X } from "lucide-react"
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 
-import { Field, FieldError } from "@/components/ui/field"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput
 } from "@/components/ui/input-group"
-import { Label } from "@/components/ui/label"
 import { Spinner } from "@/components/ui/spinner"
 import { organizationPlugin } from "@/lib/auth/organization-plugin"
 
@@ -48,9 +47,14 @@ export function SlugField({
   disabled,
   id = "slug"
 }: SlugFieldProps) {
-  const { authClient } = useAuth()
-  const { localization, checkSlug: checkSlugEnabled } =
-    useAuthPlugin(organizationPlugin)
+  const { authClient, localization: authLocalization } = useAuth()
+  const {
+    localization,
+    checkSlug: checkSlugEnabled,
+    slugPrefix
+  } = useAuthPlugin(organizationPlugin)
+
+  const [slugError, setSlugError] = useState<string>()
 
   const {
     mutate: checkSlug,
@@ -70,22 +74,39 @@ export function SlugField({
   )
 
   useEffect(() => {
+    // Clear stale validation errors when the controlled value changes
+    // externally (e.g. the parent resets the form), not just via this
+    // input's onChange.
+    setSlugError(undefined)
+
     if (!checkSlugEnabled) return
 
     resetCheckSlug()
     debouncer.maybeExecute(value)
-  }, [checkSlugEnabled, value, debouncer, resetCheckSlug])
+  }, [checkSlugEnabled, value, debouncer.maybeExecute, resetCheckSlug])
 
   return (
-    <Field>
-      <Label htmlFor={id}>{localization.slug}</Label>
+    <Field data-invalid={!!slugError}>
+      <FieldLabel htmlFor={id}>{localization.slug}</FieldLabel>
 
       <InputGroup>
+        {slugPrefix && (
+          <InputGroupAddon align="inline-start">{slugPrefix}</InputGroupAddon>
+        )}
+
         <InputGroupInput
           id={id}
           name="slug"
           value={value}
-          onChange={(e) => onChange(sanitizeSlug(e.target.value))}
+          onChange={(e) => {
+            onChange(sanitizeSlug(e.target.value))
+            setSlugError(undefined)
+          }}
+          onInvalid={(e) => {
+            e.preventDefault()
+            setSlugError(authLocalization.auth.fieldRequired)
+          }}
+          aria-invalid={!!slugError}
           placeholder={localization.slugPlaceholder}
           required
           disabled={disabled}
@@ -104,7 +125,7 @@ export function SlugField({
         )}
       </InputGroup>
 
-      <FieldError />
+      <FieldError>{slugError}</FieldError>
     </Field>
   )
 }

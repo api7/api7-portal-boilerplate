@@ -8,14 +8,13 @@ import {
 } from "@better-auth-ui/react"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { useRouter } from "next/navigation"
-import { type SyntheticEvent, useState } from "react"
+import { type SyntheticEvent, useEffect, useState } from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Field, FieldError } from "@/components/ui/field"
+import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
 import { organizationPlugin } from "@/lib/auth/organization-plugin"
@@ -34,16 +33,16 @@ export function OrganizationProfile({ className }: OrganizationProfileProps) {
   const { authClient, localization } = useAuth()
   const { localization: organizationLocalization } =
     useAuthPlugin(organizationPlugin)
+
   const { data: activeOrganization } = useActiveOrganization(
     authClient as OrganizationAuthClient
   )
 
   const [slug, setSlug] = useState(activeOrganization?.slug ?? "")
-  const [prevOrgSlug, setPrevOrgSlug] = useState(activeOrganization?.slug)
-  if (prevOrgSlug !== activeOrganization?.slug) {
-    setPrevOrgSlug(activeOrganization?.slug)
+
+  useEffect(() => {
     setSlug(activeOrganization?.slug ?? "")
-  }
+  }, [activeOrganization?.slug])
 
   const router = useRouter()
   const queryClient = useQueryClient()
@@ -54,7 +53,7 @@ export function OrganizationProfile({ className }: OrganizationProfileProps) {
   const { mutate: commitOrganizationUpdate, isPending } = useMutation({
     mutationFn: async ({
       name,
-      slug: newSlug,
+      slug: newSlug
     }: {
       name: string
       slug: string
@@ -63,7 +62,7 @@ export function OrganizationProfile({ className }: OrganizationProfileProps) {
       const result = await client.organization.update({
         organizationId: activeOrganization!.id,
         data: { name, slug: newSlug },
-        fetchOptions: { throw: true },
+        fetchOptions: { throw: true }
       })
       return { result, newSlug }
     },
@@ -77,8 +76,8 @@ export function OrganizationProfile({ className }: OrganizationProfileProps) {
     },
     onError: (error: unknown) => {
       const msg = error instanceof Error ? error.message : String(error)
-      toast.error(msg || 'Failed to update organization')
-    },
+      toast.error(msg || "Failed to update organization")
+    }
   })
 
   function handleSubmit(e: SyntheticEvent<HTMLFormElement>) {
@@ -106,9 +105,9 @@ export function OrganizationProfile({ className }: OrganizationProfileProps) {
             <ChangeOrganizationLogo />
 
             <Field>
-              <Label htmlFor={nameInputId}>
+              <FieldLabel htmlFor={nameInputId}>
                 {organizationLocalization.name}
-              </Label>
+              </FieldLabel>
 
               {activeOrganization ? (
                 <Input
@@ -137,7 +136,7 @@ export function OrganizationProfile({ className }: OrganizationProfileProps) {
               />
             ) : (
               <Field>
-                <Label>{organizationLocalization.slug}</Label>
+                <FieldLabel>{organizationLocalization.slug}</FieldLabel>
                 <Skeleton className="h-8 w-full rounded-md" />
               </Field>
             )}

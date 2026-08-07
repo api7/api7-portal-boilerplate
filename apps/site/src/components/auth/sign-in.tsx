@@ -1,15 +1,19 @@
 "use client"
 
-import { authMutationKeys } from "@better-auth-ui/core"
 import {
+  authMutationKeys,
+  getAuthLinkURL,
+  getSafeRedirectTo
+} from "@better-auth-ui/core"
+import {
+  AuthPrompts,
   useAuth,
   useFetchOptions,
-  useSendVerificationEmail,
-  useSignInEmail,
-  useSignInMagicLink
+  useSignInEmail
 } from "@better-auth-ui/react"
 import { useIsMutating } from "@tanstack/react-query"
 import type { SocialProvider } from "better-auth/social-providers"
+import { Eye, EyeOff } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { type SyntheticEvent, useState, useTransition } from "react"
 import { toast } from "sonner"
@@ -22,16 +26,21 @@ import {
   FieldDescription,
   FieldError,
   FieldGroup,
+  FieldLabel,
   FieldSeparator
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput
+} from "@/components/ui/input-group"
 import { Spinner } from "@/components/ui/spinner"
-import { authClient as typedAuthClient } from "@/lib/auth/client"
 import { checkEmailPolicy } from "@/lib/auth/check-email-policy"
-import { stashTwoFactorPassword } from "@/lib/auth/pending-two-factor-password"
-import { useConfigStatus } from "@/lib/config/config-status-context"
+import { useSignInContinuation } from "@/lib/auth/use-sign-in-continuation"
 import { cn } from "@/lib/utils"
+import { LastUsedBadge } from "./last-login-method/last-used-badge"
 import { ProviderButton } from "./provider-button"
 import { ProviderButtons, type SocialLayout } from "./provider-buttons"
 
@@ -43,6 +52,19 @@ export type SignInProps = {
 
 type Phase = "email" | "credentials"
 
+/**
+ * Render the sign-in form UI with email/password, magic link, and social provider options.
+ *
+ * Sign-in is split into two phases: entering an email first, then — after
+ * checking the org's SSO policy for that email's domain — either a password
+ * form or a locked-in SSO redirect button. This lets SSO-managed domains
+ * skip the password form entirely.
+ *
+ * @param className - Optional additional container class names
+ * @param socialLayout - Layout style for social provider buttons
+ * @param socialPosition - Position of social provider buttons; `"top"` or `"bottom"`. Defaults to `"bottom"`.
+ * @returns The rendered sign-in UI as a JSX element
+ */
 export function SignIn({
   className,
   socialLayout,
@@ -55,7 +77,6 @@ export function SignIn({
     emailAndPassword,
     localization,
     plugins,
-    redirectTo,
     socialProviders,
     viewPaths,
     navigate,
@@ -63,34 +84,32 @@ export function SignIn({
   } = useAuth()
 
   const searchParams = useSearchParams()
-  const rawCallback = searchParams.get("redirect")
-  let callbackTarget: string | null = null
-  if (rawCallback) {
-    try {
-      const u = new URL(rawCallback, "http://x")
-      callbackTarget = u.pathname + u.search
-    } catch { /* invalid — ignore */ }
-  }
-
-  const { twoFactorRequired } = useConfigStatus()
+  const callbackTarget = getSafeRedirectTo(
+    searchParams.get("redirectTo"),
+    baseURL
+  )
 
   const { fetchOptions, resetFetchOptions } = useFetchOptions()
+  const continueSignIn = useSignInContinuation(callbackTarget)
 
   const [phase, setPhase] = useState<Phase>("email")
   const [enteredEmail, setEnteredEmail] = useState("")
   const [ssoProviderId, setSsoProviderId] = useState<string | null>(null)
   const [isPolicyPending, startPolicyTransition] = useTransition()
   const [password, setPassword] = useState("")
-  const [magicLinkSent, setMagicLinkSent] = useState(false)
 
-  const hasMagicLink = plugins.some((p) => p.id === "magic-link")
-
-  const { mutate: sendVerificationEmail } = useSendVerificationEmail(
-    authClient,
-    {
-      onSuccess: () => toast.success(localization.auth.verificationEmailSent)
-    }
+  const magicLinkPluginInstance = plugins.find(
+    (plugin) => plugin.id === "magicLink"
   )
+  const hasMagicLink = !!magicLinkPluginInstance
+  // `magicLinkPlugin` is only conditionally registered (see app/providers.tsx),
+  // so this can't go through `useAuthPlugin` — it throws when the plugin
+  // isn't installed. Read the label straight off the plugin instance instead,
+  // same as `hasMagicLink` above.
+  const sendMagicLinkLabel =
+    (magicLinkPluginInstance?.localization?.sendMagicLink as
+      | string
+      | undefined) ?? "Send login link"
 
   const { mutate: signInEmail, isPending: signInEmailPending } = useSignInEmail(
     authClient,
@@ -99,49 +118,20 @@ export function SignIn({
         setPassword("")
 
         if (error.error?.code === "EMAIL_NOT_VERIFIED") {
-          toast.error(error.error?.message || error.message, {
-            action: {
-              label: localization.auth.resend,
-              onClick: () =>
-                sendVerificationEmail({
-                  email,
-                  callbackURL: `${baseURL}${callbackTarget ?? redirectTo}`
-                })
-            }
+          sessionStorage.setItem("better-auth-ui.verify-email", email)
+          navigate({
+            to: getAuthLinkURL(
+              `${basePaths.auth}/${viewPaths.auth.verifyEmail}`,
+              callbackTarget
+            )
           })
         }
 
         resetFetchOptions()
       },
-      onSuccess: () => {
-        const target = callbackTarget ?? redirectTo
-
-        // Reaching this branch means the password was correct and the user
-        // does not already have 2FA enabled (otherwise better-auth would
-        // have taken the twoFactorRedirect branch instead). If enrollment
-        // is mandatory, hand the just-typed password to the two-factor view
-        // so it can enroll immediately without asking for it again.
-        if (twoFactorRequired) {
-          stashTwoFactorPassword(password)
-          navigate({
-            to: `${basePaths.auth}/two-factor?redirect=${encodeURIComponent(target)}`
-          })
-          return
-        }
-
-        navigate({ to: target })
-      }
+      onSuccess: (data, variables) => continueSignIn(data, variables.password)
     }
   )
-
-  const { mutate: signInMagicLink, isPending: magicLinkPending } =
-    useSignInMagicLink(typedAuthClient, {
-      onSuccess: () => setMagicLinkSent(true),
-      onError: (error) => {
-        toast.error(error.error?.message || error.message)
-        resetFetchOptions()
-      }
-    })
 
   const signInMutating = useIsMutating({
     mutationKey: authMutationKeys.signIn.all
@@ -155,6 +145,8 @@ export function SignIn({
     (plugin) => plugin.captchaComponent
   )?.captchaComponent
 
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
+
   const [fieldErrors, setFieldErrors] = useState<{
     email?: string
     password?: string
@@ -167,30 +159,26 @@ export function SignIn({
     startPolicyTransition(async () => {
       try {
         const policy = await checkEmailPolicy(email)
-        if (policy.type === "sso") {
-          setSsoProviderId(policy.providerId)
-        } else {
-          setSsoProviderId(null)
-        }
+        setSsoProviderId(policy.type === "sso" ? policy.providerId : null)
         setPhase("credentials")
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Failed to continue. Please try again.")
+        toast.error(
+          err instanceof Error ? err.message : "Failed to continue. Please try again."
+        )
       }
     })
   }
 
   const handlePasswordSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
+
+    const rememberMe =
+      new FormData(e.currentTarget).get("rememberMe") === "on"
+
     signInEmail({
       email: enteredEmail,
       password,
-      ...(emailAndPassword?.rememberMe
-        ? {
-            rememberMe:
-              (new FormData(e.currentTarget).get("rememberMe") as string) ===
-              "on"
-          }
-        : {}),
+      ...(emailAndPassword?.rememberMe ? { rememberMe } : {}),
       fetchOptions
     })
   }
@@ -199,7 +187,6 @@ export function SignIn({
     setPhase("email")
     setSsoProviderId(null)
     setPassword("")
-    setMagicLinkSent(false)
     setFieldErrors({})
   }
 
@@ -211,6 +198,7 @@ export function SignIn({
 
   return (
     <Card className={cn("w-full max-w-sm", className)}>
+      <AuthPrompts view="signIn" />
       <CardHeader>
         <CardTitle className="text-xl font-semibold">
           {localization.auth.signIn}
@@ -222,7 +210,7 @@ export function SignIn({
           {socialPosition === "top" && (
             <>
               {socialProviders && socialProviders.length > 0 && (
-                <ProviderButtons socialLayout={socialLayout} />
+                <ProviderButtons socialLayout={socialLayout} view="signIn" />
               )}
 
               {showSeparator && (
@@ -238,7 +226,9 @@ export function SignIn({
             <form onSubmit={handleEmailContinue}>
               <FieldGroup>
                 <Field data-invalid={!!fieldErrors.email}>
-                  <Label htmlFor="email">{localization.auth.email}</Label>
+                  <FieldLabel htmlFor="email">
+                    {localization.auth.email}
+                  </FieldLabel>
 
                   <Input
                     id="email"
@@ -255,9 +245,14 @@ export function SignIn({
                     }}
                     onInvalid={(e) => {
                       e.preventDefault()
+                      const el = e.target as HTMLInputElement
+                      const msg = el.validity.valueMissing
+                        ? localization.auth.fieldRequired
+                        : localization.auth.invalidEmail
+
                       setFieldErrors((prev) => ({
                         ...prev,
-                        email: (e.target as HTMLInputElement).validationMessage
+                        email: msg
                       }))
                     }}
                     aria-invalid={!!fieldErrors.email}
@@ -310,39 +305,77 @@ export function SignIn({
                 <form onSubmit={handlePasswordSubmit}>
                   <FieldGroup>
                     <Field data-invalid={!!fieldErrors.password}>
-                      <Label htmlFor="password">
+                      <FieldLabel htmlFor="password">
                         {localization.auth.password}
-                      </Label>
+                      </FieldLabel>
 
-                      <Input
-                        id="password"
-                        name="password"
-                        type="password"
-                        autoComplete="current-password"
-                        value={password}
-                        onChange={(e) => {
-                          setPassword(e.target.value)
-                          setFieldErrors((prev) => ({
-                            ...prev,
-                            password: undefined
-                          }))
-                        }}
-                        placeholder={localization.auth.passwordPlaceholder}
-                        required
-                        minLength={emailAndPassword?.minPasswordLength}
-                        maxLength={emailAndPassword?.maxPasswordLength}
-                        disabled={isPending}
-                        onInvalid={(e) => {
-                          e.preventDefault()
-                          setFieldErrors((prev) => ({
-                            ...prev,
-                            password: (e.target as HTMLInputElement)
-                              .validationMessage
-                          }))
-                        }}
-                        aria-invalid={!!fieldErrors.password}
-                        autoFocus
-                      />
+                      <InputGroup>
+                        <InputGroupInput
+                          id="password"
+                          name="password"
+                          type={isPasswordVisible ? "text" : "password"}
+                          autoComplete="current-password"
+                          value={password}
+                          onChange={(e) => {
+                            setPassword(e.target.value)
+
+                            setFieldErrors((prev) => ({
+                              ...prev,
+                              password: undefined
+                            }))
+                          }}
+                          placeholder={localization.auth.passwordPlaceholder}
+                          required
+                          minLength={emailAndPassword?.minPasswordLength}
+                          maxLength={emailAndPassword?.maxPasswordLength}
+                          disabled={isPending}
+                          onInvalid={(e) => {
+                            e.preventDefault()
+                            const el = e.target as HTMLInputElement
+                            const min = emailAndPassword?.minPasswordLength
+                            const max = emailAndPassword?.maxPasswordLength
+                            const msg = el.validity.valueMissing
+                              ? localization.auth.fieldRequired
+                              : el.validity.tooShort
+                                ? localization.auth.tooShort.replace(
+                                    "{{min}}",
+                                    String(min)
+                                  )
+                                : localization.auth.tooLong.replace(
+                                    "{{max}}",
+                                    String(max)
+                                  )
+
+                            setFieldErrors((prev) => ({
+                              ...prev,
+                              password: msg
+                            }))
+                          }}
+                          aria-invalid={!!fieldErrors.password}
+                          autoFocus
+                        />
+
+                        <InputGroupAddon align="inline-end">
+                          <InputGroupButton
+                            size="icon-xs"
+                            aria-label={
+                              isPasswordVisible
+                                ? localization.auth.hidePassword
+                                : localization.auth.showPassword
+                            }
+                            title={
+                              isPasswordVisible
+                                ? localization.auth.hidePassword
+                                : localization.auth.showPassword
+                            }
+                            onClick={() => {
+                              setIsPasswordVisible((visible) => !visible)
+                            }}
+                          >
+                            {isPasswordVisible ? <EyeOff /> : <Eye />}
+                          </InputGroupButton>
+                        </InputGroupAddon>
+                      </InputGroup>
 
                       <FieldError>{fieldErrors.password}</FieldError>
                     </Field>
@@ -356,12 +389,12 @@ export function SignIn({
                             disabled={isPending}
                           />
 
-                          <Label
+                          <FieldLabel
                             htmlFor="rememberMe"
                             className="cursor-pointer text-sm font-normal"
                           >
                             {localization.auth.rememberMe}
-                          </Label>
+                          </FieldLabel>
                         </div>
                       </Field>
                     )}
@@ -371,10 +404,26 @@ export function SignIn({
                     )}
 
                     <div className="flex flex-col gap-3">
-                      <Button type="submit" disabled={isPending}>
+                      <Button
+                        type="submit"
+                        className="relative overflow-visible"
+                        disabled={isPending}
+                      >
                         {signInEmailPending && <Spinner />}
+
                         {localization.auth.signIn}
+
+                        <LastUsedBadge method="email" floating />
                       </Button>
+
+                      {plugins.flatMap((plugin) =>
+                        (plugin.authButtons ?? []).map((AuthButton, index) => (
+                          <AuthButton
+                            key={`${plugin.id}-${index.toString()}`}
+                            view="signIn"
+                          />
+                        ))
+                      )}
                     </div>
                   </FieldGroup>
                 </form>
@@ -387,29 +436,12 @@ export function SignIn({
               )}
 
               {hasMagicLink && (
-                <>
-                  {magicLinkSent ? (
-                    <p className="text-sm text-center text-muted-foreground">
-                      {"Check your email for a login link."}
-                    </p>
-                  ) : (
-                    <Button
-                      type="button"
-                      variant={emailAndPassword?.enabled ? "outline" : "default"}
-                      disabled={isPending || magicLinkPending}
-                      onClick={() =>
-                        signInMagicLink({
-                          email: enteredEmail,
-                          callbackURL: `${baseURL}${callbackTarget ?? redirectTo}`,
-                          fetchOptions
-                        })
-                      }
-                    >
-                      {magicLinkPending && <Spinner />}
-                      {"Send login link"}
-                    </Button>
-                  )}
-                </>
+                <Link
+                  href={`${basePaths.auth}/${viewPaths.auth.magicLink}`}
+                  className="self-center text-sm underline-offset-4 hover:underline"
+                >
+                  {sendMagicLinkLabel}
+                </Link>
               )}
 
               <Button
@@ -433,7 +465,7 @@ export function SignIn({
               )}
 
               {socialProviders && socialProviders.length > 0 && (
-                <ProviderButtons socialLayout={socialLayout} />
+                <ProviderButtons socialLayout={socialLayout} view="signIn" />
               )}
             </>
           )}

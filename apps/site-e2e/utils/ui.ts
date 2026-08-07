@@ -109,7 +109,7 @@ export const uiLogin = async (
   // The sign-in form is SSR'd; hydration briefly detaches DOM elements.
   await page.waitForLoadState('networkidle');
   await page.getByRole('textbox', { name: 'Email' }).fill(auth.email);
-  await page.getByRole('button', { name: 'Continue' }).click();
+  await page.getByRole('button', { name: 'Continue', exact: true }).click();
   await page.getByRole('textbox', { name: 'Password' }).fill(auth.password);
   await page.getByRole('button', { name: 'Sign In' }).click();
   if (!assertAccount) return;
@@ -127,7 +127,7 @@ export const uiLogout = async (page: Page) => {
   await page.context().clearCookies();
   await page.goto(PATH_LOGIN);
   await expect(
-    page.getByRole('button', { name: 'Continue' }),
+    page.getByRole('button', { name: 'Continue', exact: true }),
   ).toBeVisible({
     timeout: 10_000,
   });
@@ -247,7 +247,7 @@ export const uiSubscribeProductInAPIHub = async (
     waitUntil: 'domcontentloaded',
   });
   const subscriptionsTab = page.getByRole('tab', { name: 'Subscriptions' });
-  const loginButton = page.getByRole('button', { name: 'Continue' });
+  const loginButton = page.getByRole('button', { name: 'Continue', exact: true });
 
   await Promise.race([
     subscriptionsTab.waitFor({ state: 'visible', timeout: 20000 }),
@@ -262,7 +262,9 @@ export const uiSubscribeProductInAPIHub = async (
   const subscribeBtn = page.getByRole('button', {
     name: 'Subscribe to Application',
   });
-  await expect(subscribeBtn).toBeVisible();
+  // Longer than the 5s default: right after a fresh gateway deploy, the
+  // subscriptions list can take a moment to reflect the just-published product.
+  await expect(subscribeBtn).toBeVisible({ timeout: 15_000 });
   await expect(subscribeBtn).toBeEnabled();
   await subscribeBtn.click();
   await uiSubscribeProductApplication(page, { applicationName });
@@ -316,7 +318,10 @@ export const uiShowNotFound = async (page: Page) => {
   await expect(page.getByRole('button', { name: 'Go Back' })).toBeVisible();
 };
 export const uiShowLogin = async (page: Page) => {
-  const loginBtn = page.getByRole('button', { name: 'Continue' });
+  // exact: true — the login page also has a "Continue with Keycloak" button,
+  // and getByRole name matching is substring-by-default so it would resolve
+  // to both.
+  const loginBtn = page.getByRole('button', { name: 'Continue', exact: true });
   await expect(loginBtn).toBeVisible({ timeout: 10_000 });
 };
 export const uiAPIHubSearchProduct = async (
@@ -376,7 +381,7 @@ const uiOpenDefaultApplicationDetail = async (page: Page) => {
     }
   }
 
-  await page.waitForURL(new RegExp(`${PATH_APPLICATIONS}/[^/]+$`));
+  await page.waitForURL(new RegExp(`${PATH_APPLICATIONS}/[^/]+$`), { timeout: 15_000 });
 };
 
 /**

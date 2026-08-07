@@ -226,21 +226,20 @@ test.describe(
       test.setTimeout(30_000); // Increase timeout for debugging
       await test.step('test request modal should trim paste text', async () => {
         const testText = '   test space    ';
-        await page
-          .getByLabel('Cookies')
-          .getByRole('textbox')
-          .filter({ hasText: 'Key' })
-          .fill(testText);
-        const cookieInput = page
-          .getByLabel('Cookies')
-          .getByRole('textbox')
+        // Already expanded by default; Scalar's key/value fields are
+        // contenteditable, exposed as combobox rather than textbox.
+        // exact: true — Scalar also renders a separate "Cookies (Collapsed)"
+        // region that a non-exact match would pick up too.
+        const cookiesSection = page.getByLabel('Cookies', { exact: true });
+        await cookiesSection.getByRole('combobox').first().fill(testText);
+        const cookieInput = cookiesSection
+          .getByRole('combobox')
           .filter({ hasText: 'test space' })
           .first();
 
         await cookieInput.press('ControlOrMeta+a');
         await cookieInput.press('ControlOrMeta+c');
         await cookieInput.press('ControlOrMeta+v');
-        // Using Exact Match
         await expect(cookieInput).toHaveText(
           new RegExp(`^${testText.trim()}$`),
         );

@@ -12,7 +12,7 @@ import { ChevronUp, Filter, Search, X } from "lucide-react"
 import { type ComponentProps, type ReactNode, useMemo, useState } from "react"
 
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
   DropdownMenu,
@@ -150,7 +150,14 @@ export function OrganizationInvitations({
           </InputGroup>
 
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button size="sm" variant="outline" disabled={isPending} />}><Filter />{organizationLocalization.role}</DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+              disabled={isPending}
+            >
+              <Filter />
+
+              {organizationLocalization.role}
+            </DropdownMenuTrigger>
 
             <DropdownMenuContent align="start">
               <DropdownMenuRadioGroup
@@ -171,7 +178,14 @@ export function OrganizationInvitations({
           </DropdownMenu>
 
           <DropdownMenu>
-            <DropdownMenuTrigger render={<Button size="sm" variant="outline" disabled={isPending} />}><Filter />{organizationLocalization.status}</DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              className={cn(buttonVariants({ size: "sm", variant: "outline" }))}
+              disabled={isPending}
+            >
+              <Filter />
+
+              {organizationLocalization.status}
+            </DropdownMenuTrigger>
 
             <DropdownMenuContent align="start">
               <DropdownMenuRadioGroup
@@ -204,14 +218,16 @@ export function OrganizationInvitations({
                 <span className="capitalize">
                   {roles?.[roleFilter] ?? roleFilter}
                 </span>
-                <button
-                  type="button"
+                <Button
                   aria-label={organizationLocalization.clear}
-                  className="inline-flex cursor-pointer items-center text-muted-foreground hover:text-foreground"
+                  className="size-4 rounded-sm text-muted-foreground"
                   onClick={() => setRoleFilter("all")}
+                  size="icon-xs"
+                  type="button"
+                  variant="ghost"
                 >
                   <X className="size-3" />
-                </button>
+                </Button>
               </Badge>
             )}
 
@@ -221,14 +237,16 @@ export function OrganizationInvitations({
                 {organizationLocalization[
                   statusFilter as keyof OrganizationLocalization
                 ] ?? statusFilter}
-                <button
-                  type="button"
+                <Button
                   aria-label={organizationLocalization.clear}
-                  className="inline-flex cursor-pointer items-center text-muted-foreground hover:text-foreground"
+                  className="size-4 rounded-sm text-muted-foreground"
                   onClick={() => setStatusFilter("all")}
+                  size="icon-xs"
+                  type="button"
+                  variant="ghost"
                 >
                   <X className="size-3" />
-                </button>
+                </Button>
               </Badge>
             )}
           </div>
@@ -328,10 +346,12 @@ function SortableTableHead({
 }) {
   return (
     <TableHead aria-sort={sortDirection ?? "none"}>
-      <button
-        type="button"
+      <Button
+        className="h-auto w-full justify-start p-0 font-medium hover:bg-transparent"
         onClick={onClick}
-        className="flex w-full items-center gap-2 text-left font-medium"
+        size="sm"
+        type="button"
+        variant="ghost"
       >
         {children}
 
@@ -343,7 +363,7 @@ function SortableTableHead({
             )}
           />
         )}
-      </button>
+      </Button>
     </TableHead>
   )
 }

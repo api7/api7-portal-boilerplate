@@ -9,7 +9,6 @@ import {
   updateConfigMapYaml,
 } from '../utils/devportal-config';
 import { restartDevPortal } from '../utils/shell';
-import { uiVerifyToast } from '../utils/ui';
 
 test.describe('Email verification enforcement', () => {
   test.describe.configure({ mode: 'serial' });
@@ -34,7 +33,7 @@ test.describe('Email verification enforcement', () => {
     }
   });
 
-  test('sign-up shows verification toast and redirects to sign-in', async ({ page }) => {
+  test('sign-up navigates to the verify-email page', async ({ page }) => {
     await page.goto(`${PATH_AUTH}/sign-up`);
     await page.waitForLoadState('networkidle');
 
@@ -43,22 +42,42 @@ test.describe('Email verification enforcement', () => {
     await page.getByRole('textbox', { name: 'Password' }).fill(auth.password);
     await page.getByRole('button', { name: /sign up/i }).click();
 
-    await uiVerifyToast(page, { hasText: /verify your email/i });
-    await page.waitForURL(`**${PATH_AUTH}/sign-in`);
+    // sign-up.tsx navigates straight to /auth/verify-email when
+    // requireEmailVerification is on — there's no toast/redirect-to-sign-in
+    // step, the "check your email" copy is static page content on that view.
+    // Actual URL carries a `?redirectTo=` query string, so match on pathname
+    // rather than a glob (a glob with no trailing `**` never matches a URL
+    // with a query string, and with no explicit timeout this silently hung
+    // for the full 600s describe-level test.setTimeout instead of failing).
+    await page.waitForURL(
+      (url) => url.pathname === `${PATH_AUTH}/verify-email`,
+      { timeout: 15_000 },
+    );
+    await expect(
+      page.getByText(/check your email for a verification link/i),
+    ).toBeVisible({ timeout: 15_000 });
   });
 
-  test('sign-in is blocked with resend button when email is unverified', async ({ page }) => {
+  test('sign-in is blocked and redirects to the verify-email page when email is unverified', async ({ page }) => {
     await page.goto(`${PATH_AUTH}/sign-in`);
     await page.waitForLoadState('networkidle');
 
     await page.getByRole('textbox', { name: 'Email' }).fill(auth.email);
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.getByRole('textbox', { name: 'Password' }).fill(auth.password);
     await page.getByRole('button', { name: /sign in/i }).click();
 
-    const errorToast = page.locator('li').filter({ hasText: /email not verified/i });
-    await expect(errorToast).toBeVisible({ timeout: 10_000 });
-    await expect(errorToast.getByRole('button', { name: /resend/i })).toBeVisible();
+    // EMAIL_NOT_VERIFIED never reaches the generic error toast — error-toaster.tsx
+    // explicitly swallows that code — sign-in.tsx's onError instead redirects to
+    // the same /auth/verify-email page sign-up uses, which has its own Resend
+    // button in place of the old inline toast.
+    await page.waitForURL(
+      (url) => url.pathname === `${PATH_AUTH}/verify-email`,
+      { timeout: 15_000 },
+    );
+    await expect(page.getByRole('button', { name: 'Resend' })).toBeVisible({
+      timeout: 15_000,
+    });
   });
 
   test('sign-in succeeds normally when email verification is disabled', async ({ page }) => {
@@ -75,7 +94,7 @@ test.describe('Email verification enforcement', () => {
     // The account created above still has emailVerified=false in the DB,
     // but with requireEmailVerification=false the server no longer enforces it.
     await page.getByRole('textbox', { name: 'Email' }).fill(auth.email);
-    await page.getByRole('button', { name: 'Continue' }).click();
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
     await page.getByRole('textbox', { name: 'Password' }).fill(auth.password);
     await page.getByRole('button', { name: /sign in/i }).click();
 

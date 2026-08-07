@@ -5,6 +5,7 @@ import { test } from '../fixture';
 import { getConfigMapYaml, updateConfigMapYaml } from '../utils/devportal-config';
 import { restartDevPortal } from '../utils/shell';
 import {
+  completeTotpVerification,
   createFreshAuth,
   createTotpCode,
   dialogContent,
@@ -53,7 +54,9 @@ async function ensureTwoFactorDisabled(
   }
 
   await disableButton.click();
-  const passwordDialog = dialogContent(page);
+  // The disable confirmation is an AlertDialog (data-slot="alert-dialog-content"),
+  // not a plain Dialog — dialogContent() doesn't match it.
+  const passwordDialog = page.getByRole('alertdialog', { name: /disable two-factor/i });
   await expect(passwordDialog).toBeVisible();
   await passwordDialog.getByLabel('Password', { exact: true }).fill(password);
   await passwordDialog
@@ -61,7 +64,7 @@ async function ensureTwoFactorDisabled(
     .click();
 
   // Wait for dialog to close (API call succeeded), then check button updated
-  await expect(dialogContent(page)).not.toBeVisible({ timeout: 10_000 });
+  await expect(passwordDialog).not.toBeVisible({ timeout: 10_000 });
 
   await expect(
     page.getByRole('button', { name: /enable two-factor/i }),
@@ -81,7 +84,9 @@ async function ensureSignedInToSecurityPage(
 
   if (
     page.url().includes('/auth/') ||
-    (await page.getByRole('button', { name: 'Continue' }).isVisible())
+    (await page
+      .getByRole('button', { name: 'Continue', exact: true })
+      .isVisible())
   ) {
     await signIn(page, auth.email, auth.password);
     await page.waitForURL((url) => !url.pathname.startsWith('/auth/'), {
@@ -127,7 +132,11 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
 
     // Navigate to security settings; ensure 2FA is disabled before testing enable
     await ensureSignedInToSecurityPage(page, auth);
-    await expect(page.getByText('Two-Factor', { exact: true })).toBeVisible({ timeout: 30_000 });
+    // The card title is "Two-Factor Authentication" (an h2) — exact:true
+    // against just "Two-Factor" never matches.
+    await expect(
+      page.getByRole('heading', { name: 'Two-Factor Authentication' }),
+    ).toBeVisible({ timeout: 30_000 });
     await ensureTwoFactorDisabled(page, auth.password);
 
     // Open "Enable Two-Factor" dialog and fill password
@@ -138,6 +147,7 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
       (response) =>
         response.url().includes('/two-factor/enable') &&
         response.request().method() === 'POST',
+      { timeout: 15_000 },
     );
     await submitEnableTwoFactorPassword(page, auth.password);
 
@@ -148,29 +158,12 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
     expect(Array.isArray(enableBody?.backupCodes)).toBe(true);
     const totpURI = enableBody.totpURI as string;
 
-    // Backup codes dialog appears after the password dialog closes; click "Continue"
-    const backupCodesDialog = dialogContent(page).filter({ hasText: 'Backup Codes' });
-    await expect(backupCodesDialog).toBeVisible({ timeout: 5_000 });
-    await backupCodesDialog.getByRole('button', { name: /continue/i }).click();
-
-    // Should navigate to /auth/two-factor?totpURI=... (setup confirmation page with QR code)
-    await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor') && url.searchParams.has('totpURI'),
-      { timeout: 15_000 },
-    );
-
-    // Fill OTP input and click Verify to confirm setup
-    const setupCode = await createTotpCode(totpURI);
-    const otpInput = page.locator('input[autocomplete="one-time-code"]');
-    await expect(otpInput).toBeVisible({ timeout: 5_000 });
-    await otpInput.fill(setupCode);
-    await page.getByRole('button', { name: /^verify$/i }).click();
-
-    // Should redirect away from the two-factor setup page after successful verification
-    await page.waitForURL(
-      (url) => !url.pathname.startsWith('/auth/two-factor'),
-      { timeout: 15_000 },
-    );
+    // Verify + acknowledge backup codes, all within the same dialog — there's
+    // no separate setup page, and backup codes appear after verifying, not
+    // before.
+    const dialog = dialogContent(page);
+    await completeTotpVerification(dialog, totpURI);
+    await expect(dialog).not.toBeVisible({ timeout: 10_000 });
 
     // Clear session to simulate the next login; verify 2FA challenge is required
     await page.context().clearCookies();
@@ -192,7 +185,9 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
     const loginOtpInput = page.locator('input[autocomplete="one-time-code"]');
     await expect(loginOtpInput).toBeVisible({ timeout: 5_000 });
     await loginOtpInput.fill(loginCode);
-    await page.getByRole('button', { name: /^verify$/i }).click();
+    // OtpField's onComplete auto-submits once all digits are filled — a
+    // separate click is redundant and racy (verification, and sometimes the
+    // subsequent navigation, can already be in flight by the time it fires).
 
     // Should redirect away from 2FA page (fully logged in)
     await page.waitForURL(
@@ -222,6 +217,7 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
       (response) =>
         response.url().includes('/two-factor/enable') &&
         response.request().method() === 'POST',
+      { timeout: 15_000 },
     );
     await submitEnableTwoFactorPassword(page, 'definitely-wrong-password!');
 
@@ -235,8 +231,11 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
     // Field error (role="alert" from FieldError) must be shown inside the dialog
     await expect(passwordDialog.locator('[data-slot="field-error"]')).toBeVisible({ timeout: 5_000 });
 
-    // Backup codes dialog must NOT appear — the bug was that it opened with empty codes
-    await expect(dialogContent(page).filter({ hasText: 'Backup Codes' })).not.toBeVisible();
+    // Must not have advanced past the password step — the bug was that it
+    // opened the backup codes step with empty codes.
+    await expect(
+      passwordDialog.locator('input[autocomplete="one-time-code"]'),
+    ).toHaveCount(0);
   });
 
   test('backup codes dialog shows actual codes and copy button works', async ({
@@ -256,6 +255,7 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
       (response) =>
         response.url().includes('/two-factor/enable') &&
         response.request().method() === 'POST',
+      { timeout: 15_000 },
     );
     await submitEnableTwoFactorPassword(page, auth.password);
 
@@ -264,34 +264,44 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
     const enableBody = await enableResponse.json();
     const backupCodesFromApi: string[] = enableBody.backupCodes;
     expect(backupCodesFromApi.length).toBeGreaterThan(0);
+    const totpURI = enableBody.totpURI as string;
 
-    // Backup codes dialog should appear with the actual codes rendered
-    const backupCodesDialog = dialogContent(page).filter({ hasText: 'Backup Codes' });
-    await expect(backupCodesDialog).toBeVisible({ timeout: 5_000 });
+    // Verify the OTP first — backup codes only appear after verifying, not
+    // alongside the password step.
+    const dialog = dialogContent(page);
+    const otpInput = dialog.locator('input[autocomplete="one-time-code"]');
+    await expect(otpInput).toBeVisible({ timeout: 15_000 });
+    await otpInput.fill(await createTotpCode(totpURI));
 
-    // Each code from the API response must be visible in the dialog
+    // Backup codes step should show the actual codes from the API response
+    await expect(
+      dialog.getByText(
+        'Save these somewhere safe. Each code works once if you lose your authenticator.',
+      ),
+    ).toBeVisible({ timeout: 15_000 });
     for (const code of backupCodesFromApi) {
-      await expect(backupCodesDialog.getByText(code, { exact: true })).toBeVisible();
+      await expect(dialog.getByText(code, { exact: true })).toBeVisible();
     }
 
-    // Copy All button must copy all codes joined by newlines
-    await backupCodesDialog.getByRole('button', { name: /copy all/i }).click();
-    await expect(backupCodesDialog.getByRole('button', { name: /copied/i })).toBeVisible({ timeout: 3_000 });
+    // Copy button writes a formatted block (site + description + codes), not
+    // just the raw codes.
+    await dialog.getByRole('button', { name: 'Copy to clipboard' }).click();
+    await expect(page.getByText('Backup codes copied')).toBeVisible({ timeout: 3_000 });
 
     const clipboard = await page.evaluate(() => navigator.clipboard.readText());
-    expect(clipboard).toBe(backupCodesFromApi.join('\n'));
-
-    // Cleanup: dismiss dialog, then disable 2FA (need to complete setup first)
-    const totpURI = enableBody.totpURI as string;
-    await backupCodesDialog.getByRole('button', { name: /continue/i }).click();
-    await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor') && url.searchParams.has('totpURI'),
-      { timeout: 15_000 },
+    const origin = new URL(page.url()).origin;
+    expect(clipboard).toBe(
+      [
+        `Backup codes for ${origin}`,
+        'Save these somewhere safe. Each code works once if you lose your authenticator.',
+        '',
+        ...backupCodesFromApi,
+      ].join('\n'),
     );
-    const setupCode = await createTotpCode(totpURI);
-    await page.locator('input[autocomplete="one-time-code"]').fill(setupCode);
-    await page.getByRole('button', { name: /^verify$/i }).click();
-    await page.waitForURL((url) => !url.pathname.startsWith('/auth/two-factor'), { timeout: 15_000 });
+
+    // Cleanup: dismiss dialog (finishes enrollment), then disable 2FA
+    await dialog.getByRole('button', { name: /^done$/i }).click();
+    await expect(dialog).not.toBeVisible({ timeout: 10_000 });
 
     await page.goto(`${PATH_ACCOUNT}/security`);
     await ensureTwoFactorDisabled(page, auth.password);
@@ -310,6 +320,7 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
       (response) =>
         response.url().includes('/two-factor/enable') &&
         response.request().method() === 'POST',
+      { timeout: 15_000 },
     );
     await submitEnableTwoFactorPassword(page, auth.password);
 
@@ -317,18 +328,9 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
     expect(enableResponse.status()).toBe(200);
     const { totpURI } = await enableResponse.json() as { totpURI: string };
 
-    const backupCodesDialog = dialogContent(page).filter({ hasText: 'Backup Codes' });
-    await expect(backupCodesDialog).toBeVisible({ timeout: 5_000 });
-    await backupCodesDialog.getByRole('button', { name: /continue/i }).click();
-
-    await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor') && url.searchParams.has('totpURI'),
-      { timeout: 15_000 },
-    );
-    const setupCode = await createTotpCode(totpURI);
-    await page.locator('input[autocomplete="one-time-code"]').fill(setupCode);
-    await page.getByRole('button', { name: /^verify$/i }).click();
-    await page.waitForURL((url) => !url.pathname.startsWith('/auth/two-factor'), { timeout: 15_000 });
+    const dialog = dialogContent(page);
+    await completeTotpVerification(dialog, totpURI);
+    await expect(dialog).not.toBeVisible({ timeout: 10_000 });
 
     // Clear session to simulate a fresh login
     await page.context().clearCookies();
@@ -346,7 +348,9 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
     const otpInput = page.locator('input[autocomplete="one-time-code"]');
     await expect(otpInput).toBeVisible({ timeout: 5_000 });
     await otpInput.fill('000000');
-    await page.getByRole('button', { name: /^verify$/i }).click();
+    // OtpField's onComplete auto-submits once all digits are filled — a
+    // separate click is redundant and racy (verification, and sometimes the
+    // subsequent navigation, can already be in flight by the time it fires).
 
     // Bug: before the fix this would navigate to the home page.
     // After the fix the page must stay on the 2FA path and show a toast error.
@@ -356,7 +360,9 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
     // Now enter the correct code and succeed
     const loginCode = await createTotpCode(totpURI);
     await otpInput.fill(loginCode);
-    await page.getByRole('button', { name: /^verify$/i }).click();
+    // OtpField's onComplete auto-submits once all digits are filled — a
+    // separate click is redundant and racy (verification, and sometimes the
+    // subsequent navigation, can already be in flight by the time it fires).
     await page.waitForURL((url) => !url.pathname.startsWith('/auth/two-factor'), { timeout: 15_000 });
 
     // Cleanup
@@ -368,6 +374,8 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
     await updateConfigAndRestart(false);
 
     await page.goto(`${PATH_ACCOUNT}/security`);
-    await expect(page.getByText('Two-Factor', { exact: true })).toHaveCount(0);
+    await expect(
+      page.getByRole('heading', { name: 'Two-Factor Authentication' }),
+    ).toHaveCount(0);
   });
 });

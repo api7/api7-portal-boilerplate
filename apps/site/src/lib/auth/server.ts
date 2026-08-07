@@ -209,7 +209,11 @@ export const auth = betterAuth({
   session: {
     expiresIn: config.auth.session.expiresIn,
     updateAge: config.auth.session.updateAge,
-    cookieCache: { enabled: true, maxAge: 5 * 60, refreshCache: true },
+    // Kept short: writes that gate on session state (BFF proxy, platform-admin
+    // server actions touching the portal SDK) force disableCookieCache and
+    // re-read the DB, but other callers still trust this cache — a short
+    // maxAge bounds how long a revoked/stale session can be trusted there.
+    cookieCache: { enabled: true, maxAge: 60 },
   },
   secret: config.auth.secret,
   socialProviders: config.auth.socialProviders,

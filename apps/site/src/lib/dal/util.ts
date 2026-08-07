@@ -45,7 +45,7 @@ export const verifySession = cache(
       const pathname = hdrs.get('x-pathname');
       const loginURL =
         pathname && !pathname.startsWith(PATH_AUTH)
-          ? `${PATH_LOGIN}?redirect=${encodeURIComponent(pathname)}`
+          ? `${PATH_LOGIN}?redirectTo=${encodeURIComponent(pathname)}`
           : PATH_LOGIN;
       redirect(loginURL);
     }

@@ -1,5 +1,6 @@
 'use client';
 
+import { getSafeRedirectTo } from '@better-auth-ui/core';
 import { ThemeProvider } from 'next-themes';
 import { AuthProvider } from '@/components/auth/auth-provider';
 import { organizationPlugin } from '@/lib/auth/organization-plugin';
@@ -21,9 +22,11 @@ import { QueryClientProvider } from '@tanstack/react-query';
 function AuthProviderWrapper({
   children,
   initialConfigStatus,
+  baseURL,
 }: {
   children: ReactNode;
   initialConfigStatus: ConfigStatus;
+  baseURL: string;
 }) {
   const router = useRouter();
   const activeOrgSlug = useOrganizationSlug();
@@ -48,12 +51,22 @@ function AuthProviderWrapper({
     }
   }, [activeOrgSlug, router]);
 
+  // better-auth-ui's own `useAuth().redirectTo` reflects the raw `?redirectTo=`
+  // query param with no origin validation (it's just `.trim()`'d — see
+  // `@better-auth-ui/react`'s AuthProvider). Several consumers — ours
+  // (sign-up.tsx) and upstream's (two-factor-challenge.tsx, one-tap-plugin.tsx,
+  // use-authenticate.ts) — pass that value straight to `navigate({ to })`.
+  // `navigate` is never legitimately used for cross-origin navigation in this
+  // app (social/OAuth sign-in redirects bypass it entirely), so it's safe —
+  // and is the one place we can fix this for every current and future caller
+  // without patching any registry/upstream file.
   const navigate = useCallback(
     ({ to, replace }: { to: string; replace?: boolean }) => {
-      if (replace) router.replace(to);
-      else router.push(to);
+      const target = getSafeRedirectTo(to, baseURL);
+      if (replace) router.replace(target);
+      else router.push(target);
     },
-    [router],
+    [router, baseURL],
   );
 
   const plugins = useMemo(() => {
@@ -109,6 +122,7 @@ function AuthProviderWrapper({
       <AuthProvider
         authClient={authClient}
         navigate={navigate}
+        baseURL={baseURL}
         Link={Link as never}
         basePaths={{ auth: '/auth', settings: '/account', organization: '' }}
         viewPaths={{ settings: { account: 'settings', security: 'security' } }}
@@ -128,14 +142,18 @@ function AuthProviderWrapper({
 export function Providers({
   children,
   initialConfigStatus,
+  baseURL,
 }: {
   children: ReactNode;
   initialConfigStatus: ConfigStatus;
+  baseURL: string;
 }) {
   return (
     <QueryClientProvider client={getQueryClient()}>
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-        <AuthProviderWrapper initialConfigStatus={initialConfigStatus}>{children}</AuthProviderWrapper>
+        <AuthProviderWrapper initialConfigStatus={initialConfigStatus} baseURL={baseURL}>
+          {children}
+        </AuthProviderWrapper>
       </ThemeProvider>
     </QueryClientProvider>
   );

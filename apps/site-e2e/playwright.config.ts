@@ -43,6 +43,16 @@ export default defineConfig({
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
     video: 'on',
+    /* Without an explicit default, actions (click/fill/...) and waitFor*
+     * calls with no per-call `timeout` fall back to the enclosing test's
+     * overall timeout instead of a short, fail-fast one. Several specs set
+     * `test.setTimeout(600_000)` at the describe level to cover slow
+     * beforeAll/afterAll devportal restarts — any bare wait inside them
+     * inherited that 10-minute ceiling instead of failing quickly, which is
+     * how a single missed response has repeatedly hung whole CI runs.
+     * These caps apply everywhere unless a call overrides them locally. */
+    actionTimeout: 20_000,
+    navigationTimeout: 30_000,
   },
   /* Run your local dev server before starting the tests */
   // webServer: {

@@ -255,11 +255,11 @@ test.describe('BFF Proxy — Route Access Control', () => {
     });
   });
 
-  // ─── 6. Security regression — issue #450 ────────────────────────────────────
+  // ─── 6. Security regression — approval bypass via org-slug prefix ───────────
   // Org-slug-prefixed approval paths must NOT bypass the platform-admin check.
   // Old catch-all stripped the slug and forwarded /api/approvals with only an
   // org-membership check, allowing any org member to read/mutate approvals.
-  test.describe('6. Security regression #450 — approval bypass via org-slug prefix', () => {
+  test.describe('6. Security regression — approval bypass via org-slug prefix', () => {
     test('GET /api/{slug}/approvals as org member → 404 (not in org-scope allowlist)', async ({ ctx }) => {
       const slug = await getActiveOrganizationSlug(ctx);
       const res = await ctx.get(`${API_PREFIX}/${slug}/approvals`, {
@@ -281,6 +281,116 @@ test.describe('BFF Proxy — Route Access Control', () => {
         res.status(),
         `slug-prefixed approval action must never reach the portal (got ${res.status()})`,
       ).toBe(404);
+    });
+  });
+
+  // ─── 7. Security regression — encoded-slash path traversal ──────────────────
+  // Next.js decodes a catch-all segment (e.g. `..%2fapprovals` → `../approvals`)
+  // *after* splitting the raw path, so a single validated segment like
+  // `api_products`/`applications` can carry an embedded `../` or `..\` once
+  // decoded. The routes used to join segments back into the upstream URL with
+  // `proxy.join('/')` — axios/`new URL()` then collapsed the dot-segments,
+  // silently retargeting the request outside the resource the allowlist / role
+  // checks had approved.
+  test.describe('7. Security regression — encoded-slash path traversal', () => {
+    test.describe('unauthenticated api_products proxy', () => {
+      const encodedTraversalCases: Array<[string, string]> = [
+        ['..%2fapprovals', `${API_PRODUCTS}/..%2fapprovals`],
+        ['..%2fdevelopers', `${API_PRODUCTS}/..%2fdevelopers`],
+        ['..%2F..%2Fadmin%2Fanything', `${API_PRODUCTS}/..%2F..%2Fadmin%2Fanything`],
+        // Backslash is an equally viable separator for http(s) URL parsing —
+        // must be blocked the same way as the encoded-slash cases above.
+        ['..%5capprovals', `${API_PRODUCTS}/..%5capprovals`],
+        // Doubly-encoded: Next.js's single decode pass only unwraps the outer
+        // `%25` (→ `%`), leaving a segment that still *looks* like `..%2f...`/
+        // `..%5c...` rather than containing a real `/`/`\`. Harmless to our own
+        // URL parsing, but must still be rejected — see safe-segment.ts.
+        ['..%252fapprovals', `${API_PRODUCTS}/..%252fapprovals`],
+        ['..%255capprovals', `${API_PRODUCTS}/..%255capprovals`],
+        // Triple-encoded — the guard resolves encoding to a fixed point
+        // rather than matching specific wrapped forms, so depth doesn't matter.
+        ['..%25252fapprovals', `${API_PRODUCTS}/..%25252fapprovals`],
+        // Nested seven layers deep on the wire: Next.js's own routing consumes
+        // one decode pass before the guard ever sees the segment, so this
+        // leaves it 6 layers deep — one beyond the guard's decode budget
+        // (MAX_DECODE_ITERATIONS = 5 in safe-segment.ts). It must still be
+        // rejected rather than treated as safe just because it never fully
+        // resolves to a literal separator within that budget.
+        ['..%2525252525252Fapprovals', `${API_PRODUCTS}/..%2525252525252Fapprovals`],
+      ];
+
+      for (const [label, url] of encodedTraversalCases) {
+        test(`GET /api/api_products/${label} → 404 (must not reach ${label.replace(/%2[fF]|%5[cC]/g, '/')})`, async () => {
+          const ctx = await newGuestCtx();
+          try {
+            const res = await ctx.get(url, { failOnStatusCode: false });
+            expect(
+              res.status(),
+              `encoded-slash traversal must never reach the portal (got ${res.status()})`,
+            ).toBe(404);
+          } finally {
+            await ctx.dispose();
+          }
+        });
+      }
+    });
+
+    test.describe('authenticated org-scoped proxy', () => {
+      test('GET /api/{slug}/api_products/..%2fapprovals as org member → 404', async ({ ctx }) => {
+        const slug = await getActiveOrganizationSlug(ctx);
+        const res = await ctx.get(
+          `${API_PREFIX}/${slug}/api_products/..%2fapprovals`,
+          { failOnStatusCode: false },
+        );
+        expect(
+          res.status(),
+          `encoded-slash traversal must never reach the portal (got ${res.status()})`,
+        ).toBe(404);
+      });
+
+      test('GET /api/{slug}/api_products/..%2fdevelopers as org member → 404', async ({ ctx }) => {
+        const slug = await getActiveOrganizationSlug(ctx);
+        const res = await ctx.get(
+          `${API_PREFIX}/${slug}/api_products/..%2fdevelopers`,
+          { failOnStatusCode: false },
+        );
+        expect(
+          res.status(),
+          `encoded-slash traversal must never reach the portal (got ${res.status()})`,
+        ).toBe(404);
+      });
+
+      // Write-method case: an org owner (any registered user can trivially
+      // become one by creating their own organization) must not be able to
+      // reach /api/approvals/{id}/accept through an `applications`-scoped
+      // write. A single `..%2f` — not two — lands exactly on that path once
+      // `applications/` is popped off; two levels would instead escape past
+      // `/api` entirely and hit a route that doesn't exist either way, which
+      // wouldn't actually prove this resource is unreachable.
+      test('POST /api/{slug}/applications/..%2fapprovals/{id}/accept as org owner → 404', async ({
+        ctx,
+      }) => {
+        const slug = await getActiveOrganizationSlug(ctx);
+        const res = await ctx.post(
+          `${API_PREFIX}/${slug}/applications/..%2fapprovals/fake-approval-id/accept`,
+          { data: {}, failOnStatusCode: false },
+        );
+        expect(
+          res.status(),
+          `encoded-slash traversal must never reach the portal (got ${res.status()})`,
+        ).toBe(404);
+        // A fake approval ID would 404 whether the portal was reached or not,
+        // so the status code alone can't tell blocked-at-the-BFF apart from
+        // forwarded-and-then-404'd-by-the-portal. Every guard rejection in
+        // this route returns `new NextResponse(null, ...)` — an empty body —
+        // while a forwarded response always carries the portal's JSON payload
+        // via `NextResponse.json(...)`. An empty body is proof the request
+        // was never dispatched.
+        expect(
+          await res.text(),
+          'a guard rejection must return an empty body, not a forwarded portal response',
+        ).toBe('');
+      });
     });
   });
 });

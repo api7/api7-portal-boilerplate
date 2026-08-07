@@ -1,14 +1,19 @@
 import { expect } from '@playwright/test';
 import { API_PREFIX } from '@site/constants/api-prefix';
-import { PATH_ACCOUNT, PATH_LOGIN, PATH_ROOT } from '@site/constants/path-prefix';
+import {
+  PATH_ACCOUNT_SECURITY,
+  PATH_ACCOUNT_TWO_FACTOR,
+  PATH_LOGIN,
+  PATH_ROOT,
+} from '@site/constants/path-prefix';
 
 import { test } from '../fixture';
 import { genCtx, login } from '../req/common';
 import { getConfigMapYaml, updateConfigMapYaml } from '../utils/devportal-config';
 import { restartDevPortal } from '../utils/shell';
 import {
+  completeTotpVerification,
   createFreshAuth,
-  createTotpCode,
   dialogContent,
   signIn,
   updateTwoFactorConfigAndRestart,
@@ -65,37 +70,38 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
       (response) =>
         response.url().includes('/two-factor/enable') &&
         response.request().method() === 'POST',
+      { timeout: 15_000 },
     );
     await signIn(page, auth.email, auth.password);
 
-    // Lands directly on the two-factor page and auto-enrolls using the
-    // password just typed into the sign-in form — no password field shown.
+    // Lands on the dedicated /account/two-factor page (no other settings
+    // content, just the dialog) and auto-enrolls using the password just
+    // typed into the sign-in form — no password field shown.
+    // `useSignInContinuation` decides this client-side right after sign-in;
+    // `proxy.ts`'s redirect (exercised by the next test) is only the
+    // fallback for other entry points.
     await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor'),
+      (url) => url.pathname.startsWith(PATH_ACCOUNT_TWO_FACTOR),
       { timeout: 15_000 },
     );
-    await expect(page.getByLabel('Password', { exact: true })).toHaveCount(0);
+    const dialog = dialogContent(page);
+    await expect(dialog).toBeVisible({ timeout: 15_000 });
+    await expect(dialog.getByLabel('Password', { exact: true })).toHaveCount(0);
+    // Mandatory enrollment has no way to dismiss it.
+    await expect(dialog.getByRole('button', { name: /^cancel$/i })).toHaveCount(0);
 
     const enableResponse = await enableResponsePromise;
     expect(enableResponse.status()).toBe(200);
     const { totpURI } = await enableResponse.json() as { totpURI: string };
     expect(totpURI).toBeTruthy();
 
-    const backupCodesDialog = dialogContent(page).filter({ hasText: 'Backup Codes' });
-    await expect(backupCodesDialog).toBeVisible({ timeout: 15_000 });
-    await backupCodesDialog.getByRole('button', { name: /continue/i }).click();
+    // Enable → verify → backup codes, same order as the optional flow.
+    await completeTotpVerification(dialog, totpURI);
 
+    // Acknowledging backup codes navigates on to the originally requested
+    // page instead of just closing the dialog.
     await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor') && url.searchParams.has('totpURI'),
-      { timeout: 15_000 },
-    );
-    const code = await createTotpCode(totpURI);
-    await page.locator('input[autocomplete="one-time-code"]').fill(code);
-    await page.getByRole('button', { name: /^verify$/i }).click();
-
-    // Verified — lands past the two-factor gate, on the originally requested page.
-    await page.waitForURL(
-      (url) => !url.pathname.startsWith('/auth/two-factor'),
+      (url) => !url.pathname.startsWith(PATH_ACCOUNT_TWO_FACTOR),
       { timeout: 15_000 },
     );
   });
@@ -115,40 +121,34 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
 
     await updateConfigAndRestart(true);
 
+    // proxy.ts is what catches this case — a plain navigation on an
+    // existing, not-yet-enrolled session, with nothing stashed.
     await page.goto(PATH_ROOT);
     await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor'),
+      (url) => url.pathname.startsWith(PATH_ACCOUNT_TWO_FACTOR),
       { timeout: 15_000 },
     );
 
-    const passwordField = page.getByLabel('Password', { exact: true });
+    const dialog = dialogContent(page);
+    const passwordField = dialog.getByLabel('Password', { exact: true });
     await expect(passwordField).toBeVisible({ timeout: 15_000 });
 
     const enableResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes('/two-factor/enable') &&
         response.request().method() === 'POST',
+      { timeout: 15_000 },
     );
     await passwordField.fill(auth.password);
-    await page.getByRole('button', { name: /^continue$/i }).click();
+    await dialog.getByRole('button', { name: /enable two-factor/i }).click();
 
     const enableResponse = await enableResponsePromise;
     expect(enableResponse.status()).toBe(200);
     const { totpURI } = await enableResponse.json() as { totpURI: string };
 
-    const backupCodesDialog = dialogContent(page).filter({ hasText: 'Backup Codes' });
-    await expect(backupCodesDialog).toBeVisible({ timeout: 15_000 });
-    await backupCodesDialog.getByRole('button', { name: /continue/i }).click();
-
+    await completeTotpVerification(dialog, totpURI);
     await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor') && url.searchParams.has('totpURI'),
-      { timeout: 15_000 },
-    );
-    const code = await createTotpCode(totpURI);
-    await page.locator('input[autocomplete="one-time-code"]').fill(code);
-    await page.getByRole('button', { name: /^verify$/i }).click();
-    await page.waitForURL(
-      (url) => !url.pathname.startsWith('/auth/two-factor'),
+      (url) => !url.pathname.startsWith(PATH_ACCOUNT_TWO_FACTOR),
       { timeout: 15_000 },
     );
   });
@@ -166,25 +166,27 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
       (response) =>
         response.url().includes('/two-factor/enable') &&
         response.request().method() === 'POST',
+      { timeout: 15_000 },
     );
     await signIn(page, auth.email, auth.password);
     await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor'),
+      (url) => url.pathname.startsWith(PATH_ACCOUNT_TWO_FACTOR),
       { timeout: 15_000 },
     );
     const firstEnableResponse = await firstEnableResponsePromise;
     const { totpURI: firstTotpURI } = await firstEnableResponse.json() as { totpURI: string };
     expect(firstTotpURI).toBeTruthy();
 
-    // Backup codes are showing but not yet acknowledged — the URL has no
-    // totpURI param yet, so a reload here restarts the flow from scratch.
-    await expect(dialogContent(page).filter({ hasText: 'Backup Codes' })).toBeVisible({ timeout: 15_000 });
+    // QR/verify is showing but not yet submitted — reload before finishing.
+    let dialog = dialogContent(page);
+    await expect(dialog.locator('input[autocomplete="one-time-code"]')).toBeVisible({ timeout: 15_000 });
 
     // The in-memory stashed password is gone after a reload, and this is a
     // password (credential) account, so the inline prompt reappears — that's
     // the expected fallback, not a regression.
     await page.reload();
-    const passwordField = page.getByLabel('Password', { exact: true });
+    dialog = dialogContent(page);
+    const passwordField = dialog.getByLabel('Password', { exact: true });
     await expect(passwordField).toBeVisible({ timeout: 15_000 });
 
     // Submitting the password now must call get-totp-uri (resume), not
@@ -194,26 +196,23 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
       (response) =>
         response.url().includes('/two-factor/get-totp-uri') &&
         response.request().method() === 'POST',
+      { timeout: 15_000 },
     );
     await passwordField.fill(auth.password);
-    await page.getByRole('button', { name: /^continue$/i }).click();
+    await dialog.getByRole('button', { name: /enable two-factor/i }).click();
 
     const resumeResponse = await resumeResponsePromise;
     expect(resumeResponse.status()).toBe(200);
     const { totpURI: resumedTotpURI } = await resumeResponse.json() as { totpURI: string };
     expect(resumedTotpURI).toBe(firstTotpURI);
 
-    // Resuming skips the backup-codes step (already shown once) and goes
-    // straight to the QR/verify screen.
+    // Resuming skips backup codes entirely (already shown once, before the
+    // reload) — verifying finishes enrollment and navigates on directly.
+    await completeTotpVerification(dialog, resumedTotpURI, {
+      expectBackupCodes: false,
+    });
     await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor') && url.searchParams.has('totpURI'),
-      { timeout: 15_000 },
-    );
-    const code = await createTotpCode(resumedTotpURI);
-    await page.locator('input[autocomplete="one-time-code"]').fill(code);
-    await page.getByRole('button', { name: /^verify$/i }).click();
-    await page.waitForURL(
-      (url) => !url.pathname.startsWith('/auth/two-factor'),
+      (url) => !url.pathname.startsWith(PATH_ACCOUNT_TWO_FACTOR),
       { timeout: 15_000 },
     );
   });
@@ -252,46 +251,53 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
       (response) =>
         response.url().includes('/two-factor/enable') &&
         response.request().method() === 'POST',
+      { timeout: 15_000 },
     );
     await signIn(page, auth.email, auth.password);
     await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor'),
+      (url) => url.pathname.startsWith(PATH_ACCOUNT_TWO_FACTOR),
       { timeout: 15_000 },
     );
     const firstEnableResponse = await firstEnableResponsePromise;
     const { totpURI: firstTotpURI } = await firstEnableResponse.json() as { totpURI: string };
 
-    const firstBackupCodesDialog = dialogContent(page).filter({ hasText: 'Backup Codes' });
-    await expect(firstBackupCodesDialog).toBeVisible({ timeout: 15_000 });
-    await firstBackupCodesDialog.getByRole('button', { name: /continue/i }).click();
+    const firstDialog = dialogContent(page);
+    await completeTotpVerification(firstDialog, firstTotpURI);
     await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor') && url.searchParams.has('totpURI'),
-      { timeout: 15_000 },
-    );
-    const firstCode = await createTotpCode(firstTotpURI);
-    await page.locator('input[autocomplete="one-time-code"]').fill(firstCode);
-    await page.getByRole('button', { name: /^verify$/i }).click();
-    await page.waitForURL(
-      (url) => !url.pathname.startsWith('/auth/two-factor'),
+      (url) => !url.pathname.startsWith(PATH_ACCOUNT_TWO_FACTOR),
       { timeout: 15_000 },
     );
 
     // Now fully enrolled — the security page must offer "Reset", not "Disable".
-    await page.goto(`${PATH_ACCOUNT}/security`);
-    await expect(page.getByText('Two-Factor', { exact: true })).toBeVisible({ timeout: 30_000 });
+    await page.goto(PATH_ACCOUNT_SECURITY);
+    // The card title is "Two-Factor Authentication" (an h2) — exact:true
+    // against just "Two-Factor" never matches.
+    await expect(
+      page.getByRole('heading', { name: 'Two-Factor Authentication' }),
+    ).toBeVisible({ timeout: 30_000 });
     await expect(page.getByRole('button', { name: /disable two-factor/i })).toHaveCount(0);
     const resetButton = page.getByRole('button', { name: /reset two-factor/i });
     await expect(resetButton).toBeEnabled({ timeout: 15_000 });
     await resetButton.click();
 
+    // "Reset" navigates to the same shared /account/two-factor page — not
+    // an inline dialog on the security page — with ?redirect back here.
+    await page.waitForURL(
+      (url) => url.pathname.startsWith(PATH_ACCOUNT_TWO_FACTOR),
+      { timeout: 15_000 },
+    );
     const resetDialog = dialogContent(page);
     await expect(resetDialog).toBeVisible({ timeout: 5_000 });
     await expect(resetDialog.getByText(/set up a new authenticator/i)).toBeVisible();
+    // This is the optional path (already enrolled, just resetting) — Cancel
+    // must still be offered, unlike the mandatory first-enrollment case.
+    await expect(resetDialog.getByRole('button', { name: /^cancel$/i })).toBeVisible();
 
     const resetEnableResponsePromise = page.waitForResponse(
       (response) =>
         response.url().includes('/two-factor/enable') &&
         response.request().method() === 'POST',
+      { timeout: 15_000 },
     );
     await resetDialog.getByLabel('Password', { exact: true }).fill(auth.password);
     await resetDialog.getByRole('button', { name: /reset two-factor/i }).click();
@@ -303,24 +309,15 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
     // A genuinely new secret must have been minted, not the old one reused.
     expect(resetTotpURI).not.toBe(firstTotpURI);
 
-    const resetBackupCodesDialog = dialogContent(page).filter({ hasText: 'Backup Codes' });
-    await expect(resetBackupCodesDialog).toBeVisible({ timeout: 5_000 });
-    await resetBackupCodesDialog.getByRole('button', { name: /continue/i }).click();
+    await completeTotpVerification(resetDialog, resetTotpURI);
 
+    // Acknowledging backup codes navigates back to ?redirectTo=/account/security.
     await page.waitForURL(
-      (url) => url.pathname.startsWith('/auth/two-factor') && url.searchParams.has('totpURI'),
-      { timeout: 15_000 },
-    );
-    const resetCode = await createTotpCode(resetTotpURI);
-    await page.locator('input[autocomplete="one-time-code"]').fill(resetCode);
-    await page.getByRole('button', { name: /^verify$/i }).click();
-    await page.waitForURL(
-      (url) => !url.pathname.startsWith('/auth/two-factor'),
+      (url) => url.pathname.startsWith(PATH_ACCOUNT_SECURITY),
       { timeout: 15_000 },
     );
 
     // Still enrolled afterwards — 2FA was never disabled by the reset.
-    await page.goto(`${PATH_ACCOUNT}/security`);
     await expect(page.getByRole('button', { name: /reset two-factor/i })).toBeVisible({ timeout: 30_000 });
   });
 });

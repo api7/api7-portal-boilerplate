@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 import { API_PREFIX } from '@/constants/api-prefix';
 import { portal } from '@/lib/portal-sdk/server';
+import { hasUnsafeProxySegment } from '@/lib/proxy/safe-segment';
 
 export async function GET(
   request: NextRequest,
@@ -10,6 +11,13 @@ export async function GET(
   try {
     const { path } = await context.params;
     const { searchParams } = request.nextUrl;
+
+    // A segment carrying an embedded separator or dot-segment (e.g. decoded
+    // from `%2f`/`%5c`) can make the upstream URL resolve outside
+    // /api/api_products — see hasUnsafeProxySegment.
+    if (path?.length && hasUnsafeProxySegment(path)) {
+      return new NextResponse(null, { status: 404 });
+    }
 
     const url = path?.length
       ? `${API_PREFIX}/api_products/${path.join('/')}`

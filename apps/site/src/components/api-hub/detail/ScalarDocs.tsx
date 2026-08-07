@@ -10,6 +10,8 @@ import '@scalar/api-reference-react/style.css';
 // Use to removes spaces when pasting in the api testing page.
 const trimPasteContentEvent = (event: ClipboardEvent) => {
   event.preventDefault();
+  // Also stop Scalar's own paste handler from running and double-inserting.
+  event.stopPropagation();
   const target = event.target as HTMLElement;
   const pasteText = event.clipboardData?.getData('text').trim() || '';
 

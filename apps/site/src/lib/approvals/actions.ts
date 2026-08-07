@@ -11,7 +11,12 @@ export async function actOnApproval(
   approvalId: string,
   action: 'accept' | 'reject',
 ): Promise<void> {
-  const session = await getCurrentPlatformAdminSession(await headers());
+  // This gates a portal-SDK write, so the session check must not trust a
+  // stale cookie cache — a just-revoked admin must not be able to sneak a
+  // write through before the cache expires.
+  const session = await getCurrentPlatformAdminSession(await headers(), {
+    disableCookieCache: true,
+  });
   if (!session) {
     throw new Error('Forbidden. Approvals are restricted to platform admins.');
   }

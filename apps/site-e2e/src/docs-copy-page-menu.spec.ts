@@ -66,8 +66,13 @@ test.describe('docs "Copy page" menu', () => {
     await openMenu(page);
     await page.getByRole('menuitem', { name: 'Open in ChatGPT' }).click();
 
+    // openInLLM awaits a fetch of the page's Markdown before calling
+    // window.open, so a plain post-click read can race ahead of it — poll
+    // instead of reading __opened once.
+    await expect
+      .poll(() => recordedOpens(page), { timeout: 10_000 })
+      .toHaveLength(1);
     const opened = await recordedOpens(page);
-    expect(opened).toHaveLength(1);
     expect(opened[0]).toContain('https://chatgpt.com/?q=');
   });
 
@@ -75,8 +80,11 @@ test.describe('docs "Copy page" menu', () => {
     await openMenu(page);
     await page.getByRole('menuitem', { name: 'Open in Claude' }).click();
 
+    // Same fetch-before-window.open race as the ChatGPT case above.
+    await expect
+      .poll(() => recordedOpens(page), { timeout: 10_000 })
+      .toHaveLength(1);
     const opened = await recordedOpens(page);
-    expect(opened).toHaveLength(1);
     expect(opened[0]).toContain('https://claude.ai/new?q=');
   });
 });

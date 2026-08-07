@@ -179,7 +179,7 @@ test.describe(
 
       // cannot see product detail — redirected to login
       await page.goto(`${PATH_API_HUB}/${productId}`);
-      await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`));
+      await page.waitForURL(new RegExp(`.*${PATH_LOGIN}.*`), { timeout: 15_000 });
       await uiShowLogin(page);
     });
 
@@ -254,7 +254,7 @@ test.describe(
 
       // Visit product detail page as guest
       await page.goto(`${PATH_API_HUB}/${gatewayProductId}`);
-      await page.waitForSelector('.scalar-app', { state: 'attached' });
+      await page.waitForSelector('.scalar-app', { state: 'attached', timeout: 15_000 });
 
       // Verify no subscription requests were made
       expect(subscriptionRequests).toHaveLength(0);

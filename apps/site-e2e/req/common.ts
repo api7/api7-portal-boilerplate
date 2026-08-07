@@ -25,7 +25,13 @@ export const genCtx = async (
 export type Ctx = Awaited<ReturnType<typeof genCtx>>;
 
 export const getSession = async (ctx: Ctx) =>
-  ctx.get(`${AUTH_BASE_PATH}/get-session`, { failOnStatusCode: false });
+  // Force a fresh DB read: cookieCache means the plain endpoint can return a
+  // snapshot from before a just-completed mutation (e.g. org creation sets
+  // activeOrganizationId by writing the session row directly, bypassing the
+  // cache) — tests want ground truth, not the perf-optimized cached read.
+  ctx.get(`${AUTH_BASE_PATH}/get-session?disableCookieCache=true`, {
+    failOnStatusCode: false,
+  });
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 

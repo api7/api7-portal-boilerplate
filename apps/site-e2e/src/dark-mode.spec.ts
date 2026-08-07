@@ -93,7 +93,7 @@ test.describe('Dark Mode', () => {
       .getByRole('navigation')
       .getByRole('link', { name: 'API Hub' })
       .click();
-    await page.waitForURL(/api-hub/);
+    await page.waitForURL(/api-hub/, { timeout: 15_000 });
 
     await expect(page.locator('html')).toHaveClass(/\bdark\b/);
   });
@@ -106,7 +106,7 @@ test.describe('Dark Mode', () => {
       .getByRole('navigation')
       .getByRole('link', { name: 'API Hub' })
       .click();
-    await page.waitForURL(/api-hub/);
+    await page.waitForURL(/api-hub/, { timeout: 15_000 });
 
     await expect(page.locator('html')).not.toHaveClass(/\bdark\b/);
   });

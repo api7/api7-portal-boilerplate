@@ -16,7 +16,9 @@ const uiCreateOrganization = async (page: Page, orgName: string) => {
   await page.goto(`${PATH_ACCOUNT}/organizations`);
   await page.getByRole('button', { name: 'Create Organization' }).click();
 
-  const dialog = page.getByRole('alertdialog');
+  // CreateOrganizationDialog is a plain Dialog (role="dialog"), not an
+  // AlertDialog — unlike DeleteOrganizationDialog below.
+  const dialog = page.getByRole('dialog');
   await dialog.locator('input[name="name"]').fill(orgName);
   await dialog.getByRole('button', { name: 'Create Organization' }).click();
 

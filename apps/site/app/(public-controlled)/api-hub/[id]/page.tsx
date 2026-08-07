@@ -37,7 +37,7 @@ export default async function ProductDetailPage({ params }: Props) {
     if (!session) {
       const hdrs = await headers();
       const pathname = hdrs.get('x-pathname');
-      redirect(pathname ? `${PATH_LOGIN}?redirect=${encodeURIComponent(pathname)}` : PATH_LOGIN);
+      redirect(pathname ? `${PATH_LOGIN}?redirectTo=${encodeURIComponent(pathname)}` : PATH_LOGIN);
     }
   }
 
