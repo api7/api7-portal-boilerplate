@@ -1,4 +1,4 @@
-import { Settings } from '@/components/auth/settings/settings';
+import { Settings } from '@api7/portal-ui/components/auth/settings/settings';
 
 export const dynamicParams = false;
 

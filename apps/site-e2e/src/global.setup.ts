@@ -3,18 +3,31 @@ import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
 
 import { E2E_TARGET_URL } from '../constant';
 import { API_PORTALS, API_PORTAL_TOKEN } from '../req/dashboard/constant';
-import { initializeE2EConfig } from '../utils/devportal-config';
+import {
+  E2E_SITE_START_BASE_URL,
+  E2E_SITE_START_DB_NAME,
+  initializeE2EConfig,
+  initializeE2EConfigForSiteStart,
+} from '../utils/devportal-config';
 import {
   buildDevPortalImage,
+  buildSiteStartImage,
   ensureMinimalPlatform,
   ensureSupportServices,
   execPostgres,
   getDevPortalLogs,
+  getSiteStartLogs,
   restartDevPortal,
   x,
 } from '../utils/shell';
 
 const E2E_FE_DB_NAME = 'devportal_fe_e2e';
+
+// Which app under test this run deploys: the existing Next.js app (default,
+// unchanged behavior) or the in-progress TanStack Start port. Set by the
+// caller (see .github/workflows/e2e-site-start.yml) — this file stays the
+// single source of truth for both rather than forking into a second setup.
+const E2E_FE_TARGET = process.env.E2E_FE_TARGET === 'site-start' ? 'site-start' : 'site';
 
 const ensureEnv = (value: string | undefined, name: string) => {
   if (!value) {
@@ -25,13 +38,13 @@ const ensureEnv = (value: string | undefined, name: string) => {
 
 const shellQuote = (value: string) => `'${value.replace(/'/g, `'"'"'`)}'`;
 
-async function resetFeDatabase() {
-  console.log(`Resetting FE E2E database: ${E2E_FE_DB_NAME}`);
+async function resetDatabase(dbName: string) {
+  console.log(`Resetting FE E2E database: ${dbName}`);
 
   const sqlCommands = [
-    `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${E2E_FE_DB_NAME}' AND pid <> pg_backend_pid();`,
-    `DROP DATABASE IF EXISTS \"${E2E_FE_DB_NAME}\";`,
-    `CREATE DATABASE \"${E2E_FE_DB_NAME}\" OWNER \"api7ee\";`,
+    `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${dbName}' AND pid <> pg_backend_pid();`,
+    `DROP DATABASE IF EXISTS \"${dbName}\";`,
+    `CREATE DATABASE \"${dbName}\" OWNER \"api7ee\";`,
   ];
 
   for (const sql of sqlCommands) {
@@ -40,12 +53,12 @@ async function resetFeDatabase() {
       const stderr = String(result.stderr ?? '');
       const stdout = String(result.stdout ?? '');
       throw new Error(
-        `Failed to recreate ${E2E_FE_DB_NAME}: ${`${stderr}\n${stdout}`.trim()}`,
+        `Failed to recreate ${dbName}: ${`${stderr}\n${stdout}`.trim()}`,
       );
     }
   }
 
-  console.log(`FE E2E database ready: ${E2E_FE_DB_NAME}`);
+  console.log(`FE E2E database ready: ${dbName}`);
 }
 
 setup('deploy developer portal', async ({}) => {
@@ -216,10 +229,13 @@ setup('deploy developer portal', async ({}) => {
 
   await ctx.dispose();
 
-  await resetFeDatabase();
-
-  // Deploy new Developer Portal
-  await deployAndVerify(token);
+  if (E2E_FE_TARGET === 'site-start') {
+    await resetDatabase(E2E_SITE_START_DB_NAME);
+    await deployAndVerifySiteStart(token);
+  } else {
+    await resetDatabase(E2E_FE_DB_NAME);
+    await deployAndVerify(token);
+  }
 });
 
 async function deployAndVerify(token: string) {
@@ -281,17 +297,20 @@ async function verifyDeployment(baseUrl: string) {
   });
 
   try {
-    // Verify can get products
-    const productsRes = await portalCtx.get('/api/api_products', {
+    // Verify the app itself is serving pages. /auth/sign-in needs no session
+    // or org — unlike /auth/landing, which sits behind a session gate and
+    // would silently redirect an anonymous request through to a 200 anyway.
+    const signInRes = await portalCtx.get('/auth/sign-in', {
       failOnStatusCode: false,
+      maxRedirects: 0,
     });
-    if (productsRes.status() !== 200) {
-      const body = await productsRes.text();
+    if (signInRes.status() !== 200) {
+      const body = await signInRes.text();
       throw new Error(
-        `Failed to get products from new Developer Portal: ${productsRes.status()} ${body}`,
+        `Failed to load sign-in page from ${baseUrl}: ${signInRes.status()} ${body}`,
       );
     }
-    console.log('Products API working');
+    console.log('Sign-in page reachable');
 
     // Verify can create user
     const testEmail = `setup-test-${Date.now()}@example.com`;
@@ -313,4 +332,47 @@ async function verifyDeployment(baseUrl: string) {
   } finally {
     await portalCtx.dispose();
   }
+}
+
+async function deployAndVerifySiteStart(token: string) {
+  console.log('Deploying site-start (TanStack Start port)...');
+  initializeE2EConfigForSiteStart(token);
+  await buildSiteStartImage();
+  await restartDevPortal();
+
+  // Dump initial logs for diagnosis
+  try {
+    const { stdout: logs } = await getSiteStartLogs(50);
+    console.log('Initial container logs:\n', logs);
+  } catch {
+    console.log('Could not fetch initial container logs');
+  }
+
+  console.log('Waiting for service to be ready...');
+  const maxWaitMs = 120_000;
+  const pollIntervalMs = 5_000;
+  const deadline = Date.now() + maxWaitMs;
+  let lastError: unknown;
+
+  while (Date.now() < deadline) {
+    try {
+      await verifyDeployment(E2E_SITE_START_BASE_URL);
+      console.log('Global Setup: Complete!');
+      return;
+    } catch (err) {
+      lastError = err;
+      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+    }
+  }
+
+  try {
+    const { stdout: finalLogs } = await getSiteStartLogs(100);
+    console.log('Final container logs:\n', finalLogs);
+  } catch {
+    console.log('Could not fetch final container logs');
+  }
+
+  throw new Error(
+    `site-start failed to become ready within ${maxWaitMs / 1000}s: ${lastError}`,
+  );
 }

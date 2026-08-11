@@ -1,5 +1,7 @@
 # build output
 dist/
+# moon task runner cache
+.moon/cache/
 # generated types
 .astro/
 

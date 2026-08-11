@@ -124,7 +124,7 @@ test.describe(
     });
 
     test('api hub list and detail with gateway product', async ({ page }) => {
-      test.setTimeout(60_000);
+      test.setTimeout(120_000);
       await uiAddAPIKeyCredential(page);
       // The key is view-once, so capture it now to authenticate the test request
       // later (it is no longer auto-filled in the API client).

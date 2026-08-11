@@ -262,9 +262,23 @@ export const uiSubscribeProductInAPIHub = async (
   const subscribeBtn = page.getByRole('button', {
     name: 'Subscribe to Application',
   });
-  // Longer than the 5s default: right after a fresh gateway deploy, the
-  // subscriptions list can take a moment to reflect the just-published product.
-  await expect(subscribeBtn).toBeVisible({ timeout: 15_000 });
+  // Right after a fresh gateway deploy, the subscriptions list can take a
+  // moment to reflect the just-published product — the page only fetches
+  // that list once on load, so reload to force a fresh fetch instead of
+  // just waiting longer on the same stale snapshot. A click right after
+  // reload can land before hydration attaches the tab's listeners, so give
+  // it a beat and confirm the tab actually switched before trusting the
+  // button's absence.
+  await expect(async () => {
+    await page.reload();
+    // eslint-disable-next-line playwright/no-wait-for-timeout
+    await page.waitForTimeout(1000);
+    await subscriptionsTab.click({ timeout: 5_000 });
+    await expect(subscriptionsTab).toHaveAttribute('aria-selected', 'true', {
+      timeout: 5_000,
+    });
+    await expect(subscribeBtn).toBeVisible({ timeout: 3_000 });
+  }).toPass({ timeout: 60_000, intervals: [3_000] });
   await expect(subscribeBtn).toBeEnabled();
   await subscribeBtn.click();
   await uiSubscribeProductApplication(page, { applicationName });

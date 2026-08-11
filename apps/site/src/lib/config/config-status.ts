@@ -1,27 +1,12 @@
 import 'server-only';
 
 import type { BetterAuthPlugin } from 'better-auth';
+import type { ConfigStatus } from '@api7/portal-ui/lib/config/config-status-context';
 
 import { auth, getGenericOAuthConfigs } from '@/lib/auth/server';
 import { getConfig } from '@/lib/config';
 
-export type ConfigStatus = {
-  socialProviders: string[];
-  genericOAuthProviders: { name: string; provider: string; ssoOnly: boolean }[];
-  magicLink: boolean;
-  twoFactor: boolean;
-  twoFactorRequired: boolean;
-  requireEmailVerification: boolean;
-  applicationDetail: {
-    subscriptions: boolean;
-    usage: boolean;
-    credentialsTabs: {
-      keyAuth: boolean;
-      basicAuth: boolean;
-      oauth: boolean;
-    };
-  };
-};
+export type { ConfigStatus };
 
 export function getConfigStatus(): ConfigStatus {
   const config = getConfig();

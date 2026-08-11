@@ -5,8 +5,8 @@ import type { Organization } from 'better-auth/client';
 import { LayoutDashboard } from 'lucide-react';
 import { usePathname } from 'next/navigation';
 
-import { UserButton } from '@/components/auth/user/user-button';
-import { OrganizationSwitcher } from '@/components/auth/organization/organization-switcher';
+import { UserButton } from '@api7/portal-ui/components/auth/user/user-button';
+import { OrganizationSwitcher } from '@api7/portal-ui/components/auth/organization/organization-switcher';
 import { PATH_DASHBOARD_USERS } from '@/constants/path-prefix';
 import { ThemeToggle } from '@/components/layouts/ThemeToggle';
 

@@ -3,7 +3,7 @@
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
 
-import { useConfigStatus } from '@/lib/config/config-status-context';
+import { useConfigStatus } from '@api7/portal-ui/lib/config/config-status-context';
 import { cn } from '@/lib/utils';
 
 import BasicAuthTable from './components/BasicAuthTable';

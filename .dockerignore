@@ -1,8 +1,10 @@
 node_modules
 .next
+.output
 .git
 .DS_Store
 dist
+.moon/cache
 coverage
 .vscode
 .idea
@@ -10,4 +12,5 @@ coverage
 
 # Ignore local config files, use config.yaml.example during build
 apps/site/config.yaml
+apps/site-start/config.yaml
 .env*

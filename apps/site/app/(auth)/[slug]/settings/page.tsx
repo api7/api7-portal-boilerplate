@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 
-import { Organization } from '@/components/auth/organization/organization';
+import { Organization } from '@api7/portal-ui/components/auth/organization/organization';
 import { PATH_ROOT } from '@/constants/path-prefix';
 import { verifyOrganizationAccessBySlug } from '@/lib/dal/util';
 

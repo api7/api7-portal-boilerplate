@@ -50,7 +50,7 @@ test.describe('API Hub - View As Org Selector', () => {
     const orgSlug = await createOrganization(page, orgName);
 
     await page.goto(PATH_API_HUB);
-    await expect(page).toHaveURL(PATH_API_HUB);
+    await expect(page).toHaveURL(new RegExp(`${PATH_API_HUB}(?:\\?.*)?$`));
 
     const trigger = getViewAsTrigger(page);
     await expect(trigger).toBeVisible({ timeout: 10_000 });

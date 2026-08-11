@@ -7,6 +7,7 @@ export const PATH_TWO_FACTOR = `${PATH_AUTH}/two-factor`;
 export const PATH_ACCOUNT = '/account';
 export const PATH_ACCOUNT_SECURITY = `${PATH_ACCOUNT}/security`;
 export const PATH_ACCOUNT_TWO_FACTOR = `${PATH_ACCOUNT}/two-factor`;
+export const PATH_ACCOUNT_ORGANIZATIONS = `${PATH_ACCOUNT}/organizations`;
 export const PATH_LANDING = `${PATH_AUTH}/landing` as const;
 export const PATH_APPLICATIONS = '/applications';
 export const PATH_APPROVALS = '/admin/approvals';

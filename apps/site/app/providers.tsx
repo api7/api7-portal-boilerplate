@@ -2,15 +2,16 @@
 
 import { getSafeRedirectTo } from '@better-auth-ui/core';
 import { ThemeProvider } from 'next-themes';
-import { AuthProvider } from '@/components/auth/auth-provider';
-import { organizationPlugin } from '@/lib/auth/organization-plugin';
+import { AuthProvider } from '@api7/portal-ui/components/auth/auth-provider';
+import { organizationPlugin } from '@api7/portal-ui/lib/auth/organization-plugin';
+import { PATH_ACCOUNT_SECURITY, PATH_ACCOUNT_TWO_FACTOR } from '@/constants/path-prefix';
 import type { ConfigStatus } from '@/lib/config/config-status';
-import { ConfigStatusProvider } from '@/lib/config/config-status-context';
+import { ConfigStatusProvider } from '@api7/portal-ui/lib/config/config-status-context';
 import { authClient } from '@/lib/auth/client';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import { getQueryClient } from '@/lib/req';
 import { magicLinkPlugin } from '@better-auth-ui/core/plugins';
-import { twoFactorPlugin } from '@/lib/auth/two-factor-plugin';
+import { twoFactorPlugin } from '@api7/portal-ui/lib/auth/two-factor-plugin';
 import { providerIcons } from '@better-auth-ui/react';
 import type { SocialProvider } from 'better-auth/social-providers';
 import Link from 'next/link';
@@ -89,7 +90,14 @@ function AuthProviderWrapper({
     }
 
     if (initialConfigStatus.twoFactor) {
-      list.push(twoFactorPlugin() as never);
+      list.push(
+        twoFactorPlugin({
+          paths: {
+            setup: PATH_ACCOUNT_TWO_FACTOR,
+            security: PATH_ACCOUNT_SECURITY,
+          },
+        }) as never,
+      );
     }
 
     return list;

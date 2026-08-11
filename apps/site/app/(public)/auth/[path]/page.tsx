@@ -1,6 +1,7 @@
 import Image from 'next/image';
 
-import { Auth } from '@/components/auth/auth';
+import { Auth } from '@api7/portal-ui/components/auth/auth';
+import { checkEmailPolicy } from '@/lib/auth/check-email-policy';
 import { getConfig } from '@/lib/config';
 
 const { app } = getConfig();
@@ -24,7 +25,11 @@ export default async function AuthPage({
         />
         <span className="text-xl font-semibold">{app.name}</span>
       </div>
-      <Auth path={path} signUpConsentLabel={app.signUpConsentLabel} />
+      <Auth
+        path={path}
+        signUpConsentLabel={app.signUpConsentLabel}
+        checkEmailPolicy={checkEmailPolicy}
+      />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { ChevronDownIcon } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
 
-import { useConfigStatus } from '@/lib/config/config-status-context';
+import { useConfigStatus } from '@api7/portal-ui/lib/config/config-status-context';
 import ApplicationDeleteModal from '@/components/applications/ApplicationDeleteModal';
 import ApplicationEditDrawer from '@/components/applications/ApplicationEditDrawer';
 import { ApplicationCredentials } from '@/components/credentials';

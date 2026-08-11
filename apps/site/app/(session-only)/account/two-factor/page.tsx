@@ -1,6 +1,6 @@
 import { getSafeRedirectTo } from '@better-auth-ui/core';
 
-import { TwoFactorSetup } from '@/components/auth/two-factor/two-factor-setup';
+import { TwoFactorSetup } from '@api7/portal-ui/components/auth/two-factor/two-factor-setup';
 import { getConfig } from '@/lib/config';
 import { verifySession } from '@/lib/dal/util';
 

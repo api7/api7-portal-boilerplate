@@ -4,20 +4,22 @@ import { Building2, Mail, Plus, PlusIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useState } from 'react';
 
-import { CreateOrganizationDialog } from '@/components/auth/organization/create-organization-dialog';
-import { UserInvitations } from '@/components/auth/organization/user-invitations';
+import { CreateOrganizationDialog } from '@api7/portal-ui/components/auth/organization/create-organization-dialog';
+import { UserInvitations } from '@api7/portal-ui/components/auth/organization/user-invitations';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { PATH_ROOT } from '@/constants/path-prefix';
+import { PATH_ACCOUNT_ORGANIZATIONS } from '@/constants/path-prefix';
 import { authClient } from '@/lib/auth/client';
 
 export default function LandingPage() {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
+  // Existing members still get pending invitations shown to them — the
+  // account organizations page renders both, unlike the root path.
   const redirectWhenHasOrganization = useCallback(() => {
     authClient.organization.list().then(({ data }) => {
-      if (data?.length) router.replace(PATH_ROOT);
+      if (data?.length) router.replace(PATH_ACCOUNT_ORGANIZATIONS);
     });
   }, [router]);
 

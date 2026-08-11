@@ -1,0 +1,31 @@
+$schema: 'https://moonrepo.dev/schemas/project.json'
+
+layer: 'application'
+language: 'typescript'
+
+dependsOn:
+  - 'ui'
+
+tasks:
+  build:
+    command: 'pnpm run build'
+    deps:
+      - 'ui:build'
+    outputs:
+      - '.next'
+
+  tsc:
+    command: 'pnpm run tsc'
+    deps:
+      - 'ui:build'
+
+  dev:
+    command: 'pnpm run dev'
+    deps:
+      - 'ui:build'
+    preset: 'server'
+
+  lint:
+    command: 'pnpm run lint'
+    deps:
+      - 'ui:build'

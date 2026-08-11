@@ -4,11 +4,16 @@
   "private": true,
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "dev": "cd apps/site && pnpm dev",
-    "build": "cd apps/site && pnpm build",
+    "dev": "moon run site:dev",
+    "build": "moon run site:build",
+    "tsc": "moon run site:tsc",
+    "lint": "moon run site:lint",
+    "lint:fix": "cd apps/site && pnpm lint --fix && moon run site:tsc",
     "preview": "cd apps/site && pnpm preview",
-    "lint": "cd apps/site && pnpm lint",
-    "lint:fix": "cd apps/site && pnpm lint --fix && pnpm tsc",
+    "dev:start": "moon run site-start:dev",
+    "build:start": "moon run site-start:build",
+    "tsc:start": "moon run site-start:tsc",
+    "lint:start": "moon run site-start:lint",
     "e2e": "pnpm -F site-e2e --workspace-root e2e",
     "e2e:ui": "cd apps/site-e2e && pnpm e2e:ui",
     "e2e:headed": "cd apps/site-e2e && pnpm e2e:headed"
@@ -21,6 +26,7 @@
     "node": ">=22.13.0"
   },
   "devDependencies": {
+    "@moonrepo/cli": "^2.4.3",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@typescript-eslint/eslint-plugin": "^8.58.0",
     "@typescript-eslint/parser": "^8.58.0",
@@ -32,5 +38,5 @@
     "prettier": "^3.8.1",
     "typescript": "~6.0.2"
   },
-  "packageManager": "pnpm@11.11.0+sha512.4463f65fd80ed80d69bc1d4bf163ee94f605c7380fc318bb5b2ebe15f8cd12d49c51a4d59e951b401e764d3b6ca751cbf51bc50ed7001a6bcb4935e684c34882"
+  "packageManager": "pnpm@11.21.0+sha512.521705bce689924eac72f5a3587122f362689ef6571e55ba80076fd637c11132ecffada26fad4ea79c485bfddbfd3d5a2a5b05805a77e893de71ec8a6cca3bb1"
 }

@@ -6,18 +6,27 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/site/package.json ./apps/site/
+COPY packages/ui/package.json ./packages/ui/
+# --ignore-scripts: packages/ui's own `prepare` (builds its dist/ .d.ts via
+# moon) would otherwise run here and fail — this stage only has package.json
+# files, not the source it needs, nor the .moon/ workspace config. `moon run
+# site:build` in the builder stage below builds it for real, once the
+# source and moon.yml files are copied in.
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
-    corepack enable pnpm && pnpm i --frozen-lockfile
+    corepack enable pnpm && pnpm i --frozen-lockfile --ignore-scripts
 
 FROM base AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/site/node_modules ./apps/site/node_modules
+COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json ./
+COPY .moon ./.moon
 COPY apps/site ./apps/site
+COPY packages/ui ./packages/ui
 
 # Create config.yaml from example for build time
 # This is required because Next.js analyzes API routes during build
@@ -28,10 +37,13 @@ RUN node apps/site/scripts/prepare-build-config.mjs
 ARG NEXT_PUBLIC_TESTING=false
 ENV NEXT_PUBLIC_TESTING=${NEXT_PUBLIC_TESTING}
 ENV NEXT_TELEMETRY_DISABLED=1
+# No .git in this build context (see .dockerignore) — moon has no VCS to
+# consult and hashes task inputs directly off the filesystem instead, so
+# `ui:build` still runs correctly as `site:build`'s dependency.
 RUN --mount=type=cache,id=nextjs-cache,target=/app/apps/site/.next/cache \
     corepack enable pnpm && \
-    cd apps/site && \
     pnpm run build && \
+    cd apps/site && \
     pnpm dlx esbuild ./scripts/preflight.ts --bundle --platform=node --alias:server-only=./scripts/empty-module.js --outfile=dist/preflight.js
 
 FROM base AS runner

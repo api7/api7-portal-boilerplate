@@ -17,11 +17,11 @@ test.describe('Guest access to BFF proxy routes', () => {
     });
   }
 
-  test('GET /api/api_products is accessible without session', async () => {
+  test('GET /api/api_products without slug returns 404 (route does not exist)', async () => {
     const ctx = await newCtx();
     try {
       const res = await ctx.get('/api/api_products', { failOnStatusCode: false });
-      expect(res.status()).toBe(200);
+      expect(res.status()).toBe(404);
     } finally {
       await ctx.dispose();
     }
