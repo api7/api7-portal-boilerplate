@@ -1,31 +1,32 @@
 'use client';
 
-import { useCreation } from 'ahooks';
-import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import Link from 'next/link';
-import { memo, useState } from 'react';
-
-import { DataTable } from '@/components/base/data-table';
-import { tableColDesc } from '@/components/slices/table-col/desc';
-import { tableColLabels } from '@/components/slices/table-col/labels';
-import TimeFormat from '@/components/slices/time-format';
-import { Button } from '@/components/ui/button';
-import { ButtonGroup } from '@/components/ui/button-group';
+import type { DeveloperApplication } from '@api7/portal-sdk/unstable-types';
+import { Button } from '@api7/portal-ui/components/ui/button';
+import { ButtonGroup } from '@api7/portal-ui/components/ui/button-group';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@api7/portal-ui/components/ui/dropdown-menu';
+import { useCreation } from 'ahooks';
+import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import Link from 'next/link';
+import { memo, useState } from 'react';
+
+import {
+  DataTable,
+  type DataTableColumnDef,
+} from '@/components/base/data-table';
+import { tableColDesc } from '@/components/slices/table-col/desc';
+import { tableColLabels } from '@/components/slices/table-col/labels';
+import TimeFormat from '@/components/slices/time-format';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useApplicationList from '@/lib/query/useApplicationList';
-import type { DeveloperApplication } from '@api7/portal-sdk/unstable-types';
-import type { ColumnDef } from '@tanstack/react-table';
-
 import ApplicationAddDrawer from './ApplicationAddDrawer';
 import ApplicationDeleteModal from './ApplicationDeleteModal';
 import ApplicationEditDrawer from './ApplicationEditDrawer';
@@ -55,7 +56,7 @@ const ApplicationTable: React.FC = () => {
   const deleteDisclosure = useDisclosure({ onClose: req.refetch });
   const [curData, setCurData] = useState<DeveloperApplication | undefined>();
 
-  const columns = useCreation<ColumnDef<DeveloperApplication>[]>(
+  const columns = useCreation<DataTableColumnDef<DeveloperApplication>[]>(
     () => [
       {
         header: 'Name',
@@ -63,7 +64,10 @@ const ApplicationTable: React.FC = () => {
         cell: ({ row }) => {
           const href = `/${orgSlug}${PATH_APPLICATIONS}/${row.original.id}`;
           return (
-            <Link href={href} className="text-primary hover:underline text-sm font-medium">
+            <Link
+              href={href}
+              className="text-primary hover:underline text-sm font-medium"
+            >
               {row.original.name}
             </Link>
           );
@@ -72,11 +76,11 @@ const ApplicationTable: React.FC = () => {
       tableColDesc<DeveloperApplication>({
         header: 'Description',
         accessorKey: 'desc',
-      } as ColumnDef<DeveloperApplication>),
+      } as DataTableColumnDef<DeveloperApplication>),
       tableColLabels<DeveloperApplication>({
         header: 'Labels',
         accessorKey: 'labels',
-      } as ColumnDef<DeveloperApplication>),
+      } as DataTableColumnDef<DeveloperApplication>),
       {
         header: 'Updated',
         accessorKey: 'updated_at',

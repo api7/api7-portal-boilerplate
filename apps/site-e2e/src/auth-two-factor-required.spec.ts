@@ -218,6 +218,10 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
   });
 
   test('direct API calls are rejected with 403 for a signed-in user who has not enrolled', async () => {
+    test.skip(
+      process.env.E2E_FE_TARGET === 'site-start',
+      'site-start has no /api/{slug}/applications route to hit directly',
+    );
     const auth = await createFreshAuth('totp-required-api');
     await updateConfigAndRestart(true);
 

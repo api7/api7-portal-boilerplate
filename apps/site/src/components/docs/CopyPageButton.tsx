@@ -9,7 +9,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@api7/portal-ui/components/ui/dropdown-menu';
 import { copyToClipboard } from '@/lib/docs/clipboard';
 
 export default function CopyPageButton({ title }: { title: string }) {
@@ -42,7 +42,7 @@ export default function CopyPageButton({ title }: { title: string }) {
   };
 
   return (
-    <div className="inline-flex items-center rounded-md border border-border text-xs font-medium text-muted-foreground">
+    <div className="mt-1.5 inline-flex shrink-0 items-center rounded-md border border-border text-xs font-medium text-muted-foreground">
       <button
         type="button"
         onClick={copyPage}

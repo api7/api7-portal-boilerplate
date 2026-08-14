@@ -21,8 +21,8 @@ export default async function Page(props: PageProps<'/docs/[[...slug]]'>) {
 
   return (
     <DocsPage toc={page.data.toc} full={page.data.full}>
-      <div className="mb-3 flex items-start justify-between gap-4">
-        <DocsTitle>{page.data.title}</DocsTitle>
+      <div className="mb-3 flex flex-wrap items-start justify-between gap-4">
+        <DocsTitle className="flex-1">{page.data.title}</DocsTitle>
         <CopyPageButton title={page.data.title} />
       </div>
       <DocsDescription>{page.data.description}</DocsDescription>

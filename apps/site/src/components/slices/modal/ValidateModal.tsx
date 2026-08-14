@@ -9,13 +9,13 @@ import type { AnyFieldApi } from '@tanstack/react-form';
 
 import { type AlertProps } from '@/components/base/alert';
 import Modal, { type ModalProps } from '@/components/base/modal';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@api7/portal-ui/components/ui/button';
+import { Input } from '@api7/portal-ui/components/ui/input';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from '@api7/portal-ui/components/ui/tooltip';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { useClipboard } from '@/lib/hooks/useClipboard';
 

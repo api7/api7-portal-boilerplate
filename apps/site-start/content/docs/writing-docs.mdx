@@ -1,0 +1,116 @@
+---
+title: Writing documentation
+description: How to add, organize, and style the Markdown pages under /docs.
+---
+
+# Writing documentation
+
+All docs pages are MDX files under **`apps/site/content/docs/`**.
+Drop a file in and it appears automatically — there is no registry to maintain.
+
+The system is powered by [fumadocs-mdx](https://fumadocs.dev): MDX is compiled
+at build time, but the dev server watches `content/docs/` and picks up changes
+automatically — no restart needed.
+
+## Add a page
+
+Create an `.mdx` file with a frontmatter block:
+
+```mdx
+---
+title: My Page
+description: A short summary used for SEO and search previews.
+---
+
+# My Page
+
+Write **Markdown** here. Tables, lists, and code blocks all work.
+```
+
+The file's location maps directly to its URL:
+
+```text
+content/docs/my-page.mdx        →  /docs/my-page
+content/docs/guides/auth.mdx    →  /docs/guides/auth
+```
+
+<Callout type="warning" title="Frontmatter is validated at build time">
+  `title` is required. If a field is missing or has the wrong type, the build
+  fails with the file name and the exact problem — broken pages are caught
+  early, not in production.
+</Callout>
+
+## Organize the sidebar
+
+Create a `meta.json` next to your files listing pages in the order you want:
+
+```json
+{
+  "pages": ["index", "getting-started", "my-page"]
+}
+```
+
+Sub-folders become collapsible sidebar sections and can have their own `meta.json`:
+
+```text
+content/docs/
+  meta.json               →  top-level order
+  getting-started.mdx
+  guides/
+    meta.json             →  order within "Guides"
+    auth.mdx
+    advanced/
+      caching.mdx
+```
+
+## Frontmatter fields
+
+| Field         | Required | Purpose                                 |
+| ------------- | -------- | --------------------------------------- |
+| `title`       | yes      | Page title, sidebar label, search index |
+| `description` | no       | SEO meta + search result preview        |
+
+For the full list of supported fields and their effects on the page tree, TOC,
+and other fumadocs features, see the
+[fumadocs page conventions](https://www.fumadocs.dev/docs/page-conventions).
+
+## MDX components
+
+The following components are available in every `.mdx` file (provided by
+`fumadocs-ui`):
+
+**Callout** — draws attention to important information:
+
+```mdx
+<Callout type="info" title="Optional title">
+  Inline note.
+</Callout>
+```
+
+Valid types: `info` · `warning` · `warn` · `error` · `success` · `idea`
+
+**Code blocks** — syntax-highlighted automatically via Shiki:
+
+```ts
+export function greet(name: string) {
+  return `Hello, ${name}`;
+}
+```
+
+**Steps** — numbered step sequence:
+
+```mdx
+<Steps>
+  <Step>First step content.</Step>
+  <Step>Second step content.</Step>
+</Steps>
+```
+
+## Search and AI
+
+Search (⌘K / Ctrl+K) indexes every page's title, headings, and text content —
+new pages are searchable with no extra work.
+
+Each page also exposes a raw Markdown endpoint at its URL with a `.md` suffix
+(e.g. `/docs/writing-docs.md`), and the full docs index is available at
+`/llms.txt` and `/llms-full.txt` for AI tooling.

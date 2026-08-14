@@ -3,21 +3,21 @@ import { NetworkIcon } from 'lucide-react';
 import Link from 'next/link';
 
 import { StatusBadge } from '@/components/base/status-badge';
-import { Badge } from '@/components/ui/badge';
+import { Badge } from '@api7/portal-ui/components/ui/badge';
 import { MetaCardAvatar } from '@/components/base/meta-card/avatar';
 import {
   Card,
   CardContent,
   CardFooter,
   CardHeader,
-} from '@/components/ui/card';
-import { Skeleton } from '@/components/ui/skeleton';
+} from '@api7/portal-ui/components/ui/card';
+import { Skeleton } from '@api7/portal-ui/components/ui/skeleton';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from '@api7/portal-ui/components/ui/tooltip';
 import { useApiHubBasePathContext } from '@/components/api-hub/ApiHubBasePathContext';
 import type {
   ApiProductListItem,

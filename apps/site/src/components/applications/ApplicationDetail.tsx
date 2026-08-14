@@ -10,14 +10,14 @@ import ApplicationEditDrawer from '@/components/applications/ApplicationEditDraw
 import { ApplicationCredentials } from '@/components/credentials';
 import Back from '@/components/base/back';
 import { MetaCard } from '@/components/base/meta-card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@api7/portal-ui/components/ui/tabs';
+import { Button } from '@api7/portal-ui/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@api7/portal-ui/components/ui/dropdown-menu';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';

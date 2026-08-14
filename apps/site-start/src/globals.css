@@ -1,0 +1,58 @@
+@import "tw-animate-css";
+@import "tailwindcss";
+@import "@api7/portal-ui/styles.css";
+@import "fumadocs-ui/css/shadcn.css";
+@import "fumadocs-ui/css/preset.css";
+@import "@fontsource-variable/inter";
+
+:root {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+.nav {
+  @apply relative transition-all px-2 py-0.5 text-muted-foreground;
+}
+
+.nav:hover {
+  @apply text-foreground;
+}
+
+.nav.active {
+  @apply text-foreground font-medium;
+}
+
+.nav.active::after {
+  content: '';
+  @apply absolute bottom-0 h-0.5 rounded-full;
+
+  left: 6px;
+  right: 6px;
+  background-color: currentcolor;
+}
+
+.nav > div {
+  @apply h-full w-full rounded absolute bg-muted left-0 top-0 -z-10 ease-in-out animate-in;
+}
+
+.nav > div.forward {
+  @apply slide-in-from-left-8;
+}
+
+.nav > div.backward {
+  @apply slide-in-from-right-8;
+}
+
+.navbar {
+  @apply flex items-center w-full min-h-16;
+
+  padding: var(--navbar-padding, 0.5rem);
+}
+
+.footer-title {
+  @apply opacity-100;
+}
+
+.card-container {
+  box-shadow: 0 4px 16px 0 rgba(149, 157, 165, 0.05);
+  @apply p-4 rounded-md bg-card mb-4 w-full;
+}

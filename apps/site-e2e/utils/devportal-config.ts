@@ -153,6 +153,15 @@ export async function getConfigMapYaml(): Promise<string> {
   return `${stringifyYaml(readCurrentConfig())}\n`;
 }
 
+// The token the devportal server itself uses to call the Portal API.
+export function getPortalToken(): string {
+  const token = readCurrentConfig().portal.token;
+  if (!token) {
+    throw new Error('portal.token missing from the active devportal config.yaml');
+  }
+  return token;
+}
+
 export async function updateConfigMapYaml(configYaml: string): Promise<void> {
   const configPath = activeConfigPath();
   if (!isSiteStartTarget()) ensureRuntimeDir();

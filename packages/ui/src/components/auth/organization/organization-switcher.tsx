@@ -129,7 +129,7 @@ export function OrganizationSwitcher({
       aria-label="Open organization switcher"
       className={cn(
         buttonVariants({ variant: "ghost", size: "icon" }),
-        "size-fit rounded-full",
+        "size-fit rounded-md",
         className
       )}
       disabled={isPending}
@@ -138,6 +138,7 @@ export function OrganizationSwitcher({
         key={activeOrganization?.logo}
         isPending={isPending}
         organization={activeOrganization ?? undefined}
+        className="rounded-md after:rounded-md [&_[data-slot=avatar-image]]:rounded-md [&_[data-slot=avatar-fallback]]:rounded-md"
       />
     </DropdownMenuTrigger>
   )

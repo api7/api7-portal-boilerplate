@@ -2,8 +2,8 @@ import { type FC, type ReactNode } from 'react';
 
 import Time, { type TimeProps } from './time';
 import { ViewID, type ViewIDProps } from './view-id';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@api7/portal-ui/components/ui/badge';
+import { Skeleton } from '@api7/portal-ui/components/ui/skeleton';
 
 export type MetaCardProps = {
   name?: string;

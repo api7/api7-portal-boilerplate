@@ -13,8 +13,8 @@ import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@api7/portal-ui/components/ui/button';
+import { Input } from '@api7/portal-ui/components/ui/input';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
 import type {

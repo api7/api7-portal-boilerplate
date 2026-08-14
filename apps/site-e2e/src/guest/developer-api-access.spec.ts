@@ -8,6 +8,11 @@ import {
 import { E2E_TARGET_URL } from '../../constant';
 
 test.describe('Guest access to BFF proxy routes', () => {
+  test.skip(
+    process.env.E2E_FE_TARGET === 'site-start',
+    'BFF proxy route was removed from site-start; apps/site still has it',
+  );
+
   const baseURL = E2E_TARGET_URL;
 
   async function newCtx() {

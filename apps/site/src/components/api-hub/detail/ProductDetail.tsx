@@ -12,7 +12,7 @@ import { BadgeList } from '@/components/base/badge-list';
 import Back from '@/components/base/back';
 import { MetaCardAvatar } from '@/components/base/meta-card/avatar';
 import { MetaCard } from '@/components/base/meta-card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@api7/portal-ui/components/ui/tabs';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import { cn } from '@/lib/utils';

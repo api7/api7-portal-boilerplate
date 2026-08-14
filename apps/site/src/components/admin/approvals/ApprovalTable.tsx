@@ -1,27 +1,28 @@
 'use client';
 
-import { useCreation } from 'ahooks';
-import { CheckIcon, EllipsisVerticalIcon, XIcon } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useCallback, useState } from 'react';
-
-import { StatusBadge } from '@/components/base/status-badge';
-import { DataTable } from '@/components/base/data-table';
-import TimeFormat from '@/components/slices/time-format';
-import { Button } from '@/components/ui/button';
-import { ButtonGroup } from '@/components/ui/button-group';
+import { Button } from '@api7/portal-ui/components/ui/button';
+import { ButtonGroup } from '@api7/portal-ui/components/ui/button-group';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@api7/portal-ui/components/ui/dropdown-menu';
+import { useCreation } from 'ahooks';
+import { CheckIcon, EllipsisVerticalIcon, XIcon } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useCallback, useState } from 'react';
+
+import {
+  DataTable,
+  type DataTableColumnDef,
+} from '@/components/base/data-table';
+import { StatusBadge } from '@/components/base/status-badge';
+import TimeFormat from '@/components/slices/time-format';
+import { PATH_APPROVALS } from '@/constants/path-prefix';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import { type Approval, resolveOperatorName } from '@/lib/portal-sdk/approval';
-import { PATH_APPROVALS } from '@/constants/path-prefix';
-import type { ColumnDef } from '@tanstack/react-table';
-
 import ApprovalActionModal, {
   type ApprovalAction,
 } from './ApprovalActionModal';
@@ -84,7 +85,7 @@ const ApprovalTable: React.FC<Props> = ({ data, total, page, pageSize }) => {
     [actionDisclosure],
   );
 
-  const columns = useCreation<ColumnDef<Approval>[]>(
+  const columns = useCreation<DataTableColumnDef<Approval>[]>(
     () => [
       {
         header: 'Type',
@@ -101,9 +102,7 @@ const ApprovalTable: React.FC<Props> = ({ data, total, page, pageSize }) => {
         header: 'Applicant',
         id: 'applicant',
         cell: ({ row }) =>
-          row.original.applicant_org_name ||
-          row.original.applicant_name ||
-          '-',
+          row.original.applicant_org_name || row.original.applicant_name || '-',
       },
       {
         id: 'status',
@@ -187,13 +186,16 @@ const ApprovalTable: React.FC<Props> = ({ data, total, page, pageSize }) => {
         onParamsChange={(params: Record<string, unknown>) => {
           const overrides: Record<string, string | undefined> = { page: '1' };
           if ('search' in params)
-            overrides.search = (params.search as string | undefined) || undefined;
+            overrides.search =
+              (params.search as string | undefined) || undefined;
           if ('page_size' in params)
             overrides.page_size = String(params.page_size);
           if ('order_by' in params)
-            overrides.order_by = (params.order_by as string | undefined) || undefined;
+            overrides.order_by =
+              (params.order_by as string | undefined) || undefined;
           if ('direction' in params)
-            overrides.direction = (params.direction as string | undefined) || undefined;
+            overrides.direction =
+              (params.direction as string | undefined) || undefined;
           router.push(makeHref(overrides));
         }}
         pagination={{

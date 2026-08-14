@@ -74,10 +74,6 @@ function AuthProviderWrapper({
     const list = [
       organizationPlugin({
         slug: activeOrgSlug ?? null,
-        localization: {
-          slug: 'URL',
-          slugPlaceholder: '',
-        },
         viewPaths: {
           settings: { organizations: 'organizations' },
           organization: { settings: 'settings', people: 'members' },

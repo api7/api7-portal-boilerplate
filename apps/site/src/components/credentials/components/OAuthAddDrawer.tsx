@@ -1,6 +1,6 @@
 'use client';
 
-import { useForm } from '@tanstack/react-form';
+import { useForm, useStore } from '@tanstack/react-form';
 import type {
   AnyFieldApi,
   FormAsyncValidateOrFn,
@@ -13,16 +13,16 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { Button } from '@api7/portal-ui/components/ui/button';
+import { Input } from '@api7/portal-ui/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+} from '@api7/portal-ui/components/ui/select';
+import { Textarea } from '@api7/portal-ui/components/ui/textarea';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
 import useDCRProviderList from '@/lib/query/useDCRProviderList';
@@ -75,7 +75,17 @@ export const FormItemOAuth = ({
   form: OAuthForm;
   isEdit?: boolean;
 }) => {
-  const { data } = useDCRProviderList({ fetchAll: true });
+  const { data, isValidating, isError } = useDCRProviderList({
+    fetchAll: true,
+  });
+  const providerId = useStore(form.store, (s) => s.values.dcr_provider_id);
+
+  // Stale cache can hold a single provider while a refetch is bringing more.
+  useEffect(() => {
+    if (isEdit || providerId || isValidating || isError || data?.length !== 1)
+      return;
+    form.setFieldValue('dcr_provider_id', data[0].id);
+  }, [isEdit, providerId, isValidating, isError, data, form]);
 
   return (
     <>

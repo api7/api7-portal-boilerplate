@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@api7/portal-ui/components/ui/card';
 import { cn } from '@/lib/utils';
 
 export type FilterParamProps = {

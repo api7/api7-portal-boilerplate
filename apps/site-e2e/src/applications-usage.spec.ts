@@ -156,29 +156,33 @@ test.describe(
         const appId = applicationId;
         let defaultKeyAuthId: string | null = null;
 
-        await page.route('**/api/**/applications/api_calls', async (route) => {
-          const postData = route.request().postData();
-          if (postData) {
-            const payload = JSON.parse(postData);
-            expect(payload.start_at).toBe(dayjs().subtract(7, 'day').startOf('day').unix());
-            expect(payload.end_at).toBe(dayjs().endOf('day').unix());
-            expect(payload.application_id).toBe(applicationId);
-          }
-          await route.continue();
-        });
+        // This URL pattern never matches on site-start, which has no
+        // `/api/{slug}/...` BFF proxy route.
+        if (process.env.E2E_FE_TARGET !== 'site-start') {
+          await page.route('**/api/**/applications/api_calls', async (route) => {
+            const postData = route.request().postData();
+            if (postData) {
+              const payload = JSON.parse(postData);
+              expect(payload.start_at).toBe(dayjs().subtract(7, 'day').startOf('day').unix());
+              expect(payload.end_at).toBe(dayjs().endOf('day').unix());
+              expect(payload.application_id).toBe(applicationId);
+            }
+            await route.continue();
+          });
 
-        await page.route('**/api/**/credentials**', async (route) => {
-          const res = await route.fetch();
-          const data = await res.json();
-          const credentialList = data.data || data.list || [];
-          const matched = credentialList.find(
-            (item: { name: string }) => item.name === 'default-key-auth',
-          );
-          if (matched?.id) {
-            defaultKeyAuthId = matched.id;
-          }
-          await route.fulfill({ response: res, json: data });
-        });
+          await page.route('**/api/**/credentials**', async (route) => {
+            const res = await route.fetch();
+            const data = await res.json();
+            const credentialList = data.data || data.list || [];
+            const matched = credentialList.find(
+              (item: { name: string }) => item.name === 'default-key-auth',
+            );
+            if (matched?.id) {
+              defaultKeyAuthId = matched.id;
+            }
+            await route.fulfill({ response: res, json: data });
+          });
+        }
 
         await page.getByRole('tab', { name: 'Usage' }).click();
 

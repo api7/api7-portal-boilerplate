@@ -2,7 +2,7 @@ import { ShieldAlert } from 'lucide-react';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@api7/portal-ui/components/ui/button';
 import { RESERVED_FIRST_SEGMENTS } from '@/constants/common';
 import { isImpersonatingSession } from '@/lib/auth/admin';
 import { auth } from '@/lib/auth/server';

@@ -2,7 +2,6 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { Browser, Page, expect } from '@playwright/test';
-import { API_PREFIX } from '@site/constants/api-prefix';
 import { PATH_APPROVALS } from '@site/constants/path-prefix';
 import { ConfigMapData } from '@site/lib/config/schema';
 
@@ -15,6 +14,7 @@ import {
   getSession,
   login,
 } from '../req/common';
+import { portalApiRequest } from '../req/portal-api';
 import {
   a7DeleteProductList,
   a7PostGatewayProduct,
@@ -162,7 +162,7 @@ test.describe('Approvals (platform admin)', () => {
       }, devOrg.slug);
       appIds.push(app.id);
     }
-    const subRes = await devCtx.post(`${API_PREFIX}/${devOrg.slug}/subscriptions`, {
+    const subRes = await portalApiRequest(devOrg.id, 'post', '/api/subscriptions', {
       data: { api_products: [productId], applications: appIds },
       failOnStatusCode: false,
     });

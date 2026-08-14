@@ -1,6 +1,15 @@
 'use client';
 
-import type { ColumnDef } from '@tanstack/react-table';
+import { Button } from '@api7/portal-ui/components/ui/button';
+import { ButtonGroup } from '@api7/portal-ui/components/ui/button-group';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@api7/portal-ui/components/ui/dropdown-menu';
 import { useCreation } from 'ahooks';
 import {
   EllipsisVerticalIcon,
@@ -10,20 +19,13 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import {
+  DataTable,
+  type DataTableColumnDef,
+} from '@/components/base/data-table';
 import { tableColDesc } from '@/components/slices/table-col/desc';
 import { tableColLabels } from '@/components/slices/table-col/labels';
 import TimeFormat from '@/components/slices/time-format';
-import { Button } from '@/components/ui/button';
-import { ButtonGroup } from '@/components/ui/button-group';
-import { DataTable } from '@/components/base/data-table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { DEFAULT_LIST_PARAMS } from '@/constants/common';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
@@ -36,7 +38,6 @@ import type {
   BasicAuthPluginValue,
   PluginCredential,
 } from '@/types/portal-sdk';
-
 import BasicAuthAddDrawer from './BasicAuthAddDrawer';
 import BasicAuthDetailDrawer from './BasicAuthDetailDrawer';
 import BasicAuthRotateModal from './BasicAuthRotateModal';
@@ -65,10 +66,11 @@ const AddBasicAuthBtn = ({
   );
 };
 
-const BasicAuthTable: React.FC<Pick<CredentialParams, 'application_id'> & { leadingToolBar?: React.ReactNode }> = ({
-  application_id,
-  leadingToolBar,
-}) => {
+const BasicAuthTable: React.FC<
+  Pick<CredentialParams, 'application_id'> & {
+    leadingToolBar?: React.ReactNode;
+  }
+> = ({ application_id, leadingToolBar }) => {
   const { canManageApplications } = useCanManageApplications();
   const req = useCredentialList({
     savePage: false,
@@ -95,7 +97,7 @@ const BasicAuthTable: React.FC<Pick<CredentialParams, 'application_id'> & { lead
     'created',
   );
 
-  const columns = useCreation<ColumnDef<ApplicationCredential>[]>(
+  const columns = useCreation<DataTableColumnDef<ApplicationCredential>[]>(
     () => [
       {
         header: 'Name',
@@ -116,16 +118,18 @@ const BasicAuthTable: React.FC<Pick<CredentialParams, 'application_id'> & { lead
       tableColDesc<ApplicationCredential>({
         header: 'Description',
         accessorKey: 'desc',
-      } as ColumnDef<ApplicationCredential>),
+      } as DataTableColumnDef<ApplicationCredential>),
       tableColLabels<ApplicationCredential>({
         header: 'Labels',
         accessorKey: 'labels',
-      } as ColumnDef<ApplicationCredential>),
+      } as DataTableColumnDef<ApplicationCredential>),
       {
         header: 'Updated',
         accessorKey: 'updated_at',
         enableSorting: true,
-        cell: ({ getValue }) => <TimeFormat time={getValue() as number} fromNow />,
+        cell: ({ getValue }) => (
+          <TimeFormat time={getValue() as number} fromNow />
+        ),
       },
       {
         id: 'actions',

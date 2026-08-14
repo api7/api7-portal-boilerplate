@@ -13,7 +13,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
+} from '@api7/portal-ui/components/ui/alert-dialog';
 import { actOnApproval } from '@/lib/approvals/actions';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { type Approval } from '@/lib/portal-sdk/approval';

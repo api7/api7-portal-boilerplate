@@ -1,22 +1,28 @@
-import type { ColumnDef } from '@tanstack/react-table';
-
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from '@api7/portal-ui/components/ui/tooltip';
+import type { RowData } from '@tanstack/react-table';
 
-export const tableColDesc = <T,>(param: ColumnDef<T>): ColumnDef<T> => ({
-  ...param,
-  cell: ({ getValue }) => {
-    const desc = getValue() as string;
-    return (
-      <Tooltip>
-        <TooltipTrigger render={<span className="block truncate max-w-xs">{desc}</span>} />
-        <TooltipContent>
-          <p>{desc}</p>
-        </TooltipContent>
-      </Tooltip>
-    );
-  },
-} as ColumnDef<T>);
+import type { DataTableColumnDef } from '@/components/base/data-table';
+
+export const tableColDesc = <T extends RowData>(
+  param: DataTableColumnDef<T>,
+): DataTableColumnDef<T> =>
+  ({
+    ...param,
+    cell: ({ getValue }) => {
+      const desc = getValue() as string;
+      return (
+        <Tooltip>
+          <TooltipTrigger
+            render={<span className="block truncate max-w-xs">{desc}</span>}
+          />
+          <TooltipContent>
+            <p>{desc}</p>
+          </TooltipContent>
+        </Tooltip>
+      );
+    },
+  }) as DataTableColumnDef<T>;

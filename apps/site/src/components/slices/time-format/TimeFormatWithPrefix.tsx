@@ -1,6 +1,6 @@
 import { format } from './constant';
 import TimeFormat from './index';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@api7/portal-ui/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 
 type Props = {

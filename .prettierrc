@@ -5,7 +5,7 @@
   "semi": true,
   "plugins": ["@trivago/prettier-plugin-sort-imports"],
   "importOrder": [
-    "^server-only$",
+    "^((@tanstack/react-start/)?(server|client)-only)$",
     "<SEPARATOR>",
     "<BUILTIN_MODULES>",
     "<THIRD_PARTY_MODULES>",

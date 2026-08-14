@@ -2,7 +2,7 @@ import React, { useId } from 'react';
 
 import Image from 'next/image';
 
-import { Skeleton } from '@/components/ui/skeleton';
+import { Skeleton } from '@api7/portal-ui/components/ui/skeleton';
 
 type BgFn = (props: React.SVGAttributes<SVGElement>, p: string) => React.ReactNode;
 

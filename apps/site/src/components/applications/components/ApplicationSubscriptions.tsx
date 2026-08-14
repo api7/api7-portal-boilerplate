@@ -1,27 +1,28 @@
 'use client';
 
-import type { ColumnDef } from '@tanstack/react-table';
-import { useCreation } from 'ahooks';
-import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import Link from 'next/link';
-import { useState } from 'react';
-
-import TimeFormat from '@/components/slices/time-format';
-import { Button } from '@/components/ui/button';
-import { DataTable } from '@/components/base/data-table';
+import { Button } from '@api7/portal-ui/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@api7/portal-ui/components/ui/dropdown-menu';
+import { useCreation } from 'ahooks';
+import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+
+import {
+  DataTable,
+  type DataTableColumnDef,
+} from '@/components/base/data-table';
+import TimeFormat from '@/components/slices/time-format';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import type { SubscriptionItem } from '@/types/portal-sdk';
-
 import { PRODUCT_STATUS_CONFIG, statusCol } from './StatusFilter';
 import SubscribeAPIProductModal from './SubscribeAPIProductModal';
 import UnsubscribeModal from './UnsubscribeModal';
@@ -62,9 +63,10 @@ const ApplicationSubscriptions = ({ id }: ApplicationSubscriptionsProps) => {
   const req = useSubscriptionList({ application_id: id });
 
   const unsubscribeDisclosure = useDisclosure();
-  const [curSubscription, setCurSubscription] = useState<SubscriptionItem | null>();
+  const [curSubscription, setCurSubscription] =
+    useState<SubscriptionItem | null>();
 
-  const columns = useCreation<ColumnDef<SubscriptionItem>[]>(
+  const columns = useCreation<DataTableColumnDef<SubscriptionItem>[]>(
     () => [
       {
         header: 'API Product',

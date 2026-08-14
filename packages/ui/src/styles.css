@@ -1,3 +1,5 @@
+@import "shadcn/tailwind.css";
+
 /* Consuming apps `@import "@api7/portal-ui/styles.css"` this alongside `@import "tailwindcss"` —
    the @source below registers this package's component source for class scanning,
    so neither app needs its own @source entry pointing back at this package. */

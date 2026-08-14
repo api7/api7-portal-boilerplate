@@ -1,6 +1,24 @@
 'use client';
 
-import type { ColumnDef } from '@tanstack/react-table';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from '@api7/portal-ui/components/ui/alert-dialog';
+import { Button } from '@api7/portal-ui/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@api7/portal-ui/components/ui/dropdown-menu';
 import { useCreation } from 'ahooks';
 import {
   MoreHorizontal,
@@ -12,26 +30,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { DataTable } from '@/components/base/data-table';
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogMedia,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+  DataTable,
+  type DataTableColumnDef,
+} from '@/components/base/data-table';
 import { PATH_DASHBOARD_ORGANIZATIONS } from '@/constants/path-prefix';
 import {
   deleteOrganizationAsAdmin,
@@ -217,7 +219,7 @@ export default function OrganizationTable({
     return `${PATH_DASHBOARD_ORGANIZATIONS}?${params.toString()}`;
   };
 
-  const columns = useCreation<ColumnDef<AdminOrganizationListItem>[]>(
+  const columns = useCreation<DataTableColumnDef<AdminOrganizationListItem>[]>(
     () => [
       {
         header: 'Organization',

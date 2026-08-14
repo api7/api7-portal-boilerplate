@@ -1,23 +1,13 @@
 'use client';
 
 import {
-  flexRender,
-  getCoreRowModel,
-  useReactTable,
-  type ColumnDef,
-  type SortingState,
-} from '@tanstack/react-table';
-import { ArrowDownIcon, ArrowUpIcon, ChevronsUpDownIcon, SearchIcon, XIcon } from 'lucide-react';
-import { useState } from 'react';
-
-import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
-} from '@/components/ui/input-group';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Spinner } from '@/components/ui/spinner';
+} from '@api7/portal-ui/components/ui/input-group';
+import { Skeleton } from '@api7/portal-ui/components/ui/skeleton';
+import { Spinner } from '@api7/portal-ui/components/ui/spinner';
 import {
   Table,
   TableBody,
@@ -25,15 +15,44 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
+} from '@api7/portal-ui/components/ui/table';
+import {
+  type ColumnDef,
+  type RowData,
+  type SortingState,
+  flexRender,
+  rowSortingFeature,
+  tableFeatures,
+  useTable,
+} from '@tanstack/react-table';
+import {
+  ArrowDownIcon,
+  ArrowUpIcon,
+  ChevronsUpDownIcon,
+  SearchIcon,
+  XIcon,
+} from 'lucide-react';
+import { useState } from 'react';
 
-import DataTablePagination, { type DataTablePaginationProps } from './pagination';
+import { cn } from '@/lib/utils';
+import DataTablePagination, {
+  type DataTablePaginationProps,
+} from './pagination';
+
+export const dataTableFeatures = tableFeatures({ rowSortingFeature });
+
+export type DataTableColumnDef<T extends RowData> = ColumnDef<
+  typeof dataTableFeatures,
+  T
+>;
 
 type PaginationConfig = Omit<DataTablePaginationProps, 'onPageSizeChange'>;
 
-type DataTableProps<T, P = object> = Omit<React.HTMLAttributes<HTMLDivElement>, 'onChange'> & {
-  columns: ColumnDef<T>[];
+type DataTableProps<T extends RowData, P = object> = Omit<
+  React.HTMLAttributes<HTMLDivElement>,
+  'onChange'
+> & {
+  columns: DataTableColumnDef<T>[];
   data?: T[];
   isLoading: boolean;
   isValidating?: boolean;
@@ -46,16 +65,20 @@ type DataTableProps<T, P = object> = Omit<React.HTMLAttributes<HTMLDivElement>, 
   getRowId?: (row: T) => string;
   isError?: boolean;
 } & (
-  | { hidePagination: true; pagination?: undefined; savePage?: undefined }
-  | { hidePagination?: false; savePage?: boolean; pagination: PaginationConfig }
-);
+    | { hidePagination: true; pagination?: undefined; savePage?: undefined }
+    | {
+        hidePagination?: false;
+        savePage?: boolean;
+        pagination: PaginationConfig;
+      }
+  );
 
-function defaultRowId<T>(row: T): string {
+function defaultRowId<T extends RowData>(row: T): string {
   const r = row as Record<string, unknown>;
   return String(r.id ?? r.key ?? r.name ?? r.slug ?? JSON.stringify(row));
 }
 
-export function DataTable<T, P = object>({
+export function DataTable<T extends RowData, P = object>({
   columns,
   data = [],
   isLoading,
@@ -83,14 +106,12 @@ export function DataTable<T, P = object>({
   const [searchValue, setSearchValue] = useState('');
   const [sorting, setSorting] = useState<SortingState>([]);
 
-  // eslint-disable-next-line react-hooks/incompatible-library
-  const table = useReactTable({
+  const table = useTable({
+    features: dataTableFeatures,
     data,
     columns,
-    getCoreRowModel: getCoreRowModel(),
     defaultColumn: { enableSorting: false },
     manualSorting: true,
-    manualPagination: true,
     sortDescFirst: false,
     onSortingChange: (updater) => {
       const next = typeof updater === 'function' ? updater(sorting) : updater;
@@ -167,7 +188,10 @@ export function DataTable<T, P = object>({
           <Table>
             <TableHeader>
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="bg-muted/50 hover:bg-muted/50">
+                <TableRow
+                  key={headerGroup.id}
+                  className="bg-muted/50 hover:bg-muted/50"
+                >
                   {headerGroup.headers.map((header) => (
                     <TableHead
                       key={header.id}
@@ -185,20 +209,34 @@ export function DataTable<T, P = object>({
                           ? header.column.getToggleSortingHandler()
                           : undefined
                       }
-                      className={header.column.getCanSort() ? 'cursor-pointer select-none' : undefined}
+                      className={
+                        header.column.getCanSort()
+                          ? 'cursor-pointer select-none'
+                          : undefined
+                      }
                     >
                       {header.isPlaceholder ? null : (
-                        <span className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
-                          {flexRender(header.column.columnDef.header, header.getContext())}
+                        <span
+                          className={cn(
+                            'flex items-center gap-1 text-xs font-medium text-muted-foreground',
+                            header.column.id === 'actions' &&
+                              'w-full justify-end',
+                          )}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
                           {header.column.getIsSorted() === 'asc' && (
                             <ArrowUpIcon className="size-3" />
                           )}
                           {header.column.getIsSorted() === 'desc' && (
                             <ArrowDownIcon className="size-3" />
                           )}
-                          {!header.column.getIsSorted() && header.column.getCanSort() && (
-                            <ChevronsUpDownIcon className="size-3 opacity-40" />
-                          )}
+                          {!header.column.getIsSorted() &&
+                            header.column.getCanSort() && (
+                              <ChevronsUpDownIcon className="size-3 opacity-40" />
+                            )}
                         </span>
                       )}
                     </TableHead>
@@ -210,9 +248,21 @@ export function DataTable<T, P = object>({
               {rows.length > 0 ? (
                 rows.map((row) => (
                   <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
+                    {row.getAllCells().map((cell) => (
                       <TableCell key={cell.id}>
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        {cell.column.id === 'actions' ? (
+                          <div className="flex justify-end">
+                            {flexRender(
+                              cell.column.columnDef.cell,
+                              cell.getContext(),
+                            )}
+                          </div>
+                        ) : (
+                          flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext(),
+                          )
+                        )}
                       </TableCell>
                     ))}
                   </TableRow>
@@ -221,7 +271,9 @@ export function DataTable<T, P = object>({
                 <TableRow>
                   <TableCell colSpan={columns.length} className="p-0 h-48">
                     <div className="flex h-full w-full items-center justify-center">
-                      <p className="text-xl font-medium text-gray-600">{resolvedText.noData}</p>
+                      <p className="text-xl font-medium text-gray-600">
+                        {resolvedText.noData}
+                      </p>
                     </div>
                   </TableCell>
                 </TableRow>

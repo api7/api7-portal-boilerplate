@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 
-import { Button } from '@/components/ui/button';
+import { Button } from '@api7/portal-ui/components/ui/button';
 import { PATH_ROOT } from '@/constants/path-prefix';
 
 export const BarePageNotFound = () => {

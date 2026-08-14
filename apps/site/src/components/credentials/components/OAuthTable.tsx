@@ -1,6 +1,15 @@
 'use client';
 
-import type { ColumnDef } from '@tanstack/react-table';
+import { Button } from '@api7/portal-ui/components/ui/button';
+import { ButtonGroup } from '@api7/portal-ui/components/ui/button-group';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@api7/portal-ui/components/ui/dropdown-menu';
 import { useCreation } from 'ahooks';
 import {
   EllipsisVerticalIcon,
@@ -10,19 +19,12 @@ import {
 } from 'lucide-react';
 import { memo, useState } from 'react';
 
+import {
+  DataTable,
+  type DataTableColumnDef,
+} from '@/components/base/data-table';
 import { tableColDesc } from '@/components/slices/table-col/desc';
 import TimeFormat from '@/components/slices/time-format';
-import { Button } from '@/components/ui/button';
-import { ButtonGroup } from '@/components/ui/button-group';
-import { DataTable } from '@/components/base/data-table';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { DEFAULT_LIST_PARAMS } from '@/constants/common';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
@@ -34,7 +36,6 @@ import type {
   OAuthCredential,
   OAuthCredentialBasics,
 } from '@/types/portal-sdk';
-
 import OAuthAddDrawer from './OAuthAddDrawer';
 import { OAuthAlert } from './OAuthAlert';
 import OAuthDeleteModal from './OAuthDeleteModal';
@@ -68,10 +69,11 @@ const AddOAuthBtn = memo(function AddOAuthBtn({
   );
 });
 
-const OAuthTable: React.FC<Pick<CredentialParams, 'application_id'> & { leadingToolBar?: React.ReactNode }> = ({
-  application_id,
-  leadingToolBar,
-}) => {
+const OAuthTable: React.FC<
+  Pick<CredentialParams, 'application_id'> & {
+    leadingToolBar?: React.ReactNode;
+  }
+> = ({ application_id, leadingToolBar }) => {
   const { canManageApplications } = useCanManageApplications();
   const req = useCredentialList({
     savePage: false,
@@ -84,7 +86,9 @@ const OAuthTable: React.FC<Pick<CredentialParams, 'application_id'> & { leadingT
   const { paramsOnlyStr: _, ...reqProps } = req;
   const editDisclosure = useDisclosure({ onClose: req.refetch });
   const [alertData, setAlertData] = useState<OAuthCredentialBasics['oauth']>();
-  const [alertVariant, setAlertVariant] = useState<'created' | 'rotated'>('created');
+  const [alertVariant, setAlertVariant] = useState<'created' | 'rotated'>(
+    'created',
+  );
   const deleteDisclosure = useDisclosure({
     onClose: () => {
       req.refetch();
@@ -94,7 +98,7 @@ const OAuthTable: React.FC<Pick<CredentialParams, 'application_id'> & { leadingT
   const rotateDisclosure = useDisclosure({ onClose: req.refetch });
   const [curData, setCurData] = useState<ApplicationCredential | undefined>();
 
-  const columns = useCreation<ColumnDef<ApplicationCredential>[]>(
+  const columns = useCreation<DataTableColumnDef<ApplicationCredential>[]>(
     () => [
       {
         header: 'Client ID',
@@ -104,7 +108,7 @@ const OAuthTable: React.FC<Pick<CredentialParams, 'application_id'> & { leadingT
       tableColDesc<ApplicationCredential>({
         header: 'Description',
         accessorKey: 'desc',
-      } as ColumnDef<ApplicationCredential>),
+      } as DataTableColumnDef<ApplicationCredential>),
       {
         header: 'Identity Provider',
         accessorFn: (row) => (row as OAuthCredential).oauth?.dcr_provider?.name,
@@ -114,7 +118,9 @@ const OAuthTable: React.FC<Pick<CredentialParams, 'application_id'> & { leadingT
         header: 'Created',
         accessorKey: 'created_at',
         enableSorting: true,
-        cell: ({ getValue }) => <TimeFormat time={getValue() as number} fromNow />,
+        cell: ({ getValue }) => (
+          <TimeFormat time={getValue() as number} fromNow />
+        ),
       },
       {
         id: 'actions',

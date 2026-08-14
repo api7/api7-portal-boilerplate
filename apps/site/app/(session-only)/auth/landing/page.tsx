@@ -6,8 +6,8 @@ import { useCallback, useEffect, useState } from 'react';
 
 import { CreateOrganizationDialog } from '@api7/portal-ui/components/auth/organization/create-organization-dialog';
 import { UserInvitations } from '@api7/portal-ui/components/auth/organization/user-invitations';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@api7/portal-ui/components/ui/button';
+import { Card, CardContent } from '@api7/portal-ui/components/ui/card';
 import { PATH_ACCOUNT_ORGANIZATIONS } from '@/constants/path-prefix';
 import { authClient } from '@/lib/auth/client';
 

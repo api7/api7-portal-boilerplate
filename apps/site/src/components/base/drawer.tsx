@@ -6,15 +6,15 @@ import { XIcon } from 'lucide-react';
 
 
 import { Alert, type AlertProps } from '@/components/base/alert';
-import { Button } from '@/components/ui/button';
+import { Button } from '@api7/portal-ui/components/ui/button';
 import {
   Sheet,
   SheetContent,
   SheetFooter,
   SheetHeader,
   SheetTitle,
-} from '@/components/ui/sheet';
-import { Spinner } from '@/components/ui/spinner';
+} from '@api7/portal-ui/components/ui/sheet';
+import { Spinner } from '@api7/portal-ui/components/ui/spinner';
 
 const MotionDiv = motion.div;
 

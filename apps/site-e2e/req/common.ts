@@ -1,9 +1,10 @@
 import { APIRequest, expect, request } from '@playwright/test';
 import type { Page } from '@playwright/test';
-import { API_APPLICATIONS, API_PREFIX, AUTH_BASE_PATH } from '@site/constants/api-prefix';
+import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
 import { PATH_LANDING, PATH_ORGANIZATION } from '@site/constants/path-prefix';
 
 import { E2E_TARGET_URL } from '../constant';
+import { portalApiRequest } from './portal-api';
 import { BetterAuthLogin } from './type';
 
 const ORG_SET_ACTIVE = `${AUTH_BASE_PATH}/organization/set-active`;
@@ -174,13 +175,14 @@ export const register = async (
 };
 
 export const deleteAllApplications = async (ctx: Ctx, orgSlug?: string) => {
-  const slug = orgSlug ?? await getActiveOrganizationSlug(ctx);
-  const url = `${API_PREFIX}/${slug}/applications`;
-  const applications = await ctx.get(url);
+  const organizationId = orgSlug
+    ? await getOrganizationIdBySlug(ctx, orgSlug)
+    : await getActiveOrganizationId(ctx);
+  const applications = await portalApiRequest(organizationId, 'get', '/api/applications');
   expect(applications.status()).toBe(200);
   const applicationsData = await applications.json();
   for (const application of applicationsData.list || []) {
-    await ctx.delete(`${url}/${application.id}`);
+    await portalApiRequest(organizationId, 'delete', `/api/applications/${application.id}`);
   }
 };
 
@@ -202,14 +204,15 @@ export const deleteAllOrganizations = async (ctx: Ctx) => {
   }
 };
 export const getDefaultApplicationId = async (ctx: Ctx, orgSlug?: string): Promise<string> => {
-  const url = orgSlug ? `${API_PREFIX}/${orgSlug}/applications` : API_APPLICATIONS;
+  const organizationId = orgSlug
+    ? await getOrganizationIdBySlug(ctx, orgSlug)
+    : await getActiveOrganizationId(ctx);
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt < maxRequestRetries; attempt++) {
     try {
-      const res = await ctx.get(url, {
+      const res = await portalApiRequest(organizationId, 'get', '/api/applications', {
         failOnStatusCode: false,
-        timeout: 30000,
       });
       const status = res.status();
 
@@ -254,8 +257,10 @@ export const createApplication = async (
   data: { name: string; desc?: string },
   orgSlug?: string,
 ) => {
-  const url = orgSlug ? `${API_PREFIX}/${orgSlug}/applications` : API_APPLICATIONS;
-  const res = await ctx.post(url, {
+  const organizationId = orgSlug
+    ? await getOrganizationIdBySlug(ctx, orgSlug)
+    : await getActiveOrganizationId(ctx);
+  const res = await portalApiRequest(organizationId, 'post', '/api/applications', {
     data,
     failOnStatusCode: false,
   });
@@ -332,13 +337,8 @@ export const acceptInvitationViaUI = async (
 };
 
 /**
- * Get active organization ID from session.
- *
- * @deprecated Active organization is now managed client-side via URL slug.
- * This helper reads session.activeOrganizationId which better-auth still
- * populates internally during org creation. New e2e tests should extract
- * the org slug from the response and use it in URL-prefixed API paths
- * (e.g. `/api/{slug}/applications`).
+ * Get active organization ID from session — the `X-Portal-Developer-ID`
+ * portalApiRequest() needs to talk to the Portal API directly.
  */
 export const getActiveOrganizationId = async (ctx: Ctx): Promise<string> => {
   const res = await getSession(ctx);
@@ -382,6 +382,22 @@ export const getActiveOrganizationSlug = async (ctx: Ctx): Promise<string> => {
   const body = await res.json();
   expect(body?.slug).toBeTruthy();
   return body.slug as string;
+};
+
+export const getOrganizationIdBySlug = async (
+  ctx: Ctx,
+  slug: string,
+): Promise<string> => {
+  const res = await ctx.get(
+    `${AUTH_BASE_PATH}/organization/get-full-organization?organizationSlug=${encodeURIComponent(slug)}`,
+    {
+      failOnStatusCode: false,
+    },
+  );
+  expect(res.status()).toBe(200);
+  const body = await res.json();
+  expect(body?.id).toBeTruthy();
+  return body.id as string;
 };
 
 /**

@@ -1,15 +1,5 @@
 'use client';
 
-import type { ColumnDef } from '@tanstack/react-table';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { MoreHorizontalIcon } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useState } from 'react';
-import { toast } from 'sonner';
-import { useCreation } from 'ahooks';
-
-import { DataTable } from '@/components/base/data-table';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,39 +9,54 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+} from '@api7/portal-ui/components/ui/alert-dialog';
+import { Badge } from '@api7/portal-ui/components/ui/badge';
+import { Button } from '@api7/portal-ui/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
+} from '@api7/portal-ui/components/ui/dialog';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from '@api7/portal-ui/components/ui/dropdown-menu';
+import { Input } from '@api7/portal-ui/components/ui/input';
+import { Label } from '@api7/portal-ui/components/ui/label';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { PATH_DASHBOARD_ORGANIZATIONS, PATH_DASHBOARD_USERS } from '@/constants/path-prefix';
-import { authClient } from '@/lib/auth/client';
+} from '@api7/portal-ui/components/ui/select';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCreation } from 'ahooks';
+import { MoreHorizontalIcon } from 'lucide-react';
+import Link from 'next/link';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
+import {
+  DataTable,
+  type DataTableColumnDef,
+} from '@/components/base/data-table';
+import {
+  PATH_DASHBOARD_ORGANIZATIONS,
+  PATH_DASHBOARD_USERS,
+} from '@/constants/path-prefix';
 import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
 } from '@/lib/api/admin';
+import { authClient } from '@/lib/auth/client';
 
 export type AdminUserListItem = {
   id: string;
@@ -105,11 +110,16 @@ export default function UserTable() {
           sortBy: 'createdAt',
           sortDirection: 'desc',
           ...(search
-            ? { searchValue: search, searchField: 'email', searchOperator: 'contains' }
+            ? {
+                searchValue: search,
+                searchField: 'email',
+                searchOperator: 'contains',
+              }
             : {}),
         },
       });
-      if (result.error) throw new Error(result.error.message || 'Failed to fetch users');
+      if (result.error)
+        throw new Error(result.error.message || 'Failed to fetch users');
       return result.data;
     },
   });
@@ -117,7 +127,8 @@ export default function UserTable() {
   const users = (data?.users ?? []) as AdminUserListItem[];
   const total = data?.total ?? 0;
 
-  const invalidate = () => queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
+  const invalidate = () =>
+    queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
 
   const makeHref = (overrides: Record<string, string | undefined>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -137,7 +148,10 @@ export default function UserTable() {
     if (dialog?.type !== 'role') return;
     setPending(true);
     try {
-      const result = await authClient.admin.setRole({ userId: dialog.user.id, role: selectedRole as 'user' | 'admin' });
+      const result = await authClient.admin.setRole({
+        userId: dialog.user.id,
+        role: selectedRole as 'user' | 'admin',
+      });
       if (result.error) {
         toast.error(result.error.message || 'Failed to update role');
         return;
@@ -174,7 +188,9 @@ export default function UserTable() {
     if (dialog?.type !== 'unban') return;
     setPending(true);
     try {
-      const result = await authClient.admin.unbanUser({ userId: dialog.user.id });
+      const result = await authClient.admin.unbanUser({
+        userId: dialog.user.id,
+      });
       if (result.error) {
         toast.error(result.error.message || 'Failed to unban user');
         return;
@@ -191,7 +207,9 @@ export default function UserTable() {
     if (dialog?.type !== 'delete') return;
     setPending(true);
     try {
-      const result = await authClient.admin.removeUser({ userId: dialog.user.id });
+      const result = await authClient.admin.removeUser({
+        userId: dialog.user.id,
+      });
       if (result.error) {
         toast.error(result.error.message || 'Failed to delete user');
         return;
@@ -204,7 +222,7 @@ export default function UserTable() {
     }
   };
 
-  const columns = useCreation<ColumnDef<AdminUserListItem>[]>(
+  const columns = useCreation<DataTableColumnDef<AdminUserListItem>[]>(
     () => [
       {
         header: 'Name',
@@ -217,7 +235,9 @@ export default function UserTable() {
         header: 'Email',
         accessorKey: 'email',
         cell: ({ getValue }) => (
-          <span className="text-muted-foreground text-sm">{getValue() as string}</span>
+          <span className="text-muted-foreground text-sm">
+            {getValue() as string}
+          </span>
         ),
       },
       {
@@ -268,7 +288,11 @@ export default function UserTable() {
             <DropdownMenu>
               <DropdownMenuTrigger
                 render={
-                  <Button variant="ghost" size="icon-sm" aria-label="Open actions" />
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    aria-label="Open actions"
+                  />
                 }
               >
                 <MoreHorizontalIcon className="size-4" />
@@ -284,11 +308,15 @@ export default function UserTable() {
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 {user.banned ? (
-                  <DropdownMenuItem onClick={() => setDialog({ type: 'unban', user })}>
+                  <DropdownMenuItem
+                    onClick={() => setDialog({ type: 'unban', user })}
+                  >
                     Unban
                   </DropdownMenuItem>
                 ) : (
-                  <DropdownMenuItem onClick={() => setDialog({ type: 'ban', user })}>
+                  <DropdownMenuItem
+                    onClick={() => setDialog({ type: 'ban', user })}
+                  >
                     Ban
                   </DropdownMenuItem>
                 )}
@@ -316,11 +344,17 @@ export default function UserTable() {
         isLoading={isLoading}
         isError={isError}
         nameSearch
-        text={{ searchPlaceholder: 'Search by email', noData: 'No users found.' }}
+        text={{
+          searchPlaceholder: 'Search by email',
+          noData: 'No users found.',
+        }}
         onParamsChange={(params: Record<string, unknown>) => {
           const overrides: Record<string, string | undefined> = { page: '1' };
-          if ('search' in params) overrides.search = (params.search as string | undefined) || undefined;
-          if ('page_size' in params) overrides.page_size = String(params.page_size);
+          if ('search' in params)
+            overrides.search =
+              (params.search as string | undefined) || undefined;
+          if ('page_size' in params)
+            overrides.page_size = String(params.page_size);
           router.push(makeHref(overrides));
         }}
         pagination={{
@@ -337,16 +371,29 @@ export default function UserTable() {
       />
 
       {/* Change Role Dialog */}
-      <Dialog open={dialog?.type === 'role'} onOpenChange={(open) => { if (!open) closeDialog(); }}>
+      <Dialog
+        open={dialog?.type === 'role'}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Change Role</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             <Label htmlFor="role-select">
-              Role for <span className="font-medium">{dialog?.type === 'role' ? dialog.user.email : ''}</span>
+              Role for{' '}
+              <span className="font-medium">
+                {dialog?.type === 'role' ? dialog.user.email : ''}
+              </span>
             </Label>
-            <Select value={selectedRole} onValueChange={(v) => { if (v !== null) setSelectedRole(v); }}>
+            <Select
+              value={selectedRole}
+              onValueChange={(v) => {
+                if (v !== null) setSelectedRole(v);
+              }}
+            >
               <SelectTrigger id="role-select" className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -368,15 +415,23 @@ export default function UserTable() {
       </Dialog>
 
       {/* Ban Dialog */}
-      <Dialog open={dialog?.type === 'ban'} onOpenChange={(open) => { if (!open) closeDialog(); }}>
+      <Dialog
+        open={dialog?.type === 'ban'}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      >
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Ban User</DialogTitle>
           </DialogHeader>
           <div className="grid gap-3 py-2">
             <p className="text-sm text-muted-foreground">
-              Ban <span className="font-medium text-foreground">{dialog?.type === 'ban' ? dialog.user.email : ''}</span>?
-              This will revoke their access.
+              Ban{' '}
+              <span className="font-medium text-foreground">
+                {dialog?.type === 'ban' ? dialog.user.email : ''}
+              </span>
+              ? This will revoke their access.
             </p>
             <Label htmlFor="ban-reason">Reason (optional)</Label>
             <Input
@@ -390,7 +445,11 @@ export default function UserTable() {
             <Button variant="outline" onClick={closeDialog} disabled={pending}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={handleBan} disabled={pending}>
+            <Button
+              variant="destructive"
+              onClick={handleBan}
+              disabled={pending}
+            >
               {pending ? 'Banning...' : 'Ban User'}
             </Button>
           </DialogFooter>
@@ -398,16 +457,27 @@ export default function UserTable() {
       </Dialog>
 
       {/* Unban Alert */}
-      <AlertDialog open={dialog?.type === 'unban'} onOpenChange={(open) => { if (!open) closeDialog(); }}>
+      <AlertDialog
+        open={dialog?.type === 'unban'}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Unban User</AlertDialogTitle>
             <AlertDialogDescription>
-              Restore access for <span className="font-medium text-foreground">{dialog?.type === 'unban' ? dialog.user.email : ''}</span>?
+              Restore access for{' '}
+              <span className="font-medium text-foreground">
+                {dialog?.type === 'unban' ? dialog.user.email : ''}
+              </span>
+              ?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={closeDialog} disabled={pending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={closeDialog} disabled={pending}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction onClick={handleUnban} disabled={pending}>
               {pending ? 'Unbanning...' : 'Unban'}
             </AlertDialogAction>
@@ -416,17 +486,27 @@ export default function UserTable() {
       </AlertDialog>
 
       {/* Delete Alert */}
-      <AlertDialog open={dialog?.type === 'delete'} onOpenChange={(open) => { if (!open) closeDialog(); }}>
+      <AlertDialog
+        open={dialog?.type === 'delete'}
+        onOpenChange={(open) => {
+          if (!open) closeDialog();
+        }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete User</AlertDialogTitle>
             <AlertDialogDescription>
-              Permanently delete <span className="font-medium text-foreground">{dialog?.type === 'delete' ? dialog.user.email : ''}</span>?
-              This action cannot be undone.
+              Permanently delete{' '}
+              <span className="font-medium text-foreground">
+                {dialog?.type === 'delete' ? dialog.user.email : ''}
+              </span>
+              ? This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={closeDialog} disabled={pending}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={closeDialog} disabled={pending}>
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               onClick={handleDelete}

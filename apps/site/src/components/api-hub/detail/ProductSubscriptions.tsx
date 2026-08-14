@@ -1,29 +1,30 @@
-import type { ColumnDef } from '@tanstack/react-table';
-import { useCreation } from 'ahooks';
-import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import Link from 'next/link';
-import { useState } from 'react';
-import { toast } from 'sonner';
-
-import ValidateModal from '@/components/slices/modal/ValidateModal';
-import TimeFormat from '@/components/slices/time-format';
-import { Button } from '@/components/ui/button';
-import { DataTable } from '@/components/base/data-table';
+import { Button } from '@api7/portal-ui/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from '@api7/portal-ui/components/ui/dropdown-menu';
+import { useCreation } from 'ahooks';
+import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
+import {
+  DataTable,
+  type DataTableColumnDef,
+} from '@/components/base/data-table';
+import ValidateModal from '@/components/slices/modal/ValidateModal';
+import TimeFormat from '@/components/slices/time-format';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
-import useDisclosure from '@/lib/hooks/useDisclosure';
 import { useActiveOrganizationId } from '@/lib/hooks/useActiveOrganizationId';
+import useDisclosure from '@/lib/hooks/useDisclosure';
 import { portalClient } from '@/lib/portal-sdk/client';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import type { SubscriptionItem } from '@/types/portal-sdk';
-
 import {
   PRODUCT_STATUS_CONFIG,
   statusCol,
@@ -64,15 +65,18 @@ const ProductSubscriptions = ({ id }: { id: string }) => {
   const req = useSubscriptionList({ api_product_id: productId });
 
   const unsubscribeDisclosure = useDisclosure();
-  const [curSubscription, setCurSubscription] = useState<SubscriptionItem | null>();
+  const [curSubscription, setCurSubscription] =
+    useState<SubscriptionItem | null>();
 
-  const columns = useCreation<ColumnDef<SubscriptionItem>[]>(
+  const columns = useCreation<DataTableColumnDef<SubscriptionItem>[]>(
     () => [
       {
         header: 'Application',
         accessorKey: 'application_name',
         cell: ({ row }) => {
-          const orgSlug = orgs?.find((o) => o.id === row.original.developer_id)?.slug;
+          const orgSlug = orgs?.find(
+            (o) => o.id === row.original.developer_id,
+          )?.slug;
           if (!orgSlug) return row.original.application_name;
           return (
             <Link

@@ -39,6 +39,11 @@ const newGuestCtx = () =>
   });
 
 test.describe('BFF Proxy — Route Access Control', () => {
+  test.skip(
+    process.env.E2E_FE_TARGET === 'site-start',
+    'BFF proxy route was removed from site-start; apps/site still has it',
+  );
+
   // ─── 1. Non-proxied routes — always 404 ──────────────────────────────────────
   test.describe('1. Non-proxied routes — always 404', () => {
     const notFoundCases: Array<[string, string]> = [

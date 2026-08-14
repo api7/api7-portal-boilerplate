@@ -90,7 +90,7 @@ test.describe('Test Gateway Product with DCR table coverage', () => {
   });
 
   test('test search oauth client', async ({ page, a7Ctx, a7UIPage }) => {
-    test.setTimeout(50_000);
+    test.setTimeout(60_000);
 
     await test.step('create keycloak client initial access token', async () => {
       await page.goto(keycloakInitialAccessTokenAddress);
@@ -145,8 +145,9 @@ test.describe('Test Gateway Product with DCR table coverage', () => {
       await page.getByRole('tab', { name: 'OAuth' }).click();
 
       await page.getByRole('button', { name: 'Add OAuth Client' }).click();
-      await page.getByLabel('Identity Provider').click();
-      await page.getByRole('option', { name: dcrProviderName }).click();
+      await expect(page.getByLabel('Identity Provider')).toContainText(
+        dcrProviderName,
+      );
       await page.locator('#redirect_uris_0_redirect_url').fill('*');
       await page.locator('#desc').fill('test desc 1');
       await page
@@ -227,6 +228,36 @@ test.describe('Test Gateway Product with DCR table coverage', () => {
       await expect(
         page.locator('td', { hasText: clientId2 }),
       ).toBeHidden();
+    });
+
+    await test.step('keep identity provider empty when more than one exists', async () => {
+      await page.route('**/dcr_providers**', async (route) => {
+        const res = await route.fetch();
+        const data = await res.json();
+        const [first] = data.list || [];
+        await route.fulfill({
+          response: res,
+          json: {
+            ...data,
+            total: 2,
+            list: [
+              first,
+              {
+                ...first,
+                id: `${first.id}-second`,
+                name: `${dcrProviderName}-second`,
+              },
+            ],
+          },
+        });
+      });
+      // reload so the drawer refetches instead of reusing the single-provider cache
+      await page.reload();
+      await page.getByRole('tab', { name: 'OAuth' }).click();
+      await page.getByRole('button', { name: 'Add OAuth Client' }).click();
+      await expect(page.getByLabel('Identity Provider')).toContainText(
+        'Select provider...',
+      );
     });
   });
 });

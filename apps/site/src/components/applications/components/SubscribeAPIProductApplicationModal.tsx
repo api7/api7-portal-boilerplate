@@ -3,8 +3,8 @@ import { InfoIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Button } from '@api7/portal-ui/components/ui/button';
+import { Checkbox } from '@api7/portal-ui/components/ui/checkbox';
 import {
   Combobox,
   ComboboxChip,
@@ -16,7 +16,7 @@ import {
   ComboboxList,
   ComboboxValue,
   useComboboxAnchor,
-} from '@/components/ui/combobox';
+} from '@api7/portal-ui/components/ui/combobox';
 import {
   Dialog,
   DialogClose,
@@ -25,8 +25,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@/components/ui/dialog';
-import { Field, FieldGroup } from '@/components/ui/field';
+} from '@api7/portal-ui/components/ui/dialog';
+import { Field, FieldGroup } from '@api7/portal-ui/components/ui/field';
 import {
   Item,
   ItemActions,
@@ -34,9 +34,9 @@ import {
   ItemDescription,
   ItemMedia,
   ItemTitle,
-} from '@/components/ui/item';
-import { Label } from '@/components/ui/label';
-import { Spinner } from '@/components/ui/spinner';
+} from '@api7/portal-ui/components/ui/item';
+import { Label } from '@api7/portal-ui/components/ui/label';
+import { Spinner } from '@api7/portal-ui/components/ui/spinner';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { useActiveOrganizationId } from '@/lib/hooks/useActiveOrganizationId';
