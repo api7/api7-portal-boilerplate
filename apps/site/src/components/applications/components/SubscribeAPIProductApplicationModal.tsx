@@ -1,8 +1,3 @@
-import { useCreation, useMemoizedFn } from 'ahooks';
-import { InfoIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-
 import { Button } from '@api7/portal-ui/components/ui/button';
 import { Checkbox } from '@api7/portal-ui/components/ui/checkbox';
 import {
@@ -37,10 +32,16 @@ import {
 } from '@api7/portal-ui/components/ui/item';
 import { Label } from '@api7/portal-ui/components/ui/label';
 import { Spinner } from '@api7/portal-ui/components/ui/spinner';
+import { useMutation } from '@tanstack/react-query';
+import { useCreation, useMemoizedFn } from 'ahooks';
+import { InfoIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
+import { bulkSubscribe } from '@/lib/dal/subscriptions';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { useActiveOrganizationId } from '@/lib/hooks/useActiveOrganizationId';
-import { portalClient } from '@/lib/portal-sdk/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useApplicationList from '@/lib/query/useApplicationList';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import type {
@@ -63,15 +64,13 @@ type Props = UseDisclosureReturn & {
 
 const SubscribeAPIProductModalApplication = (props: Props) => {
   const { open, onClose, productId, onSuccess } = props;
-  const { orgs } = useActiveOrganizationId();
-  const orgSlug = orgs?.[0]?.slug ?? null;
+  const orgSlug = useOrganizationSlug();
   const [selected, setSelected] = useState<Option[]>([]);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const bulkSubscribeMutation = useMutation({ mutationFn: bulkSubscribe });
   const [prevResetKey, setPrevResetKey] = useState({ open, productId });
   if (prevResetKey.open !== open || prevResetKey.productId !== productId) {
     setPrevResetKey({ open, productId });
     setSelected([]);
-    setIsSubmitting(false);
   }
 
   // Get products list with search and pagination
@@ -96,12 +95,14 @@ const SubscribeAPIProductModalApplication = (props: Props) => {
 
   // Handle subscription
   const handleSubscribe = useMemoizedFn(async () => {
-    if (!productId || selected.length === 0) return;
-    setIsSubmitting(true);
+    if (!productId || selected.length === 0 || !orgSlug) return;
     try {
-      await portalClient.subscription.bulkSubscribe({
-        api_products: [productId],
-        applications: selected.map((item) => item.value),
+      await bulkSubscribeMutation.mutateAsync({
+        data: {
+          organizationSlug: orgSlug,
+          api_products: [productId],
+          applications: selected.map((item) => item.value),
+        },
       });
       toast.success('Subscribe Application to API Product Successfully');
       onSuccess?.();
@@ -109,8 +110,6 @@ const SubscribeAPIProductModalApplication = (props: Props) => {
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       toast.error(msg || 'Failed to subscribe application to API product');
-    } finally {
-      setIsSubmitting(false);
     }
   });
 
@@ -242,9 +241,15 @@ const SubscribeAPIProductModalApplication = (props: Props) => {
           <Button
             type="button"
             onClick={handleSubscribe}
-            disabled={selected.length === 0 || isSubmitting}
+            disabled={
+              selected.length === 0 ||
+              bulkSubscribeMutation.isPending ||
+              !orgSlug
+            }
           >
-            {isSubmitting && <Spinner data-icon="inline-start" />}
+            {bulkSubscribeMutation.isPending && (
+              <Spinner data-icon="inline-start" />
+            )}
             Subscribe
           </Button>
         </DialogFooter>

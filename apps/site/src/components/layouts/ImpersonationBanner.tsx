@@ -1,42 +1,23 @@
 import { ShieldAlert } from 'lucide-react';
-import { headers } from 'next/headers';
-import { redirect } from 'next/navigation';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 import { Button } from '@api7/portal-ui/components/ui/button';
-import { RESERVED_FIRST_SEGMENTS } from '@/constants/common';
-import { isImpersonatingSession } from '@/lib/auth/admin';
-import { auth } from '@/lib/auth/server';
-import { getOrganizations, verifySession } from '@/lib/dal/util';
+import { PATH_DASHBOARD_ORGANIZATIONS } from '@/constants/path-prefix';
+import { authClient } from '@/lib/auth/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 
-const ImpersonationBanner = async () => {
-  const session = await verifySession({ redirect: false });
-  if (
-    !session?.user ||
-    !isImpersonatingSession(session.session.impersonatedBy)
-  ) {
-    return null;
-  }
+type ImpersonationBannerProps = {
+  email: string;
+  orgs: { slug: string; name: string }[];
+};
 
-  const hdrs = await headers();
-  const pathname = hdrs.get('x-pathname') ?? '';
-  const firstSegment = pathname.split('/').filter(Boolean)[0];
-  const slug =
-    firstSegment && !RESERVED_FIRST_SEGMENTS.has(firstSegment)
-      ? firstSegment
-      : null;
-
-  let activeOrganizationName: string | null = null;
-  if (slug) {
-    const orgs = await getOrganizations();
-    activeOrganizationName =
-      orgs.find((org) => org.slug === slug)?.name ?? null;
-  }
-
-  async function stopImpersonating() {
-    'use server';
-    await auth.api.stopImpersonating({ headers: await headers() });
-    redirect('/admin/organizations');
-  }
+const ImpersonationBanner = ({ email, orgs }: ImpersonationBannerProps) => {
+  const slug = useOrganizationSlug();
+  const activeOrganizationName = slug
+    ? (orgs.find((org) => org.slug === slug)?.name ?? null)
+    : null;
+  const [isExiting, setIsExiting] = useState(false);
 
   return (
     <div className="sticky top-0 z-60 border-b border-amber-200 bg-amber-50 dark:border-amber-900 dark:bg-amber-950/60">
@@ -55,20 +36,35 @@ const ImpersonationBanner = async () => {
               </>
             )}
             <span className="text-amber-700 dark:text-amber-400">
-              {session.user.email}
+              {email}
             </span>
           </span>
         </div>
-        <form action={stopImpersonating}>
-          <Button
-            type="submit"
-            variant="outline"
-            size="xs"
-            className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100 hover:text-amber-950 dark:border-amber-800 dark:bg-transparent dark:text-amber-300 dark:hover:bg-amber-900/40 dark:hover:text-amber-200"
-          >
-            Exit Impersonation
-          </Button>
-        </form>
+        <Button
+          type="button"
+          variant="outline"
+          size="xs"
+          disabled={isExiting}
+          onClick={async () => {
+            setIsExiting(true);
+            try {
+              const result = await authClient.admin.stopImpersonating();
+              if (result.error) {
+                toast.error(
+                  result.error.message || 'Failed to exit impersonation mode',
+                );
+                setIsExiting(false);
+                return;
+              }
+              window.location.assign(PATH_DASHBOARD_ORGANIZATIONS);
+            } catch {
+              setIsExiting(false);
+            }
+          }}
+          className="border-amber-300 bg-white text-amber-900 hover:bg-amber-100 hover:text-amber-950 dark:border-amber-800 dark:bg-transparent dark:text-amber-300 dark:hover:bg-amber-900/40 dark:hover:text-amber-200"
+        >
+          Exit Impersonation
+        </Button>
       </div>
     </div>
   );

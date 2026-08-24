@@ -22,7 +22,7 @@ export type SettingsViewProps = {
   className?: string
 }
 
-/** Shadcn plugin type. Plugin authors import this from `@api7/portal-ui/lib/auth/auth-plugin`. */
+/** Shadcn plugin type. Plugin authors import this from `@/lib/auth/auth-plugin`. */
 export type AuthPlugin = AuthPluginPrimitive<
   AuthPluginComponents,
   AuthViewProps,

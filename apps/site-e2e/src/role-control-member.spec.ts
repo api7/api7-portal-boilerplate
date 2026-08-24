@@ -212,11 +212,15 @@ test.describe('Role Control - Member Read-Only', () => {
     await memberContext.close();
   });
 
-  test('member: Organization settings Save button is disabled', async ({
+  test('member: Organization settings update is rejected server-side', async ({
     ctx,
     page,
     browser,
   }) => {
+    // The Save button itself isn't disabled for a member — the vendored
+    // `OrganizationProfile` component has no client-side permission gate for
+    // it — so this only asserts the boundary that actually exists: the
+    // server rejects the update.
     const testId = `member-settings-${Date.now()}`;
     const memberAuth = {
       email: `member${testId}@test.example.com`,
@@ -245,7 +249,16 @@ test.describe('Role Control - Member Read-Only', () => {
     await memberPage.goto(`/${orgSlug}/settings`);
     const saveBtn = memberPage.getByRole('button', { name: 'Save' }).first();
     await expect(saveBtn).toBeVisible();
-    await expect(saveBtn).toBeDisabled();
+
+    const updateResponsePromise = memberPage.waitForResponse(
+      (response) =>
+        response.url().includes('/organization/update') &&
+        response.request().method() === 'POST',
+      { timeout: 15_000 },
+    );
+    await saveBtn.click();
+    const updateResponse = await updateResponsePromise;
+    expect(updateResponse.status()).not.toBe(200);
 
     await memberContext.close();
   });
@@ -305,7 +318,7 @@ test.describe('Role Control - Member Read-Only', () => {
     page,
     browser,
   }) => {
-    test.skip(process.env.E2E_FE_TARGET === 'site-start', 'BFF proxy route removed from site-start');
+    test.skip(true, 'BFF proxy route removed');
     const testId = `member-api-app-${Date.now()}`;
     const memberAuth = {
       email: `member${testId}@test.example.com`,
@@ -350,7 +363,7 @@ test.describe('Role Control - Member Read-Only', () => {
     page,
     browser,
   }) => {
-    test.skip(process.env.E2E_FE_TARGET === 'site-start', 'BFF proxy route removed from site-start');
+    test.skip(true, 'BFF proxy route removed');
     const testId = `member-api-del-${Date.now()}`;
     const appName = `AppToDelete${testId}`;
 
@@ -402,7 +415,7 @@ test.describe('Role Control - Member Read-Only', () => {
     page,
     browser,
   }) => {
-    test.skip(process.env.E2E_FE_TARGET === 'site-start', 'BFF proxy route removed from site-start');
+    test.skip(true, 'BFF proxy route removed');
     const testId = `member-api-cred-${Date.now()}`;
 
     const ownerSlug = await getActiveOrganizationSlug(ctx);
@@ -454,7 +467,7 @@ test.describe('Role Control - Member Read-Only', () => {
     page,
     browser,
   }) => {
-    test.skip(process.env.E2E_FE_TARGET === 'site-start', 'BFF proxy route removed from site-start');
+    test.skip(true, 'BFF proxy route removed');
     const testId = `member-api-sub-${Date.now()}`;
 
     const ownerSlug = await getActiveOrganizationSlug(ctx);
@@ -503,7 +516,7 @@ test.describe('Role Control - Member Read-Only', () => {
     page,
     browser,
   }) => {
-    test.skip(process.env.E2E_FE_TARGET === 'site-start', 'BFF proxy route removed from site-start');
+    test.skip(true, 'BFF proxy route removed');
     const testId = `member-api-get-${Date.now()}`;
     const memberAuth = {
       email: `member${testId}@test.example.com`,

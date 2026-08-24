@@ -27,7 +27,7 @@ const SecretAlertField = ({ label, value }: SecretAlertItem) => {
   const clipboard = useClipboard(value);
   return (
     <InputGroup className="mt-2">
-      <InputGroupInput value={value} readOnly />
+      <InputGroupInput value={value} readOnly aria-label={label} />
       <InputGroupAddon align="inline-start" className="min-w-37.5 border-e">
         <InputGroupText>{label}</InputGroupText>
       </InputGroupAddon>

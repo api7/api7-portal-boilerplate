@@ -1,10 +1,12 @@
 'use client';
 
+import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
 import ValidateModal from '@/components/slices/modal/ValidateModal';
+import { deleteApplication } from '@/lib/dal/applications';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { portalClient } from '@/lib/portal-sdk/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 
 type ApplicationDeleteModalProps = UseDisclosureReturn & {
   id?: string;
@@ -13,15 +15,32 @@ type ApplicationDeleteModalProps = UseDisclosureReturn & {
 
 const ApplicationDeleteModal = (props: ApplicationDeleteModalProps) => {
   const { id, name, onOk, onClose, ...rest } = props;
+  const orgSlug = useOrganizationSlug();
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteApplication,
+    onError: (err: unknown) => {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to delete application',
+      );
+    },
+  });
 
   if (!id || !name) return null;
 
-  const handleDelete = () =>
-    portalClient.application.delete(id).then(() => {
-      onOk?.();
-      toast.success('Delete Application Successfully');
-      onClose();
-    });
+  const handleDelete = () => {
+    if (!orgSlug) return Promise.resolve();
+    return deleteMutation
+      .mutateAsync({
+        data: { organizationSlug: orgSlug, applicationId: id },
+      })
+      .then(() => {
+        onOk?.();
+        toast.success('Delete Application Successfully');
+        onClose();
+      })
+      .catch(() => {});
+  };
 
   return (
     <ValidateModal

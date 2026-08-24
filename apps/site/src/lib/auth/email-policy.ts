@@ -1,3 +1,7 @@
+import { createServerFn } from '@tanstack/react-start';
+import z from 'zod';
+
+import { getConfig } from '@/lib/config';
 import type { AppConfig } from '@/lib/config/schema';
 
 export type EmailPolicy =
@@ -34,3 +38,11 @@ export function isSsoPolicyEmail(
 ): boolean {
   return getEmailPolicy(email, providers).type === 'sso';
 }
+
+export const checkEmailPolicy = createServerFn({ method: 'POST' })
+  .validator(z.email())
+  .handler(async ({ data: email }) => {
+    const config = getConfig();
+    const providers = config.auth.sso?.providers ?? [];
+    return getEmailPolicy(email, providers);
+  });

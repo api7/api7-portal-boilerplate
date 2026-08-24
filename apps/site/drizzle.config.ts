@@ -1,7 +1,8 @@
-import { defineConfig } from "drizzle-kit";
-import { getConfig } from './src/lib/config';
+import { defineConfig } from 'drizzle-kit';
 
-const config = getConfig();
+import { loadConfig } from './src/lib/config/load-config';
+
+const config = loadConfig();
 const dbSchema = config.db.schema;
 
 // When db.schema is configured, inject search_path into the URL so drizzle-kit
@@ -9,8 +10,6 @@ const dbSchema = config.db.schema;
 function withSearchPath(url: string, schema: string): string {
   try {
     const u = new URL(url);
-    // Strip any existing search_path to avoid duplicates or stale values, then
-    // always set the one from config so CLI behaviour matches runtime Pool options.
     const existing = (u.searchParams.get('options') ?? '')
       .replace(/-c\s+search_path=\S+\s*/g, '')
       .trim();
@@ -22,7 +21,7 @@ function withSearchPath(url: string, schema: string): string {
   } catch (err) {
     throw new Error(
       `[drizzle] Failed to inject search_path into db.url for schema "${schema}": ` +
-      (err instanceof Error ? err.message : String(err)),
+        (err instanceof Error ? err.message : String(err)),
     );
   }
 }

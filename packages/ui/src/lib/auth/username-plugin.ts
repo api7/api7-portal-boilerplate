@@ -2,7 +2,7 @@ import { createAuthPlugin } from "@better-auth-ui/core"
 import {
   usernamePlugin as coreUsernamePlugin,
   type UsernamePluginOptions
-} from "@better-auth-ui/core/plugins"
+} from "@better-auth-ui/core/plugins/username"
 
 import { SignInUsername } from "@api7/portal-ui/components/auth/username/sign-in-username"
 import { UsernameField } from "@api7/portal-ui/components/auth/username/username-field"

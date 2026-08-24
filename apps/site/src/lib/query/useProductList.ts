@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { useParams } from '../hooks/useParams';
-import { useSavePage } from '../hooks/useSavePage';
-import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
-import { portalClient } from '../portal-sdk/client';
+import { listApiProductsForOrganization } from '@/lib/dal/api-products';
 import { productListKey } from '@/lib/query/keys';
 import type { SubscriptionStatus } from '@/types/portal-sdk';
 import type { WithSavePage } from '@/types/utils';
+import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
+import { useParams } from '../hooks/useParams';
+import { useSavePage } from '../hooks/useSavePage';
 
 type Params = {
   application_id?: string;
@@ -31,7 +31,18 @@ const useProductList = (p: ProductListParams = {}) => {
   const queryKey = productListKey(orgSlug, paramsKeepNum);
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
     queryKey,
-    queryFn: () => portalClient.apiProduct.list(paramsKeepNum),
+    queryFn: () =>
+      listApiProductsForOrganization({
+        data: {
+          organizationSlug: orgSlug!,
+          page: paramsKeepNum.page,
+          page_size: paramsKeepNum.page_size,
+          search: paramsKeepNum.search,
+          subscription_status: paramsKeepNum.subscription_status,
+          application_id: paramsKeepNum.application_id,
+        },
+      }),
+    enabled: !!orgSlug,
   });
 
   return {
@@ -51,7 +62,6 @@ const useProductList = (p: ProductListParams = {}) => {
     isValidating: isFetching,
     refetch,
     onParamsChange,
-    params: paramsKeepNum,
   };
 };
 

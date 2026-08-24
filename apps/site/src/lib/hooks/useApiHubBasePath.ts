@@ -1,5 +1,3 @@
-'use client';
-
 import { PATH_API_HUB } from '@/constants/path-prefix';
 
 import { useActiveOrganizationId } from './useActiveOrganizationId';

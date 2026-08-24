@@ -13,11 +13,16 @@ export const tableColDesc = <T extends RowData>(
   ({
     ...param,
     cell: ({ getValue }) => {
-      const desc = getValue() as string;
+      const desc = getValue() as string | undefined;
+      if (!desc) return null;
       return (
         <Tooltip>
           <TooltipTrigger
-            render={<span className="block truncate max-w-xs">{desc}</span>}
+            render={
+              <span tabIndex={0} className="block truncate max-w-xs">
+                {desc}
+              </span>
+            }
           />
           <TooltipContent>
             <p>{desc}</p>

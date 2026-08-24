@@ -78,7 +78,20 @@ export function processRealData(
 
   const startTimestamp = startTime ? startTime * 1000 : undefined; // convert to milliseconds
   const endTimestamp = endTime ? endTime * 1000 : undefined; // convert to milliseconds
-  const { keyToDisplayName, displayNames } = createProductMapping(data);
+
+  const rangedData = data.filter((item) => {
+    const itemTimestamp = item.hour_timestamp * 1000;
+    return (
+      (startTimestamp === undefined || itemTimestamp >= startTimestamp) &&
+      (endTimestamp === undefined || itemTimestamp <= endTimestamp)
+    );
+  });
+
+  if (rangedData.length === 0) {
+    return { timeAxis: [], productNames: [], seriesData: {}, totalCalls: 0 };
+  }
+
+  const { keyToDisplayName, displayNames } = createProductMapping(rangedData);
 
   // Determine time range - if greater than 24 hours, aggregate by day; otherwise display by hour
   const isMultipleDays =
@@ -112,7 +125,7 @@ export function processRealData(
     let totalCalls = 0;
 
     // Aggregate data by day
-    data.forEach((item) => {
+    rangedData.forEach((item) => {
       const itemDate = dayjs(item.hour_timestamp * 1000); // Convert to milliseconds
       const dateKey = itemDate.format('YYYY-MM-DD');
       const dayIndex = dateMap.get(dateKey);
@@ -139,7 +152,7 @@ export function processRealData(
   } else {
     // Single day or short time range: display by hour
     const hourTimestamps = new Set<number>();
-    data.forEach((item) => {
+    rangedData.forEach((item) => {
       hourTimestamps.add(item.hour_timestamp);
     });
 
@@ -157,7 +170,7 @@ export function processRealData(
     });
 
     // Fill data
-    data.forEach((item) => {
+    rangedData.forEach((item) => {
       const productKey = getProductKey(item);
       const displayName =
         keyToDisplayName.get(productKey) || item.api_product_name;

@@ -35,7 +35,9 @@ type ListRes<
   OmitItemKeys extends keyof ListItemDefault | undefined = undefined,
 > = {
   total: number;
-  list: Prettify<Omit<Overwrite<ListItemDefault, ListItem>, OmitItemKeys>>[];
+  list: Prettify<
+    Omit<Overwrite<ListItemDefault, ListItem>, Exclude<OmitItemKeys, undefined>>
+  >[];
 };
 
 type ObjRes<T, noDefault = false> = Prettify<{

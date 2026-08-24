@@ -1,9 +1,5 @@
 import { z } from 'zod';
-
-// eslint-disable-next-line @typescript-eslint/no-require-imports
-const safeRegex = require('safe-regex2') as (
-  pattern: string | RegExp,
-) => boolean;
+import safeRegex from 'safe-regex2';
 
 export const configSchema = z.object({
   portal: z.object({
@@ -86,7 +82,7 @@ export const configSchema = z.object({
         message: 'auth.twoFactor.required requires auth.twoFactor.enabled to be true',
         path: ['required'],
       }),
-    socialProviders: z.record(z.string(), z.object(z.any())).optional(),
+    socialProviders: z.record(z.string(), z.looseObject({})).optional(),
     genericOAuthProviders: z
       .array(
         z.looseObject({

@@ -7,7 +7,7 @@ import { KEYCLOAK_CONTAINER_URL, KEYCLOAK_URL } from '../constant';
 const test = baseTest.extend({});
 test.use({ storageState: { cookies: [], origins: [] } });
 
-// Keycloak OIDC configuration (must match auth/server.ts)
+// Keycloak OIDC configuration (must match runtime/api7-ee-minimal/devportal.e2e.config.yaml)
 const oidcClientId = 'devportal-oidc';
 const oidcClientSecret = 'devportal-oidc-secret';
 

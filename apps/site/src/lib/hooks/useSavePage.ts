@@ -1,7 +1,7 @@
 'use client';
 
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { useMemoizedFn } from 'ahooks';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 
 import type { WithSavePage } from '@/types/utils';
 
@@ -16,9 +16,8 @@ const useSavePage = <T extends Record<string, Stringifiable | Stringifiable[] | 
   params: SavePageParams<T>
 ) => {
   const { savePage = false, updateParams } = params;
-  const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const { pathname, searchStr } = useLocation();
 
   /**
    * Save page to router when params change
@@ -28,7 +27,13 @@ const useSavePage = <T extends Record<string, Stringifiable | Stringifiable[] | 
     if (!savePage) return;
 
     // Build new search params
-    const newSearchParams = new URLSearchParams(searchParams.toString());
+    const newSearchParams = new URLSearchParams(searchStr);
+    // A key present in the requested update but absent from the merged,
+    // cleaned result was cleared (e.g. set to undefined) — drop it from the
+    // URL too, or its old value would stick around after navigation/refresh.
+    Object.keys(p).forEach((key) => {
+      if (!(key in final)) newSearchParams.delete(key);
+    });
     Object.entries(final).forEach(([key, value]) => {
       if (value === undefined || value === null || value === '') {
         newSearchParams.delete(key);
@@ -43,11 +48,10 @@ const useSavePage = <T extends Record<string, Stringifiable | Stringifiable[] | 
     const newSearch = newSearchParams.toString();
     const newUrl = newSearch ? `${pathname}?${newSearch}` : pathname;
 
-    router.push(newUrl);
+    navigate({ href: newUrl });
   });
 
   return { onParamsChange };
 };
 
 export { useSavePage };
-

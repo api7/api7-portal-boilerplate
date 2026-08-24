@@ -1,10 +1,15 @@
 "use client"
 
 import {
+  type AuthSocialProvider,
   authMutationKeys,
   getAuthLinkURL,
   getSafeRedirectTo
 } from "@better-auth-ui/core"
+import {
+  isPasskeyAutoFillEnabled,
+  withPasskeyAutoFill
+} from "@better-auth-ui/core/plugins/passkey"
 import {
   AuthPrompts,
   useAuth,
@@ -12,7 +17,6 @@ import {
   useSignInEmail
 } from "@better-auth-ui/react"
 import { useIsMutating } from "@tanstack/react-query"
-import type { SocialProvider } from "better-auth/social-providers"
 import { Eye, EyeOff } from "lucide-react"
 import { useSearchParams } from "next/navigation"
 import { type SyntheticEvent, useState, useTransition } from "react"
@@ -104,7 +108,7 @@ export function SignIn({
   )
 
   const { fetchOptions, resetFetchOptions } = useFetchOptions()
-  const continueSignIn = useSignInContinuation(callbackTarget)
+  const continueSignIn = useSignInContinuation()
 
   const [phase, setPhase] = useState<Phase>("email")
   const [enteredEmail, setEnteredEmail] = useState("")
@@ -158,6 +162,8 @@ export function SignIn({
   const Captcha = plugins.find(
     (plugin) => plugin.captchaComponent
   )?.captchaComponent
+
+  const passkeyAutoFill = isPasskeyAutoFillEnabled(plugins)
 
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
 
@@ -248,7 +254,7 @@ export function SignIn({
                     id="email"
                     name="email"
                     type="email"
-                    autoComplete="email"
+                    autoComplete={withPasskeyAutoFill("email", passkeyAutoFill)}
                     placeholder={localization.auth.emailPlaceholder}
                     value={enteredEmail}
                     required
@@ -291,7 +297,7 @@ export function SignIn({
               </p>
 
               <ProviderButton
-                provider={ssoProviderId as SocialProvider}
+                provider={ssoProviderId as AuthSocialProvider}
                 display="full"
                 loginHint={enteredEmail}
               />
@@ -328,7 +334,10 @@ export function SignIn({
                           id="password"
                           name="password"
                           type={isPasswordVisible ? "text" : "password"}
-                          autoComplete="current-password"
+                          autoComplete={withPasskeyAutoFill(
+                            "current-password",
+                            passkeyAutoFill
+                          )}
                           value={password}
                           onChange={(e) => {
                             setPassword(e.target.value)
@@ -451,7 +460,11 @@ export function SignIn({
 
               {hasMagicLink && (
                 <Link
-                  href={`${basePaths.auth}/${viewPaths.auth.magicLink}`}
+                  href={`${basePaths.auth}/${
+                    (magicLinkPluginInstance?.viewPaths?.auth as
+                      | { magicLink?: string }
+                      | undefined)?.magicLink ?? "magic-link"
+                  }`}
                   className="self-center text-sm underline-offset-4 hover:underline"
                 >
                   {sendMagicLinkLabel}

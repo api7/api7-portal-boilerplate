@@ -1,12 +1,14 @@
 'use client';
 
-import { useForm } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
+import { useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
+import { updateCredential } from '@/lib/dal/credentials';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { portalClient } from '@/lib/portal-sdk/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import type { OAuthCredential } from '@/types/portal-sdk';
 import {
   transformAPIRedirectURIsToForm,
@@ -23,6 +25,15 @@ export type OAuthEditDrawerProps = UseDisclosureReturn & {
 const OAuthEditDrawer = (props: OAuthEditDrawerProps) => {
   const { open, onOk, oldData, title, ...rest } = props;
   const applicationId = useApplicationId();
+  const orgSlug = useOrganizationSlug();
+
+  const updateMutation = useMutation({
+    mutationFn: updateCredential,
+    onError: (err) =>
+      toast.error(
+        err instanceof Error ? err.message : `Failed to ${title.toLowerCase()}`,
+      ),
+  });
 
   const defaultValues = {
     dcr_provider_id: oldData?.oauth?.dcr_provider_id ?? '',
@@ -35,22 +46,25 @@ const OAuthEditDrawer = (props: OAuthEditDrawerProps) => {
   const form = useForm({
     defaultValues,
     onSubmit: async ({ value }) => {
-      await portalClient.application.credential.update(
-        applicationId,
-        oldData!.id,
-        {
+      if (!orgSlug) return;
+      await updateMutation.mutateAsync({
+        data: {
+          organizationSlug: orgSlug,
+          applicationId,
+          credentialId: oldData!.id,
           desc: value.desc !== undefined ? value.desc : oldData?.desc,
           type: 'oauth',
           oauth: {
             redirect_uris: transformRedirectURIsToAPI(value.redirect_uris),
           },
         },
-      );
+      });
       onOk?.();
       toast.success(`${title} Successfully`);
       props.onClose();
     },
   });
+  const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
   useEffect(() => {
     if (open) {
@@ -69,7 +83,7 @@ const OAuthEditDrawer = (props: OAuthEditDrawerProps) => {
       open={open}
       title={title}
       onOk={() => form.handleSubmit()}
-      loading={form.state.isSubmitting}
+      loading={isSubmitting || !orgSlug}
       okText="Save"
       {...rest}
     >

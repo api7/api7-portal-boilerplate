@@ -17,7 +17,7 @@ overrides:
   micromatch@<4.0.8: '>=4.0.8'
   cross-spawn@<6.0.6: '>=6.0.6'
   cross-spawn@>=7.0.0 <7.0.5: '>=7.0.5'
-  nanoid@<3.3.8: '>=3.3.8'
+  nanoid@<3.3.18: '>=3.3.18'
   nanoid@>=4.0.0 <5.1.16: '>=5.1.16'
   form-data: '4.0.6'
   esbuild: '0.28.1'
@@ -57,12 +57,19 @@ overrides:
   hono@<4.12.34: '>=4.12.34'
   '@hono/node-server@<2.0.5': '>=2.0.5 <3'
   '@noble/ciphers@<2.2.0': '>=2.2.0'
+  # Pin these two so better-auth/@better-auth-ui resolve to one physical
+  # instance across apps/site and packages/ui, instead of forking on a loose
+  # transitive peer range depending on which workspace package pulls it in.
+  # kysely must stay <0.29 — that's better-auth's own peer range, not just a
+  # dedup choice; 0.29.x resolving here elsewhere was a latent peer violation.
+  kysely: '0.28.17'
+  srvx: '0.12.5'
 
 minimumReleaseAgeExclude:
   - '@api7/portal-sdk'
   - '@fumadocs/base-ui@16.14.3'
   - fumadocs-core@16.14.3
   - fumadocs-mdx@15.2.3
-  - '@better-auth-ui/core@1.6.44'
-  - '@better-auth-ui/react@1.6.44'
+  - '@better-auth-ui/core@1.6.44 || 1.7.5'
+  - '@better-auth-ui/react@1.6.44 || 1.7.5'
   - eslint-plugin-react-refresh@0.5.4

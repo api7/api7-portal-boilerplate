@@ -70,7 +70,7 @@ export const MetaCard: FC<MetaCardProps> = (props) => {
               {customLabels ?? (
                 <div className="flex flex-wrap gap-2">
                   {isLoading
-                    ? Array.from({ length: 3 }, (d, i) => (
+                    ? Array.from({ length: 3 }, (_d, i) => (
                         <Skeleton className="w-8 h-5" key={`sk_${i}`} />
                       ))
                     : Object.keys(labels || {}).map((key) => (

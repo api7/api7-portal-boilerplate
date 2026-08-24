@@ -1,6 +1,6 @@
 'use client';
 
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { useMemo } from 'react';
 
 import { useConfigStatus } from '@api7/portal-ui/lib/config/config-status-context';
@@ -31,8 +31,8 @@ type ApplicationCredentialsProps = {
 export const ApplicationCredentials: React.FC<ApplicationCredentialsProps> = ({
   applicationId,
 }) => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const { pathname, searchStr } = useLocation();
   const { applicationDetail } = useConfigStatus();
 
   const items = useMemo(() => {
@@ -57,6 +57,7 @@ export const ApplicationCredentials: React.FC<ApplicationCredentialsProps> = ({
     ].filter((tab) => tab.enabled);
   }, [applicationDetail?.credentialsTabs]);
 
+  const searchParams = new URLSearchParams(searchStr);
   const authTypeParam = searchParams.get('authtype');
   const activeKey = authTypeParam
     ? PARAM_TO_AUTH_TYPE[authTypeParam]
@@ -67,9 +68,9 @@ export const ApplicationCredentials: React.FC<ApplicationCredentialsProps> = ({
       : items[0]?.key;
 
   const handleAuthTypeChange = (key: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchStr);
     params.set('authtype', AUTH_TYPE_TO_PARAM[key] ?? key.toLowerCase());
-    router.replace(`?${params.toString()}`, { scroll: false });
+    navigate({ href: `${pathname}?${params.toString()}`, replace: true });
   };
 
   const tabSwitcher =

@@ -10,10 +10,6 @@
     "lint": "moon run site:lint",
     "lint:fix": "cd apps/site && pnpm lint --fix && moon run site:tsc",
     "preview": "cd apps/site && pnpm preview",
-    "dev:start": "moon run site-start:dev",
-    "build:start": "moon run site-start:build",
-    "tsc:start": "moon run site-start:tsc",
-    "lint:start": "moon run site-start:lint",
     "e2e": "pnpm -F site-e2e --workspace-root e2e",
     "e2e:ui": "cd apps/site-e2e && pnpm e2e:ui",
     "e2e:headed": "cd apps/site-e2e && pnpm e2e:headed"

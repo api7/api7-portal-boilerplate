@@ -1,7 +1,7 @@
 import { APIRequest, expect, request } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
-import { PATH_LANDING, PATH_ORGANIZATION } from '@site/constants/path-prefix';
+import { PATH_LANDING } from '@site/constants/path-prefix';
 
 import { E2E_TARGET_URL } from '../constant';
 import { portalApiRequest } from './portal-api';
@@ -292,18 +292,16 @@ export const createOrganization = async (ctx: Ctx, name: string) => {
   return body;
 };
 
-/**
- * Invite a member via UI: organization members page -> Invite Member -> fill email -> (optional) select role -> Send Invitation.
- * @param role - 'member' (default) or 'admin'
- */
+/** Invite a member via UI: members page -> Invite member -> fill email -> submit. */
 export const inviteMemberViaUI = async (
   ownerPage: Page,
+  orgSlug: string,
   memberEmail: string,
   role: 'member' | 'admin' = 'member',
 ) => {
-  await ownerPage.goto(`${PATH_ORGANIZATION}/members`);
-  await ownerPage.getByRole('button', { name: 'Invite Member' }).click();
-  const dialog = ownerPage.getByRole('dialog', { name: 'Invite Member' });
+  await ownerPage.goto(`/${orgSlug}/members`);
+  await ownerPage.getByRole('button', { name: 'Invite member' }).click();
+  const dialog = ownerPage.getByRole('dialog', { name: 'Invite member' });
   await expect(dialog).toBeVisible();
   await dialog.getByRole('textbox', { name: 'Email' }).fill(memberEmail);
   if (role === 'admin') {
@@ -311,7 +309,7 @@ export const inviteMemberViaUI = async (
     // Radix Select renders options in a portal outside the dialog
     await ownerPage.getByRole('option', { name: 'Admin' }).click();
   }
-  await dialog.getByRole('button', { name: 'Send Invitation' }).click();
+  await dialog.getByRole('button', { name: 'Invite member' }).click();
   await expect(dialog).toBeHidden();
 };
 
@@ -372,14 +370,23 @@ export const getActiveOrganizationId = async (ctx: Ctx): Promise<string> => {
 };
 
 export const getActiveOrganizationSlug = async (ctx: Ctx): Promise<string> => {
-  const res = await ctx.get(
-    `${AUTH_BASE_PATH}/organization/get-full-organization`,
-    {
-      failOnStatusCode: false,
-    },
-  );
-  expect(res.status()).toBe(200);
-  const body = await res.json();
+  // Right after `createOrganization` returns, the session's org linkage can
+  // still be settling — a `get-full-organization` call in that window has
+  // been observed to 400 transiently and succeed moments later. The call is
+  // a read, so retrying is safe.
+  let res;
+  for (let attempt = 0; attempt < maxRequestRetries; attempt++) {
+    res = await ctx.get(
+      `${AUTH_BASE_PATH}/organization/get-full-organization`,
+      {
+        failOnStatusCode: false,
+      },
+    );
+    if (res.status() === 200) break;
+    await sleep(500 * (attempt + 1));
+  }
+  expect(res!.status()).toBe(200);
+  const body = await res!.json();
   expect(body?.slug).toBeTruthy();
   return body.slug as string;
 };

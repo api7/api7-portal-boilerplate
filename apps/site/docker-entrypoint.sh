@@ -5,5 +5,5 @@ set -e
 echo "Running preflight checks..."
 node preflight.js
 
-echo "Starting Next.js server..."
+echo "Starting server..."
 exec "$@"

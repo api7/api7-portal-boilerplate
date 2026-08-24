@@ -1,31 +1,34 @@
 'use client';
 
-import { motion } from 'framer-motion';
-import Image from 'next/image';
-import { useRouter } from 'next/navigation';
+import { useNavigate } from '@tanstack/react-router';
+import { motion, useReducedMotion } from 'framer-motion';
 
 import { Button } from '@api7/portal-ui/components/ui/button';
 import { PATH_ROOT } from '@/constants/path-prefix';
 
 export const BarePageNotFound = () => {
-  const router = useRouter();
+  const navigate = useNavigate();
+  const prefersReducedMotion = useReducedMotion();
   type F = React.MouseEventHandler<HTMLElement>;
-  const goHome: F = (e) => (e.stopPropagation(), router.push(PATH_ROOT));
+  const goHome: F = (e) => (e.stopPropagation(), navigate({ href: PATH_ROOT }));
   return (
     <>
       <motion.div
-        animate={{ y: 20 }}
-        transition={{ repeat: Infinity, duration: 2, repeatType: 'reverse' }}
+        animate={{ y: prefersReducedMotion ? 0 : 20 }}
+        transition={
+          prefersReducedMotion
+            ? undefined
+            : { repeat: Infinity, duration: 2, repeatType: 'reverse' }
+        }
         className="h-[70vh] mx-0 my-auto"
       >
         <div className="h-full w-full flex justify-center items-center">
-          <Image
+          <img
             src="/code/404.svg"
             alt="Error 404 not found Illustration"
             width={449}
             height={449}
-            className="min-h-[432.35px] min-w-[449.92px]"
-            unoptimized
+            className="h-auto max-h-full max-w-full"
             loading="eager"
           />
         </div>

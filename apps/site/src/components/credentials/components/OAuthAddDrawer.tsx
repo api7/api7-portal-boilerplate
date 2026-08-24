@@ -1,18 +1,5 @@
 'use client';
 
-import { useForm, useStore } from '@tanstack/react-form';
-import type {
-  AnyFieldApi,
-  FormAsyncValidateOrFn,
-  FormValidateOrFn,
-  ReactFormExtendedApi,
-} from '@tanstack/react-form';
-import { omit } from 'lodash-es';
-import { TrashIcon } from 'lucide-react';
-import { useEffect } from 'react';
-import { toast } from 'sonner';
-
-import Drawer from '@/components/base/drawer';
 import { Button } from '@api7/portal-ui/components/ui/button';
 import { Input } from '@api7/portal-ui/components/ui/input';
 import {
@@ -23,8 +10,23 @@ import {
   SelectValue,
 } from '@api7/portal-ui/components/ui/select';
 import { Textarea } from '@api7/portal-ui/components/ui/textarea';
+import { useForm, useSelector } from '@tanstack/react-form';
+import type {
+  AnyFieldApi,
+  FormAsyncValidateOrFn,
+  FormValidateOrFn,
+  ReactFormExtendedApi,
+} from '@tanstack/react-form';
+import { useMutation } from '@tanstack/react-query';
+import { omit } from 'lodash-es';
+import { TrashIcon } from 'lucide-react';
+import { useEffect } from 'react';
+import { toast } from 'sonner';
+
+import Drawer from '@/components/base/drawer';
+import { createCredential } from '@/lib/dal/credentials';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { portalClient } from '@/lib/portal-sdk/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useDCRProviderList from '@/lib/query/useDCRProviderList';
 import { cn } from '@/lib/utils';
 import type {
@@ -78,7 +80,7 @@ export const FormItemOAuth = ({
   const { data, isValidating, isError } = useDCRProviderList({
     fetchAll: true,
   });
-  const providerId = useStore(form.store, (s) => s.values.dcr_provider_id);
+  const providerId = useSelector(form.store, (s) => s.values.dcr_provider_id);
 
   // Stale cache can hold a single provider while a refetch is bringing more.
   useEffect(() => {
@@ -230,6 +232,11 @@ const OAuthAddDrawer = (
 ) => {
   const { open, onClose, onOk, setAlertData, ...rest } = props;
   const applicationId = useApplicationId();
+  const orgSlug = useOrganizationSlug();
+
+  const createMutation = useMutation({
+    mutationFn: createCredential,
+  });
 
   const form = useForm({
     defaultValues: {
@@ -238,26 +245,33 @@ const OAuthAddDrawer = (
       desc: '',
     },
     onSubmit: async ({ value }) => {
-      const res = await portalClient.application.credential.create(
-        applicationId,
-        {
-          desc: value.desc,
-          type: 'oauth',
-          oauth: omit(
-            {
-              dcr_provider_id: value.dcr_provider_id,
-              redirect_uris: transformRedirectURIsToAPI(value.redirect_uris),
-            },
-            'desc',
-          ) as OAuthCredential['oauth'],
-        },
-      );
-      setAlertData((res as OAuthCredential).oauth);
-      onOk?.();
-      toast.success('Add OAuth Client Successfully');
-      onClose();
+      if (!orgSlug) return;
+      try {
+        const res = await createMutation.mutateAsync({
+          data: {
+            organizationSlug: orgSlug,
+            applicationId,
+            desc: value.desc,
+            type: 'oauth',
+            oauth: omit(
+              {
+                dcr_provider_id: value.dcr_provider_id,
+                redirect_uris: transformRedirectURIsToAPI(value.redirect_uris),
+              },
+              'desc',
+            ) as OAuthCredential['oauth'],
+          },
+        });
+        setAlertData((res as OAuthCredential).oauth);
+        onOk?.();
+        toast.success('Add OAuth Client Successfully');
+        onClose();
+      } catch {
+        toast.error('Failed to add OAuth client');
+      }
     },
   });
+  const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
   useEffect(() => {
     if (open) form.reset();
@@ -269,7 +283,7 @@ const OAuthAddDrawer = (
       open={open}
       onClose={onClose}
       onOk={() => form.handleSubmit()}
-      loading={form.state.isSubmitting}
+      loading={isSubmitting || !orgSlug}
       {...rest}
     >
       <form

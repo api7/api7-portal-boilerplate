@@ -1,15 +1,6 @@
-import type { NextResponse } from 'next/server';
-
 declare global {
-  type ExtractNextResponseData<T> = T extends (
-    ...args: unknown[]
-  ) => Promise<NextResponse<infer U>>
-    ? U
-    : T extends (...args: unknown[]) => NextResponse<infer U>
-    ? U
-    : never;
-
-  type DeepPartial<T> = T extends (...args: unknown[]) => unknown
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  type DeepPartial<T> = T extends (...args: any[]) => any
     ? T
     : T extends Array<infer U>
     ? Array<DeepPartial<U>>
@@ -17,3 +8,5 @@ declare global {
     ? { [K in keyof T]?: DeepPartial<T[K]> }
     : T;
 }
+
+export {};

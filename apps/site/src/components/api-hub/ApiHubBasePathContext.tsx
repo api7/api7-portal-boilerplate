@@ -1,5 +1,3 @@
-'use client';
-
 import { createContext, useContext } from 'react';
 
 import { PATH_API_HUB } from '@/constants/path-prefix';

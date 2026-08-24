@@ -1,14 +1,12 @@
 "use client"
 
+import type { OrganizationAuthClient } from "@better-auth-ui/core/plugins/organization"
+import { useAuth, useAuthPlugin, useSession } from "@better-auth-ui/react"
 import {
-  type OrganizationAuthClient,
   useActiveOrganization,
-  useAuth,
-  useAuthPlugin,
   useListOrganizations,
-  useSession,
   useSetActiveOrganization
-} from "@better-auth-ui/react"
+} from "@better-auth-ui/react/plugins/organization"
 import type { Organization } from "better-auth/client"
 import {
   ChevronsUpDown,
@@ -69,7 +67,7 @@ export function OrganizationSwitcher({
   trigger
 }: OrganizationSwitcherProps) {
   const { authClient, navigate, basePaths, localization, viewPaths, Link } =
-    useAuth()
+    useAuth<OrganizationAuthClient>()
   const { data: session, isPending: sessionPending } = useSession(authClient)
   const {
     localization: organizationLocalization,
@@ -81,16 +79,12 @@ export function OrganizationSwitcher({
   const isAuthorized = authorized ?? !!session
 
   const { data: activeOrganization, isPending: activeOrganizationPending } =
-    useActiveOrganization(authClient as OrganizationAuthClient)
+    useActiveOrganization(authClient)
 
   const { data: organizations, isPending: organizationsPending } =
-    useListOrganizations(authClient as OrganizationAuthClient, {
-      enabled: isAuthorized
-    })
+    useListOrganizations(authClient, { enabled: isAuthorized })
 
-  const { mutate: setActiveOrganization } = useSetActiveOrganization(
-    authClient as OrganizationAuthClient
-  )
+  const { mutate: setActiveOrganization } = useSetActiveOrganization(authClient)
 
   const isPending =
     sessionPending ||
@@ -196,13 +190,13 @@ export function OrganizationSwitcher({
                       ? `${basePaths.organization}/${slugPrefix}${slug}/${organizationViewPaths.organization.settings}`
                       : `${basePaths.organization}/${organizationViewPaths.organization.settings}`
                   }
-                  aria-label={organizationLocalization.manage}
                   className={cn(
-                    buttonVariants({ variant: "outline", size: "icon" }),
-                    "shrink-0"
+                    buttonVariants({ variant: "outline", size: "sm" })
                   )}
                 >
                   <SettingsIcon className="text-muted-foreground" />
+
+                  {organizationLocalization.manage}
                 </Link>
               )}
             </div>
@@ -213,25 +207,19 @@ export function OrganizationSwitcher({
               {!hideSettings && (
                 <Link
                   href={`${basePaths.settings}/${viewPaths.settings.account}`}
-                  aria-label={localization.settings.settings}
                   className={cn(
-                    buttonVariants({ variant: "outline", size: "icon" }),
-                    "shrink-0"
+                    buttonVariants({ variant: "outline", size: "sm" })
                   )}
                 >
                   <SettingsIcon className="text-muted-foreground" />
+
+                  {localization.settings.settings}
                 </Link>
               )}
             </div>
           ) : null}
 
-          {activeOrganization && <DropdownMenuSeparator />}
-
-          {!activeOrganization && !isPending && (
-            <p className="px-2 py-1.5 text-xs font-medium text-muted-foreground">
-              Select organization
-            </p>
-          )}
+          <DropdownMenuSeparator />
 
           {!!activeOrganization && !hidePersonal && (
             <DropdownMenuItem onClick={() => handleSetActive(null)}>

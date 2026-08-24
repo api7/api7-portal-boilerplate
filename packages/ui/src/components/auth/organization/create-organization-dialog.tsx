@@ -1,13 +1,12 @@
 "use client"
 
-import {
-  type OrganizationAuthClient,
-  useAuth,
-  useAuthPlugin,
-  useCreateOrganization
-} from "@better-auth-ui/react"
+import { parseAdditionalFieldValue } from "@better-auth-ui/core"
+import type { OrganizationAuthClient } from "@better-auth-ui/core/plugins/organization"
+import { useAuth, useAuthPlugin } from "@better-auth-ui/react"
+import { useCreateOrganization } from "@better-auth-ui/react/plugins/organization"
 import { Briefcase } from "lucide-react"
-import { type SyntheticEvent, useState } from "react"
+import { type SyntheticEvent, useEffect, useRef, useState } from "react"
+import { toast } from "sonner"
 import { Button, buttonVariants } from "@api7/portal-ui/components/ui/button"
 import {
   Dialog,
@@ -22,12 +21,11 @@ import { Field, FieldError, FieldLabel } from "@api7/portal-ui/components/ui/fie
 import { Input } from "@api7/portal-ui/components/ui/input"
 import { Spinner } from "@api7/portal-ui/components/ui/spinner"
 import { organizationPlugin } from "@api7/portal-ui/lib/auth/organization-plugin"
+import { AdditionalField } from "../additional-field"
 
-function generateSlug(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
-  const bytes = new Uint8Array(8)
-  crypto.getRandomValues(bytes)
-  return Array.from(bytes, (b) => chars[b % chars.length]).join("")
+/** A short random slug — the slug isn't user-facing at creation time. */
+function generateSlug() {
+  return `org-${Math.random().toString(36).slice(2, 8)}`
 }
 
 /** Props for the `CreateOrganizationDialog` component. */
@@ -40,33 +38,64 @@ export function CreateOrganizationDialog({
   open,
   onOpenChange
 }: CreateOrganizationDialogProps) {
-  const { authClient, localization } = useAuth()
-  const { localization: organizationLocalization } =
+  const { authClient, localization } = useAuth<OrganizationAuthClient>()
+  const { additionalFields, localization: organizationLocalization } =
     useAuthPlugin(organizationPlugin)
 
   const [name, setName] = useState("")
+  const [slug, setSlug] = useState(generateSlug)
   const [nameError, setNameError] = useState<string>()
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const submissionLocked = useRef(false)
 
   const { mutate: createOrganization, isPending: isCreating } =
-    useCreateOrganization(authClient as OrganizationAuthClient, {
-      onSuccess: () => onOpenChange(false)
+    useCreateOrganization(authClient, {
+      onSuccess: () => onOpenChange(false),
+      onSettled: () => {
+        submissionLocked.current = false
+        setIsSubmitting(false)
+      }
     })
 
-  const handleSubmit = (e: SyntheticEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
-    createOrganization({ name, slug: generateSlug() })
+    if (submissionLocked.current) return
+
+    submissionLocked.current = true
+    setIsSubmitting(true)
+    const formData = new FormData(e.currentTarget)
+    const additionalValues: Record<string, unknown> = {}
+    try {
+      for (const field of additionalFields) {
+        const value = parseAdditionalFieldValue(
+          field,
+          formData.get(field.name) as string | null
+        )
+        await field.validate?.(value)
+        if (value !== undefined) additionalValues[field.name] = value
+      }
+    } catch (error) {
+      submissionLocked.current = false
+      setIsSubmitting(false)
+      toast.error(error instanceof Error ? error.message : String(error))
+      return
+    }
+    createOrganization({ name, slug, ...additionalValues })
   }
 
-  const handleOpenChange = (next: boolean) => {
-    if (!next) {
+  const isPending = isCreating || isSubmitting
+
+  useEffect(() => {
+    if (open) {
+      setSlug(generateSlug())
+    } else {
       setName("")
       setNameError(undefined)
     }
-    onOpenChange(next)
-  }
+  }, [open])
 
   return (
-    <Dialog open={open} onOpenChange={handleOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
           <DialogHeader>
@@ -102,24 +131,34 @@ export function CreateOrganizationDialog({
                   setNameError(localization.auth.fieldRequired)
                 }}
                 aria-invalid={!!nameError}
-                disabled={isCreating}
+                disabled={isPending}
               />
 
               <FieldError>{nameError}</FieldError>
             </Field>
+
+            {additionalFields.map((field) => (
+              <AdditionalField
+                key={field.name}
+                field={field}
+                isPending={isPending}
+                name={field.name}
+                optionalLabel={localization.settings.optional}
+              />
+            ))}
           </div>
 
           <DialogFooter>
             <DialogClose
               className={buttonVariants({ variant: "outline" })}
-              disabled={isCreating}
+              disabled={isPending}
               type="button"
             >
               {localization.settings.cancel}
             </DialogClose>
 
-            <Button type="submit" disabled={isCreating}>
-              {isCreating && <Spinner />}
+            <Button type="submit" disabled={isPending}>
+              {isPending && <Spinner />}
 
               {organizationLocalization.createOrganization}
             </Button>

@@ -32,3 +32,27 @@ export const roles = {
   admin,
   member,
 };
+
+const PRIVILEGED_ROLES = new Set<string>(['owner', 'admin'] satisfies Array<
+  keyof typeof roles
+>);
+
+const normalizeRole = (role: unknown): string[] => {
+  if (Array.isArray(role)) {
+    return role.map((v) => String(v).trim().toLowerCase()).filter(Boolean);
+  }
+
+  if (typeof role === 'string') {
+    return role
+      .split(',')
+      .map((v) => v.trim().toLowerCase())
+      .filter(Boolean);
+  }
+
+  return [];
+};
+
+export const isOwnerOrAdminRole = (role: unknown): boolean => {
+  const roleList = normalizeRole(role);
+  return roleList.some((v) => PRIVILEGED_ROLES.has(v));
+};

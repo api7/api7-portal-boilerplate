@@ -3,6 +3,10 @@ export const DEFAULT_LIST_PARAMS = {
   page_size: 10,
 };
 
+export const DEFAULT_PAGE = 1;
+export const DEFAULT_PAGE_SIZE = 10;
+export const MAX_PAGE_SIZE = 100;
+
 /**
  * URL first segments that should never be treated as an organization slug.
  * These are global routes (auth, account, docs, etc.) that don't belong to any
@@ -17,11 +21,13 @@ export const NON_ORG_PREFIX_ROUTE_SEGMENTS = new Set([
 
 /**
  * URL first segments reserved by the app — not organization slugs.
- * Includes global routes + org-scoped but path-fixed routes (api-hub, admin, organization).
+ * Includes global routes + org-scoped but path-fixed routes (api-hub, admin,
+ * organization) + slug-less entry points that redirect to an org (applications).
  */
 export const RESERVED_FIRST_SEGMENTS = new Set([
   ...NON_ORG_PREFIX_ROUTE_SEGMENTS,
   'api-hub',
   'admin',
   'organization',
+  'applications',
 ]);

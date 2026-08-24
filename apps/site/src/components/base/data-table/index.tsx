@@ -59,6 +59,8 @@ type DataTableProps<T extends RowData, P = object> = Omit<
   toolBar?: React.ReactNode[];
   leadingToolBar?: React.ReactNode;
   nameSearch?: boolean;
+  defaultSearch?: string;
+  defaultSorting?: SortingState;
   text?: { searchPlaceholder?: string; noData?: string };
   onParamsChange: (params: P) => void;
   refetch?: () => void;
@@ -87,6 +89,8 @@ export function DataTable<T extends RowData, P = object>({
   toolBar = [],
   leadingToolBar,
   nameSearch = false,
+  defaultSearch = '',
+  defaultSorting = [],
   text,
   onParamsChange,
   hidePagination,
@@ -103,8 +107,13 @@ export function DataTable<T extends RowData, P = object>({
     ...text,
   };
 
-  const [searchValue, setSearchValue] = useState('');
-  const [sorting, setSorting] = useState<SortingState>([]);
+  const [searchValue, setSearchValue] = useState(defaultSearch);
+  const [prevDefaultSearch, setPrevDefaultSearch] = useState(defaultSearch);
+  if (prevDefaultSearch !== defaultSearch) {
+    setPrevDefaultSearch(defaultSearch);
+    setSearchValue(defaultSearch);
+  }
+  const [sorting, setSorting] = useState<SortingState>(defaultSorting);
 
   const table = useTable({
     features: dataTableFeatures,
@@ -117,6 +126,7 @@ export function DataTable<T extends RowData, P = object>({
       const next = typeof updater === 'function' ? updater(sorting) : updater;
       setSorting(next);
       const sort = next[0];
+      if (!hidePagination) pagination?.goToPage(0);
       onParamsChange({
         order_by: sort?.id,
         direction: sort ? (sort.desc ? 'desc' : 'asc') : undefined,
@@ -204,24 +214,19 @@ export function DataTable<T extends RowData, P = object>({
                               : 'none'
                           : undefined
                       }
-                      onClick={
-                        header.column.getCanSort()
-                          ? header.column.getToggleSortingHandler()
-                          : undefined
-                      }
-                      className={
-                        header.column.getCanSort()
-                          ? 'cursor-pointer select-none'
-                          : undefined
-                      }
                     >
-                      {header.isPlaceholder ? null : (
+                      {header.isPlaceholder ? null : header.column.getCanSort() ? (
                         <span
-                          className={cn(
-                            'flex items-center gap-1 text-xs font-medium text-muted-foreground',
-                            header.column.id === 'actions' &&
-                              'w-full justify-end',
-                          )}
+                          role="button"
+                          tabIndex={0}
+                          onClick={header.column.getToggleSortingHandler()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              header.column.toggleSorting();
+                            }
+                          }}
+                          className="flex items-center gap-1 text-xs font-medium text-muted-foreground cursor-pointer select-none"
                         >
                           {flexRender(
                             header.column.columnDef.header,
@@ -233,10 +238,22 @@ export function DataTable<T extends RowData, P = object>({
                           {header.column.getIsSorted() === 'desc' && (
                             <ArrowDownIcon className="size-3" />
                           )}
-                          {!header.column.getIsSorted() &&
-                            header.column.getCanSort() && (
-                              <ChevronsUpDownIcon className="size-3 opacity-40" />
-                            )}
+                          {!header.column.getIsSorted() && (
+                            <ChevronsUpDownIcon className="size-3 opacity-40" />
+                          )}
+                        </span>
+                      ) : (
+                        <span
+                          className={cn(
+                            'flex items-center gap-1 text-xs font-medium text-muted-foreground',
+                            header.column.id === 'actions' &&
+                              'w-full justify-end',
+                          )}
+                        >
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
                         </span>
                       )}
                     </TableHead>

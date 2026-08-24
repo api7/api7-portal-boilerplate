@@ -2,7 +2,7 @@ import axios, { AxiosError, HttpStatusCode } from 'axios';
 import { toast } from 'sonner';
 
 import { RESERVED_FIRST_SEGMENTS } from '@/constants/common';
-import { ReqError } from '@/types/portal-sdk';
+import type { ReqError } from '@/types/portal-sdk';
 import { API7Portal } from '@api7/portal-sdk/browser';
 
 type K = number | string | symbol;
@@ -20,9 +20,12 @@ const errToast = (m: string) => void toast.error(m, { id: m, duration: 5000 });
  * use request header `skipInterceptor: ['404', ...]` to skip interceptor for specific status code.
  */
 const matchSkipInterceptor = (err: AxiosError) => {
-  const interceptors = err.config?.headers?.['skipInterceptor'] || [];
   const status = err.response?.status;
-  return interceptors.some((v: string) => v === String(status));
+  if (status === undefined) return false;
+  const raw = err.config?.headers?.['skipInterceptor'];
+  if (!raw) return false;
+  const interceptors = Array.isArray(raw) ? raw : String(raw).split(',');
+  return interceptors.some((v) => String(v).trim() === String(status));
 };
 
 const portalAxios = axios.create();
@@ -52,9 +55,8 @@ portalAxios.interceptors.request.use((config) => {
 portalAxios.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response) {
+    if (err.response && !matchSkipInterceptor(err)) {
       const d = err.response.data as ReqError;
-      if (matchSkipInterceptor(err)) return;
       const msg = d?.message?.trim();
       match(err.response.status as HttpStatusCode, {
         500: () => {

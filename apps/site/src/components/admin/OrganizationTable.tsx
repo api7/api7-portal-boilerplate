@@ -19,6 +19,12 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@api7/portal-ui/components/ui/dropdown-menu';
+import {
+  useLoaderData,
+  useLocation,
+  useNavigate,
+  useRouter,
+} from '@tanstack/react-router';
 import { useCreation } from 'ahooks';
 import {
   MoreHorizontal,
@@ -26,7 +32,6 @@ import {
   Trash2,
   UserRoundSearch,
 } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -34,13 +39,17 @@ import {
   DataTable,
   type DataTableColumnDef,
 } from '@/components/base/data-table';
-import { PATH_DASHBOARD_ORGANIZATIONS } from '@/constants/path-prefix';
 import {
+  PATH_API_HUB,
+  PATH_APPLICATIONS,
+  PATH_DASHBOARD_ORGANIZATIONS,
+} from '@/constants/path-prefix';
+import { authClient } from '@/lib/auth/client';
+import {
+  type AdminOrganizationListItem,
   deleteOrganizationAsAdmin,
   takeoverOrganization,
-} from '@/lib/actions/admin-organization';
-import { authClient } from '@/lib/auth/client';
-import type { AdminOrganizationListItem } from '@/lib/dal/admin-organization';
+} from '@/lib/dal/admin-organizations';
 
 type Props = {
   data: AdminOrganizationListItem[];
@@ -55,12 +64,14 @@ function ActionCell({
   organizationName,
   organizationSlug,
   ownerId,
+  showApiHub,
   onDeleted,
 }: {
   organizationId: string;
   organizationName: string;
   organizationSlug: string;
   ownerId: string | null;
+  showApiHub: boolean;
   onDeleted: () => void;
 }) {
   const [takeoverOpen, setTakeoverOpen] = useState(false);
@@ -80,7 +91,12 @@ function ActionCell({
         toast.error(result.error.message || 'Failed to impersonate user');
         return;
       }
-      window.location.assign(`/${organizationSlug}/api-hub`);
+      const landingPath = showApiHub ? PATH_API_HUB : PATH_APPLICATIONS;
+      window.location.assign(`/${organizationSlug}${landingPath}`);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to impersonate user',
+      );
     } finally {
       setImpersonatePending(false);
     }
@@ -89,7 +105,7 @@ function ActionCell({
   const handleTakeover = async () => {
     setTakeoverPending(true);
     try {
-      await takeoverOrganization(organizationId);
+      await takeoverOrganization({ data: organizationId });
       toast.success(`You have been added as owner of "${organizationName}".`);
       setTakeoverOpen(false);
     } catch (err) {
@@ -102,7 +118,7 @@ function ActionCell({
   const handleDelete = async () => {
     setDeletePending(true);
     try {
-      await deleteOrganizationAsAdmin(organizationId);
+      await deleteOrganizationAsAdmin({ data: organizationId });
       toast.success(`Organization "${organizationName}" has been deleted.`);
       setDeleteOpen(false);
       onDeleted();
@@ -206,12 +222,15 @@ export default function OrganizationTable({
   total,
   page,
   pageSize,
+  search,
 }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const { searchStr } = useLocation();
+  const { showApiHub } = useLoaderData({ from: '__root__' });
 
   const makeHref = (overrides: Record<string, string | undefined>) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchStr);
     for (const [k, v] of Object.entries(overrides)) {
       if (v === undefined) params.delete(k);
       else params.set(k, v);
@@ -240,6 +259,16 @@ export default function OrganizationTable({
       {
         header: 'Applications',
         accessorKey: 'application_count',
+        cell: ({ getValue }) => {
+          const count = getValue() as number | null;
+          return count === null ? (
+            <span className="text-muted-foreground" title="Failed to fetch">
+              —
+            </span>
+          ) : (
+            count
+          );
+        },
       },
       {
         header: 'Owner',
@@ -269,12 +298,13 @@ export default function OrganizationTable({
             organizationName={row.original.name}
             organizationSlug={row.original.slug}
             ownerId={row.original.owner?.user_id ?? null}
-            onDeleted={() => router.refresh()}
+            showApiHub={showApiHub}
+            onDeleted={() => router.invalidate()}
           />
         ),
       },
     ],
-    [],
+    [showApiHub],
   );
 
   return (
@@ -283,6 +313,7 @@ export default function OrganizationTable({
       data={data}
       isLoading={false}
       nameSearch
+      defaultSearch={search}
       text={{
         searchPlaceholder: 'Search by name or slug',
         noData: 'No organizations found.',
@@ -293,14 +324,14 @@ export default function OrganizationTable({
           overrides.search = (params.search as string | undefined) || undefined;
         if ('page_size' in params)
           overrides.page_size = String(params.page_size);
-        router.push(makeHref(overrides));
+        navigate({ href: makeHref(overrides) });
       }}
       pagination={{
         total,
         pageIndex: page - 1,
         pageSize,
         goToPage: (targetPage) =>
-          router.push(makeHref({ page: String(targetPage + 1) })),
+          navigate({ href: makeHref({ page: String(targetPage + 1) }) }),
         text: { results: 'Results:', of: 'of' },
       }}
     />

@@ -25,6 +25,7 @@
     "typescript": "~5.5.2"
   },
   "dependencies": {
+    "just-diff": "^6.0.2",
     "tinyexec": "^1.0.2"
   }
 }

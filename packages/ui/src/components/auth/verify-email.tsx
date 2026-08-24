@@ -101,11 +101,10 @@ export function VerifyEmail({ className }: VerifyEmailProps) {
                   sendVerificationEmail({
                     email,
                     // `redirectTo` is `useAuth()`'s raw `?redirectTo=` query
-                    // value (no origin validation of its own — see
-                    // app/providers.tsx) and this callbackURL round-trips
-                    // through a verification email, so it must be validated
-                    // here rather than relying on the server to reject a
-                    // cross-origin target.
+                    // value (no origin validation of its own) and this
+                    // callbackURL round-trips through a verification email,
+                    // so it must be validated here rather than relying on
+                    // the server to reject a cross-origin target.
                     callbackURL: `${baseURL}${getSafeRedirectTo(redirectTo, baseURL)}`
                   })
                 }

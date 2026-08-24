@@ -1,23 +1,23 @@
 'use client';
 
-import { authClient } from '@/lib/auth/client';
-import { useActiveOrganizationId } from '@/lib/hooks/useActiveOrganizationId';
 import { useQuery } from '@tanstack/react-query';
 
-import { isOwnerOrAdminRole } from './role';
+import { authClient } from '@/lib/auth/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
+import { isOwnerOrAdminRole } from './permissions';
 
 export const useCanManageApplications = () => {
-  const { activeOrgId, slug } = useActiveOrganizationId();
+  const slug = useOrganizationSlug();
 
   const { data: activeMemberRole, isPending } = useQuery({
-    queryKey: ['active-member-role', activeOrgId],
+    queryKey: ['active-member-role', slug],
     queryFn: async () => {
       const { data } = await authClient.organization.getActiveMemberRole({
         query: slug ? { organizationSlug: slug } : undefined,
       });
       return data?.role ?? null;
     },
-    enabled: !!activeOrgId && !!slug,
+    enabled: !!slug,
   });
 
   return {

@@ -5,7 +5,7 @@ import { useRef, useState } from 'react';
 import { useDeepCompareEffect, useMemoizedFn, useReactive } from 'ahooks';
 import { isEqual, isNumber, isString, mapValues } from 'lodash-es';
 
-import { deepCleanEmptyKeys } from '../utils/form-producer/common';
+import { deepCleanEmptyKeys } from '@/utils/form-producer/common';
 
 type NumToStr<T> = {
   [K in keyof T]: T[K] extends number ? string : T[K];

@@ -1,12 +1,13 @@
 "use client"
 
 import { createQrCodeSvgData } from "@better-auth-ui/core"
+import type { TwoFactorAuthClient } from "@better-auth-ui/core/plugins/two-factor"
 import {
-  type TwoFactorAuthClient,
   useAuth,
   useAuthPlugin,
-  useVerifyTotp
+  useCopyToClipboard
 } from "@better-auth-ui/react"
+import { useVerifyTotp } from "@better-auth-ui/react/plugins/two-factor"
 import { Check, Copy, ShieldCheck } from "lucide-react"
 import {
   type SyntheticEvent,
@@ -101,8 +102,13 @@ export function EnableTwoFactorDialog({
   const [totpUri, setTotpUri] = useState("")
   const [backupCodes, setBackupCodes] = useState<string[]>([])
   const [code, setCode] = useState("")
-  const [setupKeyCopied, setSetupKeyCopied] = useState(false)
-  const copyResetTimeout = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const {
+    copied: setupKeyCopied,
+    copy: copySetupKeyValue,
+    reset: resetSetupKeyCopy
+  } = useCopyToClipboard({
+    onError: () => toast.error(twoFactorLocalization.setupKeyCopyFailed)
+  })
 
   const [passwordError, setPasswordError] = useState<string | undefined>()
   const [isEnrolling, setIsEnrolling] = useState(false)
@@ -154,33 +160,10 @@ export function EnableTwoFactorDialog({
     }
   }, [totpUri])
 
-  useEffect(
-    () => () => {
-      if (copyResetTimeout.current !== null) {
-        clearTimeout(copyResetTimeout.current)
-      }
-    },
-    []
-  )
-
   const copySetupKey = async () => {
     if (!setupKey) return
 
-    try {
-      await navigator.clipboard.writeText(setupKey)
-      setSetupKeyCopied(true)
-
-      if (copyResetTimeout.current !== null) {
-        clearTimeout(copyResetTimeout.current)
-      }
-
-      copyResetTimeout.current = setTimeout(() => {
-        setSetupKeyCopied(false)
-        copyResetTimeout.current = null
-      }, 2000)
-    } catch {
-      toast.error(twoFactorLocalization.setupKeyCopyFailed)
-    }
+    await copySetupKeyValue(setupKey)
   }
 
   const enroll = useCallback(
@@ -219,7 +202,7 @@ export function EnableTwoFactorDialog({
         }
 
         const { data, error } = await twoFactorClient.twoFactor.enable(
-          password ? { password } : {}
+          password ? { method: "totp", password } : { method: "totp" }
         )
         if (error) {
           if (password) {
@@ -231,8 +214,10 @@ export function EnableTwoFactorDialog({
           return
         }
 
-        setTotpUri(data?.totpURI ?? "")
-        setBackupCodes(data?.backupCodes ?? [])
+        if (data?.method === "totp") {
+          setTotpUri(data.totpURI)
+          setBackupCodes(data.backupCodes)
+        }
         setStep("verify")
       } catch (err) {
         toast.error(err instanceof Error ? err.message : "Something went wrong. Please try again.")
@@ -305,14 +290,10 @@ export function EnableTwoFactorDialog({
     setCode("")
     setPasswordError(undefined)
     setIsVerified(false)
-    setSetupKeyCopied(false)
+    resetSetupKeyCopy()
     setIsRequiredSession(false)
     autoAttempted.current = false
     wasOpen.current = false
-    if (copyResetTimeout.current !== null) {
-      clearTimeout(copyResetTimeout.current)
-      copyResetTimeout.current = null
-    }
   }
 
   const handleOpenChange = (nextOpen: boolean) => {

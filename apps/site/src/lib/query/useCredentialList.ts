@@ -1,11 +1,11 @@
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useBoolean, useDeepCompareEffect } from 'ahooks';
 
+import type { WithSavePage } from '@/types/utils';
+import { listCredentials } from '../dal/credentials';
+import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
 import { useParams } from '../hooks/useParams';
 import { useSavePage } from '../hooks/useSavePage';
-import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
-import { portalClient } from '../portal-sdk/client';
-import type { WithSavePage } from '@/types/utils';
 
 type Params = TableParams & {
   auth_method?: 'key-auth' | 'basic-auth' | 'oauth';
@@ -32,7 +32,7 @@ export const useCredentialList = (params: CredentialListParams) => {
   const { paramsOnlyStr, paramsKeepNum, updateParams } = useParams(
     fetchAll
       ? { ...initParams, page: undefined, page_size: undefined }
-      : initParams
+      : initParams,
   );
   const { onParamsChange } = useSavePage<TableParams>({
     savePage,
@@ -40,7 +40,9 @@ export const useCredentialList = (params: CredentialListParams) => {
   });
   // handle async paramsOnlyStr
   // to ensure the enabled state is updated when the applications change
-  const [localEnabled, localEnabledOp] = useBoolean(true);
+  const [localEnabled, localEnabledOp] = useBoolean(
+    Boolean(initParams.application_id?.length),
+  );
   useDeepCompareEffect(() => {
     if (!initParams.application_id?.length) {
       return localEnabledOp.setFalse();
@@ -53,19 +55,30 @@ export const useCredentialList = (params: CredentialListParams) => {
   const goToPage = (page: number) =>
     onParamsChange({ page: page < 1 ? 1 : page });
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
-    queryKey: ['portal', 'org', orgSlug, 'application', paramsOnlyStr.application_id, 'credentials', paramsOnlyStr],
+    queryKey: [
+      'portal',
+      'org',
+      orgSlug,
+      'application',
+      paramsOnlyStr.application_id,
+      'credentials',
+      paramsOnlyStr,
+    ],
     placeholderData: keepPreviousData,
-    queryFn: () => portalClient.credential.list(paramsOnlyStr),
-    enabled: enabled && localEnabled,
+    queryFn: () =>
+      listCredentials({
+        data: { organizationSlug: orgSlug!, ...paramsOnlyStr },
+      }),
+    enabled: enabled && localEnabled && !!orgSlug,
   });
 
   return {
     data: data?.list,
     pagination: {
       total: data?.total || 0,
-      page: paramsKeepNum.page!,
-      pageSize: paramsKeepNum.page_size!,
-      pageIndex: paramsKeepNum.page! - 1,
+      page: paramsKeepNum.page ?? 1,
+      pageSize: paramsKeepNum.page_size ?? 0,
+      pageIndex: (paramsKeepNum.page ?? 1) - 1,
       goToPage,
     },
     isLoading,
@@ -73,7 +86,6 @@ export const useCredentialList = (params: CredentialListParams) => {
     isValidating: isFetching,
     refetch,
     onParamsChange,
-    paramsOnlyStr,
   };
 };
 

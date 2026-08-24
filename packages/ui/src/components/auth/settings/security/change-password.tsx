@@ -1,6 +1,6 @@
 "use client"
 
-import { getViewURL } from "@better-auth-ui/core"
+import { getViewURL, isPasswordCompromisedError } from "@better-auth-ui/core"
 import {
   useAuth,
   useChangePassword,
@@ -27,6 +27,7 @@ import { Skeleton } from "@api7/portal-ui/components/ui/skeleton"
 import { Spinner } from "@api7/portal-ui/components/ui/spinner"
 import { cn } from "@api7/portal-ui/lib/utils"
 import { OpenEmailButton } from "../../open-email-button"
+import { PasswordStrengthMeter } from "../../password-strength-meter"
 
 export type ChangePasswordProps = {
   className?: string
@@ -169,7 +170,16 @@ function ChangePasswordForm({
   const [confirmPassword, setConfirmPassword] = useState("")
 
   const { mutate: changePassword, isPending } = useChangePassword(authClient, {
-    onError: () => {
+    onError: (error) => {
+      // The haveIBeenPwned plugin rejects on the password itself, so it
+      // belongs against the field rather than in a toast.
+      if (isPasswordCompromisedError(error)) {
+        setFieldErrors((prev) => ({
+          ...prev,
+          newPassword: localization.auth.passwordCompromised
+        }))
+      }
+
       setCurrentPassword("")
       setNewPassword("")
       setConfirmPassword("")
@@ -349,6 +359,8 @@ function ChangePasswordForm({
               )}
 
               <FieldError>{fieldErrors.newPassword}</FieldError>
+
+              <PasswordStrengthMeter password={newPassword} />
             </Field>
 
             {emailAndPassword.confirmPassword && (

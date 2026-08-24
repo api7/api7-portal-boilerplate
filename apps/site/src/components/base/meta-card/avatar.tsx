@@ -1,7 +1,5 @@
 import React, { useId } from 'react';
 
-import Image from 'next/image';
-
 import { Skeleton } from '@api7/portal-ui/components/ui/skeleton';
 
 type BgFn = (props: React.SVGAttributes<SVGElement>, p: string) => React.ReactNode;
@@ -681,13 +679,12 @@ export const MetaCardAvatar = (props: MetaCardAvatarProps) => {
     return <Skeleton style={{ width: size, height: size }} />;
   if (src)
     return (
-      <Image
+      <img
         src={src}
         width={size}
         height={size}
         alt={name}
         className="rounded overflow-hidden"
-        unoptimized
       />
     );
   const initials = name.slice(0, /^[a-zA-Z]+$/.test(name[0]) ? 2 : 1);

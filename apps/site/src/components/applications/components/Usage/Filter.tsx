@@ -118,7 +118,9 @@ const Filter = ({ id, onParamsChange }: FilterProps) => {
             isItemEqualToValue={(item, val) => item.value === val.value}
             onValueChange={(val) => {
               setSelectedProducts(val);
-              onParamsChange({ api_product_id: val.map((v) => v.value) });
+              onParamsChange({
+                api_product_id: val.length ? val.map((v) => v.value) : undefined,
+              });
             }}
           >
             <ComboboxChips
@@ -162,7 +164,9 @@ const Filter = ({ id, onParamsChange }: FilterProps) => {
             isItemEqualToValue={(item, val) => item.value === val.value}
             onValueChange={(val) => {
               setSelectedCredentials(val);
-              onParamsChange({ credential_id: val.map((v) => v.value) });
+              onParamsChange({
+                credential_id: val.length ? val.map((v) => v.value) : undefined,
+              });
             }}
           >
             <ComboboxChips

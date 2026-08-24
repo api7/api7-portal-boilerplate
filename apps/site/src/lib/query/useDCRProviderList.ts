@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { useParams } from '../hooks/useParams';
-import { useSavePage } from '../hooks/useSavePage';
-import { portalClient } from '@/lib/portal-sdk/client';
+import { listDCRProviders } from '@/lib/dal/dcr-providers';
 import type { SubscriptionStatus } from '@/types/portal-sdk';
 import type { WithSavePage } from '@/types/utils';
+import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
+import { useParams } from '../hooks/useParams';
+import { useSavePage } from '../hooks/useSavePage';
 
 type Params = {
   application_id?: string;
@@ -18,10 +19,11 @@ type ProductListParams = WithSavePage<{
 
 const useDCRProviderList = (p: ProductListParams = {}) => {
   const { savePage = false, initParams = {}, fetchAll = false } = p;
+  const orgSlug = useOrganizationSlug();
   const { paramsKeepNum, updateParams, paramsHash } = useParams<Params>(
     fetchAll
       ? { ...initParams, page: undefined, page_size: undefined }
-      : initParams
+      : initParams,
   );
   const { onParamsChange } = useSavePage<TableParams>({
     savePage,
@@ -31,8 +33,12 @@ const useDCRProviderList = (p: ProductListParams = {}) => {
   const goToPage = (page: number) =>
     onParamsChange({ page: page < 1 ? 1 : page });
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
-    queryKey: ['portal', 'dcr-providers', paramsHash],
-    queryFn: () => portalClient.dcrProvider.list(paramsKeepNum),
+    queryKey: ['portal', 'dcr-providers', orgSlug, paramsHash],
+    queryFn: () =>
+      listDCRProviders({
+        data: { organizationSlug: orgSlug!, ...paramsKeepNum },
+      }),
+    enabled: !!orgSlug,
   });
 
   return {
@@ -52,7 +58,6 @@ const useDCRProviderList = (p: ProductListParams = {}) => {
     isValidating: isFetching,
     refetch,
     onParamsChange,
-    params: paramsKeepNum,
   };
 };
 

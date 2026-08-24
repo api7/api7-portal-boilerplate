@@ -284,9 +284,12 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
     }
 
     // Copy button writes a formatted block (site + description + codes), not
-    // just the raw codes.
+    // just the raw codes. Feedback is the button's accessible name swapping
+    // to "Backup codes copied" (checkmark icon), not a toast.
     await dialog.getByRole('button', { name: 'Copy to clipboard' }).click();
-    await expect(page.getByText('Backup codes copied')).toBeVisible({ timeout: 3_000 });
+    await expect(
+      dialog.getByRole('button', { name: 'Backup codes copied' }),
+    ).toBeVisible({ timeout: 3_000 });
 
     const clipboard = await page.evaluate(() => navigator.clipboard.readText());
     const origin = new URL(page.url()).origin;

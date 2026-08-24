@@ -1,13 +1,15 @@
 'use client';
 
-import { useForm } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
+import { useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
+import { updateCredential } from '@/lib/dal/credentials';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { portalClient } from '@/lib/portal-sdk/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import type {
   PluginCredential,
   UpdateApplicationCredentialReq,
@@ -27,6 +29,15 @@ export type CredentialEditDrawerProps = UseDisclosureReturn & {
 const CredentialEditDrawer = (props: CredentialEditDrawerProps) => {
   const { open, onOk, oldData, title, ...rest } = props;
   const applicationId = useApplicationId();
+  const orgSlug = useOrganizationSlug();
+
+  const updateMutation = useMutation({
+    mutationFn: updateCredential,
+    onError: (err) =>
+      toast.error(
+        err instanceof Error ? err.message : `Failed to ${title.toLowerCase()}`,
+      ),
+  });
 
   const form = useForm({
     defaultValues: {
@@ -35,21 +46,28 @@ const CredentialEditDrawer = (props: CredentialEditDrawerProps) => {
       labels: transformAPILabelToForm(oldData?.labels) as FormLabel,
     },
     onSubmit: async ({ value }) => {
-      await portalClient.application.credential.update(
-        applicationId,
-        oldData!.id,
-        {
+      if (!orgSlug) return;
+      await updateMutation.mutateAsync({
+        data: {
+          organizationSlug: orgSlug,
+          applicationId,
+          credentialId: oldData!.id,
           type: oldData!.type,
           name: value.name,
           desc: value.desc || undefined,
           labels: transformFormLabelToAPI(value.labels),
-        } as UpdateApplicationCredentialReq,
-      );
+        } as {
+          organizationSlug: string;
+          applicationId: string;
+          credentialId: string;
+        } & UpdateApplicationCredentialReq,
+      });
       onOk?.();
       toast.success(`${title} Successfully`);
       props.onClose();
     },
   });
+  const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
   useEffect(() => {
     if (open) {
@@ -66,7 +84,7 @@ const CredentialEditDrawer = (props: CredentialEditDrawerProps) => {
       open={open}
       title={title}
       onOk={() => form.handleSubmit()}
-      loading={form.state.isSubmitting}
+      loading={isSubmitting || !orgSlug}
       okText="Save"
       {...rest}
     >

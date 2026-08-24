@@ -1,14 +1,16 @@
 'use client';
 
-import { useForm } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
+import { useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import { Alert } from '@/components/base/alert';
 import Drawer from '@/components/base/drawer';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
+import { createCredential } from '@/lib/dal/credentials';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { portalClient } from '@/lib/portal-sdk/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import type { KeyAuthCredential, KeyAuthPluginValue } from '@/types/portal-sdk';
 import type { FormLabel } from '@/types/utils';
 import { transformFormLabelToAPI } from '@/utils/form-producer/labels';
@@ -46,6 +48,17 @@ type KeyAuthAddDrawerProps = UseDisclosureReturn & {
 const KeyAuthAddDrawer = (props: KeyAuthAddDrawerProps) => {
   const { open, onClose, onOk, setAlertData, ...rest } = props;
   const applicationId = useApplicationId();
+  const orgSlug = useOrganizationSlug();
+
+  const createMutation = useMutation({
+    mutationFn: createCredential,
+    onError: (err) =>
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Failed to add key authentication credential',
+      ),
+  });
 
   const form = useForm({
     defaultValues: {
@@ -54,19 +67,18 @@ const KeyAuthAddDrawer = (props: KeyAuthAddDrawerProps) => {
       labels: [] as FormLabel,
     },
     onSubmit: async ({ value }) => {
-      const payload: Parameters<
-        typeof portalClient.application.credential.create
-      >[1] = {
-        name: value.name,
-        desc: value.desc || undefined,
-        labels: transformFormLabelToAPI(value.labels),
-        type: 'key-auth',
-        'key-auth': {},
-      };
-      const res = (await portalClient.application.credential.create(
-        applicationId,
-        payload,
-      )) as KeyAuthCredential;
+      if (!orgSlug) return;
+      const res = (await createMutation.mutateAsync({
+        data: {
+          organizationSlug: orgSlug,
+          applicationId,
+          name: value.name,
+          desc: value.desc || undefined,
+          labels: transformFormLabelToAPI(value.labels),
+          type: 'key-auth',
+          'key-auth': {},
+        },
+      })) as KeyAuthCredential;
       const key = (res['key-auth'] as KeyAuthPluginValue | undefined)?.key;
       if (!key) {
         toast.error(
@@ -81,6 +93,7 @@ const KeyAuthAddDrawer = (props: KeyAuthAddDrawerProps) => {
       onClose();
     },
   });
+  const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
   useEffect(() => {
     if (open) form.reset();
@@ -92,7 +105,7 @@ const KeyAuthAddDrawer = (props: KeyAuthAddDrawerProps) => {
       open={open}
       onClose={onClose}
       onOk={() => form.handleSubmit()}
-      loading={form.state.isSubmitting}
+      loading={isSubmitting || !orgSlug}
       {...rest}
     >
       <form

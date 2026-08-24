@@ -1,15 +1,10 @@
-import { existsSync } from 'fs';
-
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 
 import { API_PUBLIC_ACCESS } from '../src/constants/api-prefix';
 import { getConfig } from '../src/lib/config';
-
-// In Docker, cwd is /app but config.yaml is at /app/apps/site/config.yaml
-// Locally, cwd is apps/site where config.yaml exists
-const CONFIG_SEARCH_PATH = existsSync('apps/site') ? 'apps/site' : undefined;
+import type { AppConfig } from '../src/lib/config/schema';
 
 async function checkPortal(portalConfig: { url: string; token: string }) {
   console.log(`Portal URL: ${portalConfig.url}`);
@@ -20,6 +15,7 @@ async function checkPortal(portalConfig: { url: string; token: string }) {
     headers: {
       Authorization: `Bearer ${portalConfig.token}`,
     },
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {
@@ -30,16 +26,15 @@ async function checkPortal(portalConfig: { url: string; token: string }) {
   console.log('Portal connection successful');
 }
 
-async function checkAndMigrateDb(dbConfig: {
-  url: string;
-  schema?: string;
-  pool?: object;
-  ssl?: boolean | object;
-}) {
+async function checkAndMigrateDb(dbConfig: AppConfig['db']) {
   console.log('Connecting to database...');
   const pool = new Pool({
     connectionString: dbConfig.url,
-    ...dbConfig.pool,
+    max: dbConfig.pool?.max,
+    min: dbConfig.pool?.min,
+    idleTimeoutMillis: dbConfig.pool?.idleTimeout,
+    connectionTimeoutMillis: dbConfig.pool?.connectionTimeout,
+    allowExitOnIdle: dbConfig.pool?.allowExitOnIdle,
     ssl: dbConfig.ssl,
     // Explicit schema overrides any search_path set in the connection URL.
     ...(dbConfig.schema && { options: `-c search_path=${dbConfig.schema}` }),
@@ -64,7 +59,7 @@ async function checkAndMigrateDb(dbConfig: {
 
 async function preflight() {
   console.log('Loading configuration...');
-  const config = getConfig(CONFIG_SEARCH_PATH);
+  const config = getConfig();
 
   await checkPortal(config.portal);
   await checkAndMigrateDb(config.db);

@@ -6,9 +6,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@api7/portal-ui/components/ui/dropdown-menu';
+import { useMutation } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { useCreation } from 'ahooks';
 import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import Link from 'next/link';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -20,9 +21,9 @@ import ValidateModal from '@/components/slices/modal/ValidateModal';
 import TimeFormat from '@/components/slices/time-format';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
-import { useActiveOrganizationId } from '@/lib/hooks/useActiveOrganizationId';
+import { unsubscribe } from '@/lib/dal/subscriptions';
 import useDisclosure from '@/lib/hooks/useDisclosure';
-import { portalClient } from '@/lib/portal-sdk/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 import type { SubscriptionItem } from '@/types/portal-sdk';
 import {
@@ -59,8 +60,18 @@ const SubscribeToApplicationBtn = ({
 
 const ProductSubscriptions = ({ id }: { id: string }) => {
   const productId = id;
-  const { orgs } = useActiveOrganizationId();
+  const orgSlug = useOrganizationSlug();
   const { canManageApplications } = useCanManageApplications();
+  const unsubscribeMutation = useMutation({
+    mutationFn: unsubscribe,
+    onError: (err: unknown) => {
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Failed to unsubscribe application',
+      );
+    },
+  });
 
   const req = useSubscriptionList({ api_product_id: productId });
 
@@ -74,13 +85,11 @@ const ProductSubscriptions = ({ id }: { id: string }) => {
         header: 'Application',
         accessorKey: 'application_name',
         cell: ({ row }) => {
-          const orgSlug = orgs?.find(
-            (o) => o.id === row.original.developer_id,
-          )?.slug;
           if (!orgSlug) return row.original.application_name;
+          const href: string = `/${orgSlug}${PATH_APPLICATIONS}/${row.original.application_id}`;
           return (
             <Link
-              href={`/${orgSlug}${PATH_APPLICATIONS}/${row.original.application_id}`}
+              to={href}
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary hover:text-primary/80"
@@ -136,19 +145,25 @@ const ProductSubscriptions = ({ id }: { id: string }) => {
         ),
       },
     ],
-    [orgs, canManageApplications],
+    [orgSlug, canManageApplications],
   );
 
   const handleUnsubscribe = () => {
-    if (!curSubscription?.id) return;
+    if (!curSubscription?.id || !orgSlug) return;
 
-    return portalClient.subscription
-      .unsubscribe(curSubscription.id)
+    return unsubscribeMutation
+      .mutateAsync({
+        data: {
+          organizationSlug: orgSlug,
+          subscriptionId: curSubscription.id,
+        },
+      })
       .then(() => {
         req.refetch();
         toast.success('Unsubscribed application successfully');
         unsubscribeDisclosure.onClose();
-      });
+      })
+      .catch(() => {});
   };
 
   return (

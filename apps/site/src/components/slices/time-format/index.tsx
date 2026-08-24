@@ -43,7 +43,7 @@ const TimeFormatNormal = ({ time, format, ...divProps }: Props) => (
 const TimeFormat = (props: Props & { fromNow?: boolean }) => {
   const { fromNow = false, time: t, format, ...boxProps } = props;
 
-  if (!t) {
+  if (t == null) {
     return null;
   }
 

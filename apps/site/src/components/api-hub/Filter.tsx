@@ -52,8 +52,10 @@ const FilterContent = (props: FilterSectionProps) => {
         <h3 className="text-sm font-semibold text-muted-foreground mb-2">Status:</h3>
         <div className="flex flex-wrap gap-2">
           {FILTER_CONTENT_DATA.SUBS_STATUS.map(({ label, value }) => (
-            <span
+            <button
+              type="button"
               key={value}
+              aria-pressed={filter.subscription_status === value}
               className={cn(
                 'px-3 py-1 text-sm rounded-md cursor-pointer transition-colors',
                 filter.subscription_status === value
@@ -68,7 +70,7 @@ const FilterContent = (props: FilterSectionProps) => {
               }}
             >
               {label}
-            </span>
+            </button>
           ))}
         </div>
       </div>

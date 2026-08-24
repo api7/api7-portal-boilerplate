@@ -9,9 +9,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@api7/portal-ui/components/ui/dropdown-menu';
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { useCreation } from 'ahooks';
 import { CheckIcon, EllipsisVerticalIcon, XIcon } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useState } from 'react';
 
 import {
@@ -55,25 +55,32 @@ type Props = {
   total: number;
   page: number;
   pageSize: number;
+  refetch: () => void;
 };
 
-const ApprovalTable: React.FC<Props> = ({ data, total, page, pageSize }) => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+const ApprovalTable: React.FC<Props> = ({
+  data,
+  total,
+  page,
+  pageSize,
+  refetch,
+}) => {
+  const navigate = useNavigate();
+  const { searchStr } = useLocation();
   const actionDisclosure = useDisclosure();
   const [curApproval, setCurApproval] = useState<Approval | undefined>();
   const [action, setAction] = useState<ApprovalAction>('accept');
 
   const makeHref = useCallback(
     (overrides: Record<string, string | undefined>) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const params = new URLSearchParams(searchStr);
       for (const [k, v] of Object.entries(overrides)) {
         if (v === undefined) params.delete(k);
         else params.set(k, v);
       }
       return `${PATH_APPROVALS}?${params.toString()}`;
     },
-    [searchParams],
+    [searchStr],
   );
 
   const openAction = useCallback(
@@ -196,14 +203,14 @@ const ApprovalTable: React.FC<Props> = ({ data, total, page, pageSize }) => {
           if ('direction' in params)
             overrides.direction =
               (params.direction as string | undefined) || undefined;
-          router.push(makeHref(overrides));
+          navigate({ href: makeHref(overrides) });
         }}
         pagination={{
           total,
           pageIndex: page - 1,
           pageSize,
           goToPage: (targetPage) =>
-            router.push(makeHref({ page: String(targetPage + 1) })),
+            navigate({ href: makeHref({ page: String(targetPage + 1) }) }),
           text: { results: 'Results:', of: 'of' },
         }}
       />
@@ -211,7 +218,7 @@ const ApprovalTable: React.FC<Props> = ({ data, total, page, pageSize }) => {
         {...actionDisclosure}
         action={action}
         approval={curApproval}
-        onOk={() => router.refresh()}
+        onOk={refetch}
       />
     </>
   );

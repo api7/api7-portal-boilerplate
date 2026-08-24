@@ -26,7 +26,9 @@ function highlight(text: string | undefined, terms: string[]): string {
 }
 
 async function fetchSearchIndex(): Promise<MiniSearch<SearchSection>> {
-  const sections: SearchSection[] = await fetch('/api/docs-search').then((r) => r.json());
+  const res = await fetch('/api/docs-search');
+  if (!res.ok) throw new Error(`Failed to load search index: ${res.status}`);
+  const sections: SearchSection[] = await res.json();
   const ms = new MiniSearch<SearchSection>({
     fields: ['content'],
     storeFields: ['url', 'type', 'content', 'pageTitle', 'sectionTitle'],

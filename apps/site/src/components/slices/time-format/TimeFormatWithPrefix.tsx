@@ -15,7 +15,7 @@ const TimeFormatWithPrefix = (props: Props) => {
   const len = `${format.length * 6}px`;
   const colon = ': ';
 
-  if (!time) return null;
+  if (time == null && !isLoading) return null;
   return (
     <div
       {...rootProps}

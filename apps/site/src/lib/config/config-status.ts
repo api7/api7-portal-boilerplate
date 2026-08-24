@@ -1,7 +1,5 @@
-import 'server-only';
-
-import type { BetterAuthPlugin } from 'better-auth';
 import type { ConfigStatus } from '@api7/portal-ui/lib/config/config-status-context';
+import type { BetterAuthPlugin } from 'better-auth';
 
 import { auth, getGenericOAuthConfigs } from '@/lib/auth/server';
 import { getConfig } from '@/lib/config';
@@ -41,5 +39,13 @@ export function getConfigStatus(): ConfigStatus {
   const requireEmailVerification =
     config.auth.emailAndPassword.requireEmailVerification;
 
-  return { socialProviders, genericOAuthProviders, magicLink, twoFactor, twoFactorRequired, requireEmailVerification, applicationDetail };
+  return {
+    socialProviders,
+    genericOAuthProviders,
+    magicLink,
+    twoFactor,
+    twoFactorRequired,
+    requireEmailVerification,
+    applicationDetail,
+  };
 }

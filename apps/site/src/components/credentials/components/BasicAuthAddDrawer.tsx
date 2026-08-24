@@ -1,22 +1,24 @@
 'use client';
 
-import { useForm } from '@tanstack/react-form';
+import { Button } from '@api7/portal-ui/components/ui/button';
+import { Input } from '@api7/portal-ui/components/ui/input';
+import { useForm, useSelector } from '@tanstack/react-form';
 import type {
   AnyFieldApi,
   FormAsyncValidateOrFn,
   FormValidateOrFn,
   ReactFormExtendedApi,
 } from '@tanstack/react-form';
+import { useMutation } from '@tanstack/react-query';
 import { nanoid } from 'nanoid';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
-import { Button } from '@api7/portal-ui/components/ui/button';
-import { Input } from '@api7/portal-ui/components/ui/input';
+import { createCredential } from '@/lib/dal/credentials';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { portalClient } from '@/lib/portal-sdk/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import type {
   BasicAuthCredential,
   BasicAuthPluginValue,
@@ -141,6 +143,17 @@ type BasicAuthAddDrawerProps = UseDisclosureReturn & {
 const BasicAuthAddDrawer = (props: BasicAuthAddDrawerProps) => {
   const { open, onClose, onOk, setAlertData, ...rest } = props;
   const applicationId = useApplicationId();
+  const orgSlug = useOrganizationSlug();
+
+  const createMutation = useMutation({
+    mutationFn: createCredential,
+    onError: (err) =>
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : 'Failed to add basic authentication credential',
+      ),
+  });
 
   const form = useForm({
     defaultValues: {
@@ -150,28 +163,28 @@ const BasicAuthAddDrawer = (props: BasicAuthAddDrawerProps) => {
       basicAuth: { username: '', password: '' },
     },
     onSubmit: async ({ value }) => {
-      const payload: Parameters<
-        typeof portalClient.application.credential.create
-      >[1] = {
-        name: value.name,
-        desc: value.desc || undefined,
-        labels: transformFormLabelToAPI(value.labels),
-        type: 'basic-auth',
-        'basic-auth': {
-          username: value.basicAuth.username,
-          password: value.basicAuth.password,
+      if (!orgSlug) return;
+      const res = (await createMutation.mutateAsync({
+        data: {
+          organizationSlug: orgSlug,
+          applicationId,
+          name: value.name,
+          desc: value.desc || undefined,
+          labels: transformFormLabelToAPI(value.labels),
+          type: 'basic-auth',
+          'basic-auth': {
+            username: value.basicAuth.username,
+            password: value.basicAuth.password,
+          },
         },
-      };
-      const res = (await portalClient.application.credential.create(
-        applicationId,
-        payload,
-      )) as BasicAuthCredential;
+      })) as BasicAuthCredential;
       setAlertData?.(res['basic-auth'] as BasicAuthPluginValue);
       onOk?.();
       toast.success('Add Basic Authentication Credential Successfully');
       onClose();
     },
   });
+  const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
   useEffect(() => {
     if (open) form.reset();
@@ -183,7 +196,7 @@ const BasicAuthAddDrawer = (props: BasicAuthAddDrawerProps) => {
       open={open}
       onClose={onClose}
       onOk={() => form.handleSubmit()}
-      loading={form.state.isSubmitting}
+      loading={isSubmitting || !orgSlug}
       {...rest}
     >
       <form

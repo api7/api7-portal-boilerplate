@@ -95,13 +95,19 @@ const ScalarDocs: FC<{ configuration: AnyApiReferenceConfiguration }> = ({
   configuration,
 }) => {
   const isEventAdded = useRef(false);
+  const isUnmounted = useRef(false);
   const keydownHandlerRef = useRef<EventListener | null>(null);
+  const listenerTargetRef = useRef<Element | null>(null);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const apiTestModalSelector = '.scalar-api-reference';
 
   useMount(() => {
     if (!isEventAdded.current) {
-      setTimeout(() => {
+      timeoutRef.current = setTimeout(() => {
+        timeoutRef.current = null;
+        if (isUnmounted.current) return;
         const target = document.querySelector(apiTestModalSelector);
+        listenerTargetRef.current = target;
         target?.addEventListener(
           'paste',
           trimPasteContentEvent as EventListener,
@@ -126,7 +132,9 @@ const ScalarDocs: FC<{ configuration: AnyApiReferenceConfiguration }> = ({
   });
 
   useUnmount(() => {
-    const target = document.querySelector(apiTestModalSelector);
+    isUnmounted.current = true;
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    const target = listenerTargetRef.current;
     target?.removeEventListener(
       'paste',
       trimPasteContentEvent as EventListener,

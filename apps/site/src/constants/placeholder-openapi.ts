@@ -17,7 +17,7 @@ paths:
     get:
       operationId: status
       parameters:
-      - name: name
+      - name: code
         in: path
         required: true
         schema:

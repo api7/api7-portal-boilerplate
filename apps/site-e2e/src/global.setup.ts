@@ -3,31 +3,18 @@ import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
 
 import { E2E_TARGET_URL } from '../constant';
 import { API_PORTALS, API_PORTAL_TOKEN } from '../req/dashboard/constant';
-import {
-  E2E_SITE_START_BASE_URL,
-  E2E_SITE_START_DB_NAME,
-  initializeE2EConfig,
-  initializeE2EConfigForSiteStart,
-} from '../utils/devportal-config';
+import { initializeE2EConfig } from '../utils/devportal-config';
 import {
   buildDevPortalImage,
-  buildSiteStartImage,
   ensureMinimalPlatform,
   ensureSupportServices,
   execPostgres,
   getDevPortalLogs,
-  getSiteStartLogs,
   restartDevPortal,
   x,
 } from '../utils/shell';
 
 const E2E_FE_DB_NAME = 'devportal_fe_e2e';
-
-// Which app under test this run deploys: the existing Next.js app (default,
-// unchanged behavior) or the in-progress TanStack Start port. Set by the
-// caller (see .github/workflows/e2e-site-start.yml) — this file stays the
-// single source of truth for both rather than forking into a second setup.
-const E2E_FE_TARGET = process.env.E2E_FE_TARGET === 'site-start' ? 'site-start' : 'site';
 
 const ensureEnv = (value: string | undefined, name: string) => {
   if (!value) {
@@ -229,13 +216,8 @@ setup('deploy developer portal', async ({}) => {
 
   await ctx.dispose();
 
-  if (E2E_FE_TARGET === 'site-start') {
-    await resetDatabase(E2E_SITE_START_DB_NAME);
-    await deployAndVerifySiteStart(token);
-  } else {
-    await resetDatabase(E2E_FE_DB_NAME);
-    await deployAndVerify(token);
-  }
+  await resetDatabase(E2E_FE_DB_NAME);
+  await deployAndVerify(token);
 });
 
 async function deployAndVerify(token: string) {
@@ -252,7 +234,7 @@ async function deployAndVerify(token: string) {
     console.log('Could not fetch initial container logs');
   }
 
-  // Wait for service to be ready with retries (Next.js needs time to compile & start)
+  // Wait for service to be ready with retries.
   // Use 127.0.0.1 instead of localhost to avoid IPv6 resolution issues on some CI runners.
   console.log('Waiting for service to be ready...');
   const verifyUrl = 'http://127.0.0.1:3001';
@@ -332,47 +314,4 @@ async function verifyDeployment(baseUrl: string) {
   } finally {
     await portalCtx.dispose();
   }
-}
-
-async function deployAndVerifySiteStart(token: string) {
-  console.log('Deploying site-start (TanStack Start port)...');
-  initializeE2EConfigForSiteStart(token);
-  await buildSiteStartImage();
-  await restartDevPortal();
-
-  // Dump initial logs for diagnosis
-  try {
-    const { stdout: logs } = await getSiteStartLogs(50);
-    console.log('Initial container logs:\n', logs);
-  } catch {
-    console.log('Could not fetch initial container logs');
-  }
-
-  console.log('Waiting for service to be ready...');
-  const maxWaitMs = 120_000;
-  const pollIntervalMs = 5_000;
-  const deadline = Date.now() + maxWaitMs;
-  let lastError: unknown;
-
-  while (Date.now() < deadline) {
-    try {
-      await verifyDeployment(E2E_SITE_START_BASE_URL);
-      console.log('Global Setup: Complete!');
-      return;
-    } catch (err) {
-      lastError = err;
-      await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-    }
-  }
-
-  try {
-    const { stdout: finalLogs } = await getSiteStartLogs(100);
-    console.log('Final container logs:\n', finalLogs);
-  } catch {
-    console.log('Could not fetch final container logs');
-  }
-
-  throw new Error(
-    `site-start failed to become ready within ${maxWaitMs / 1000}s: ${lastError}`,
-  );
 }

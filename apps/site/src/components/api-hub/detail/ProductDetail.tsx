@@ -1,7 +1,7 @@
 'use client';
 
+import { useNavigate } from '@tanstack/react-router';
 import { map } from 'lodash-es';
-import { useRouter } from 'next/navigation';
 
 import type { ApiProduct } from '@api7/portal-sdk/unstable-types';
 
@@ -116,11 +116,11 @@ const MainPart = ({ product, id, isAuthenticated }: Omit<Props, 'basePath'>) => 
 };
 
 const ProductDetail = ({ product, id, isAuthenticated, basePath }: Props) => {
-  const router = useRouter();
+  const navigate = useNavigate();
 
   return (
     <>
-      <Back onClick={() => router.push(basePath)} />
+      <Back onClick={() => navigate({ href: basePath })} />
       <MainPart product={product} id={id} isAuthenticated={isAuthenticated} />
     </>
   );

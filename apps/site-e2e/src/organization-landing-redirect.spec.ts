@@ -3,14 +3,10 @@ import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
 import { PATH_ACCOUNT_ORGANIZATIONS, PATH_LANDING } from '@site/constants/path-prefix';
 
 import { createOrganization, genCtx, login } from '../req/common';
-import { E2E_SITE_START_DB_NAME } from '../utils/devportal-config';
 import { execSQL } from '../utils/shell';
 
 const ORG_CREATE_INVITATION = `${AUTH_BASE_PATH}/organization/invite-member`;
-const FE_E2E_DB =
-  process.env.E2E_FE_TARGET === 'site-start'
-    ? E2E_SITE_START_DB_NAME
-    : 'devportal_fe_e2e';
+const FE_E2E_DB = 'devportal_fe_e2e';
 
 const createAuth = (prefix: string) => {
   const id = `${prefix}-${Date.now()}`;

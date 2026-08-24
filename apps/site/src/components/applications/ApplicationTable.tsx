@@ -10,9 +10,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@api7/portal-ui/components/ui/dropdown-menu';
+import { Link } from '@tanstack/react-router';
 import { useCreation } from 'ahooks';
 import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import Link from 'next/link';
 import { memo, useState } from 'react';
 
 import {
@@ -65,7 +65,7 @@ const ApplicationTable: React.FC = () => {
           const href = `/${orgSlug}${PATH_APPLICATIONS}/${row.original.id}`;
           return (
             <Link
-              href={href}
+              to={href}
               className="text-primary hover:underline text-sm font-medium"
             >
               {row.original.name}

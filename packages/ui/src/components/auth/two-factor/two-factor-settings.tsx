@@ -48,11 +48,10 @@ export function TwoFactorSettings({ className }: TwoFactorSettingsProps) {
 
   const { twoFactorRequired } = useConfigStatus()
   const canDisable = !twoFactorRequired
+  const action = !isEnabled ? "enable" : canDisable ? "disable" : "reset"
 
   const [disableOpen, setDisableOpen] = useState(false)
   const [regenerateOpen, setRegenerateOpen] = useState(false)
-
-  const action = !isEnabled ? "enable" : canDisable ? "disable" : "reset"
 
   const goToSetup = () =>
     navigate({

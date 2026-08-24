@@ -12,10 +12,15 @@ tasks:
     deps:
       - 'ui:build'
     outputs:
-      - '.next'
+      - '.output'
 
   tsc:
     command: 'pnpm run tsc'
+    deps:
+      - 'ui:build'
+
+  lint:
+    command: 'pnpm run lint'
     deps:
       - 'ui:build'
 
@@ -24,8 +29,3 @@ tasks:
     deps:
       - 'ui:build'
     preset: 'server'
-
-  lint:
-    command: 'pnpm run lint'
-    deps:
-      - 'ui:build'

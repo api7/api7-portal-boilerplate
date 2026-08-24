@@ -36,10 +36,9 @@ import {
   SelectValue,
 } from '@api7/portal-ui/components/ui/select';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Link, useLocation, useNavigate } from '@tanstack/react-router';
 import { useCreation } from 'ahooks';
 import { MoreHorizontalIcon } from 'lucide-react';
-import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -48,14 +47,14 @@ import {
   type DataTableColumnDef,
 } from '@/components/base/data-table';
 import {
-  PATH_DASHBOARD_ORGANIZATIONS,
-  PATH_DASHBOARD_USERS,
-} from '@/constants/path-prefix';
-import {
   DEFAULT_PAGE,
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
-} from '@/lib/api/admin';
+} from '@/constants/common';
+import {
+  PATH_DASHBOARD_ORGANIZATIONS,
+  PATH_DASHBOARD_USERS,
+} from '@/constants/path-prefix';
 import { authClient } from '@/lib/auth/client';
 
 export type AdminUserListItem = {
@@ -83,8 +82,9 @@ function parsePage(value: string | null, fallback: number): number {
 }
 
 export default function UserTable() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const { searchStr } = useLocation();
+  const searchParams = new URLSearchParams(searchStr);
   const queryClient = useQueryClient();
 
   const page = parsePage(searchParams.get('page'), DEFAULT_PAGE);
@@ -131,7 +131,7 @@ export default function UserTable() {
     queryClient.invalidateQueries({ queryKey: [QUERY_KEY] });
 
   const makeHref = (overrides: Record<string, string | undefined>) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchStr);
     for (const [k, v] of Object.entries(overrides)) {
       if (v === undefined) params.delete(k);
       else params.set(k, v);
@@ -159,6 +159,8 @@ export default function UserTable() {
       toast.success('Role updated');
       closeDialog();
       invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to update role');
     } finally {
       setPending(false);
     }
@@ -179,6 +181,8 @@ export default function UserTable() {
       toast.success('User banned');
       closeDialog();
       invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to ban user');
     } finally {
       setPending(false);
     }
@@ -198,6 +202,8 @@ export default function UserTable() {
       toast.success('User unbanned');
       closeDialog();
       invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to unban user');
     } finally {
       setPending(false);
     }
@@ -217,6 +223,8 @@ export default function UserTable() {
       toast.success('User deleted');
       closeDialog();
       invalidate();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete user');
     } finally {
       setPending(false);
     }
@@ -270,14 +278,17 @@ export default function UserTable() {
       {
         header: 'Organizations',
         id: 'organizations',
-        cell: ({ row }) => (
-          <Link
-            href={`${PATH_DASHBOARD_ORGANIZATIONS}?user_id=${row.original.id}`}
-            className="text-primary underline-offset-4 hover:underline text-sm"
-          >
-            View
-          </Link>
-        ),
+        cell: ({ row }) => {
+          const href: string = `${PATH_DASHBOARD_ORGANIZATIONS}?user_id=${row.original.id}`;
+          return (
+            <Link
+              to={href}
+              className="text-primary underline-offset-4 hover:underline text-sm"
+            >
+              View
+            </Link>
+          );
+        },
       },
       {
         header: 'Actions',
@@ -355,14 +366,14 @@ export default function UserTable() {
               (params.search as string | undefined) || undefined;
           if ('page_size' in params)
             overrides.page_size = String(params.page_size);
-          router.push(makeHref(overrides));
+          navigate({ href: makeHref(overrides) });
         }}
         pagination={{
           total,
           pageIndex: page - 1,
           pageSize,
           goToPage: (targetPage) =>
-            router.push(makeHref({ page: String(targetPage + 1) })),
+            navigate({ href: makeHref({ page: String(targetPage + 1) }) }),
           text: {
             results: 'Results:',
             of: 'of',
@@ -370,7 +381,6 @@ export default function UserTable() {
         }}
       />
 
-      {/* Change Role Dialog */}
       <Dialog
         open={dialog?.type === 'role'}
         onOpenChange={(open) => {
@@ -414,7 +424,6 @@ export default function UserTable() {
         </DialogContent>
       </Dialog>
 
-      {/* Ban Dialog */}
       <Dialog
         open={dialog?.type === 'ban'}
         onOpenChange={(open) => {
@@ -456,7 +465,6 @@ export default function UserTable() {
         </DialogContent>
       </Dialog>
 
-      {/* Unban Alert */}
       <AlertDialog
         open={dialog?.type === 'unban'}
         onOpenChange={(open) => {
@@ -485,7 +493,6 @@ export default function UserTable() {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Delete Alert */}
       <AlertDialog
         open={dialog?.type === 'delete'}
         onOpenChange={(open) => {

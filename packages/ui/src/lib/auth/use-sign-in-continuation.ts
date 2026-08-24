@@ -32,22 +32,17 @@ import {
  * When 2FA is instance-wide mandatory (`auth.twoFactor.required`) and the
  * just-signed-in user hasn't enrolled yet, this routes straight to
  * `/account/two-factor` (`TwoFactorSetup`, the dialog-only enrollment page)
- * instead of `redirectTo` — `proxy.ts` would catch this on the *next*
- * request anyway, but deciding it here avoids that extra round trip and
- * lets the just-typed password be handed off via `stashTwoFactorPassword`
- * so the dialog doesn't have to ask again.
+ * instead of `redirectTo` — the app's own auth middleware would catch this on
+ * the *next* request anyway, but deciding it here avoids that extra round
+ * trip and lets the just-typed password be handed off via
+ * `stashTwoFactorPassword` so the dialog doesn't have to ask again.
  *
- * @param redirectOverride - Destination to use instead of the provider's
- *   default `redirectTo` (e.g. a `?redirectTo=` query param the sign-in form
- *   resolved via `getSafeRedirectTo`).
  * @returns A callback taking the resolved data of a sign-in mutation and,
  *   optionally, the password that was just submitted.
  */
-export function useSignInContinuation(redirectOverride?: string) {
+export function useSignInContinuation() {
   const { basePaths, navigate, plugins, redirectTo } = useAuth()
   const { twoFactorRequired } = useConfigStatus()
-
-  const target = redirectOverride ?? redirectTo
 
   const twoFactorPlugin = plugins.find(
     (plugin) => plugin.id === TWO_FACTOR_PLUGIN_ID
@@ -64,11 +59,8 @@ export function useSignInContinuation(redirectOverride?: string) {
       if (twoFactorPath && isTwoFactorRedirect(data)) {
         storeTwoFactorMethods(data.twoFactorMethods)
 
-        // `redirectTo` matches upstream's own convention — same param name
-        // `getAuthRedirectAction`/`getSafeRedirectTo` use, and the same one
-        // the `/account/two-factor` branch below now uses too.
         navigate({
-          to: `${basePaths.auth}/${twoFactorPath}?redirectTo=${encodeURIComponent(target)}`
+          to: `${basePaths.auth}/${twoFactorPath}?redirectTo=${encodeURIComponent(redirectTo)}`
         })
         return
       }
@@ -80,18 +72,18 @@ export function useSignInContinuation(redirectOverride?: string) {
         if (password) stashTwoFactorPassword(password)
 
         navigate({
-          to: `${accountTwoFactorPath}?redirectTo=${encodeURIComponent(target)}`
+          to: `${accountTwoFactorPath}?redirectTo=${encodeURIComponent(redirectTo)}`
         })
         return
       }
 
-      navigate({ to: target })
+      navigate({ to: redirectTo })
     },
     [
       accountTwoFactorPath,
       basePaths.auth,
       navigate,
-      target,
+      redirectTo,
       twoFactorPath,
       twoFactorRequired
     ]

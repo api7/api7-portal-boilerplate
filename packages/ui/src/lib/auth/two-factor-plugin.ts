@@ -2,7 +2,7 @@ import { createAuthPlugin } from "@better-auth-ui/core"
 import {
   twoFactorPlugin as coreTwoFactorPlugin,
   type TwoFactorPluginOptions
-} from "@better-auth-ui/core/plugins"
+} from "@better-auth-ui/core/plugins/two-factor"
 
 import { TwoFactorChallenge } from "@api7/portal-ui/components/auth/two-factor/two-factor-challenge"
 import { TwoFactorSettings } from "@api7/portal-ui/components/auth/two-factor/two-factor-settings"

@@ -1,11 +1,4 @@
-/**
- * Approval client for the Developer Portal.
- *
- * These call the portal's OWN server routes (`/api/approvals*`), not the
- * Control Plane proxy directly — the server routes enforce platform-admin
- * access. Plain fetch is used so the org-slug rewrite (portalClient axios)
- * does not apply.
- */
+/** Approval types and display helpers. */
 
 import type { ListApprovalsResponses } from '@api7/portal-sdk/unstable-types';
 
@@ -44,11 +37,14 @@ export const resolveOperatorName = (approval: Approval): string => {
   }
   try {
     const meta = JSON.parse(approval.metadata ?? '{}') as OperatorMetadata;
-    return (
-      meta.operator_name || meta.operator_id || (approval.operator_name ?? '')
-    );
+    if (typeof meta.operator_name === 'string' && meta.operator_name) {
+      return meta.operator_name;
+    }
+    if (typeof meta.operator_id === 'string' && meta.operator_id) {
+      return meta.operator_id;
+    }
+    return approval.operator_name ?? '';
   } catch {
     return approval.operator_name ?? '';
   }
 };
-

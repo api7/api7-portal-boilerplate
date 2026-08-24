@@ -80,7 +80,6 @@ const BasicAuthTable: React.FC<
       ...DEFAULT_LIST_PARAMS,
     },
   });
-  const { paramsOnlyStr: _, ...reqProps } = req;
   const refetch = req.refetch;
   const editDisclosure = useDisclosure({ onClose: refetch });
   const detailDisclosure = useDisclosure({ onClose: refetch });
@@ -239,7 +238,7 @@ const BasicAuthTable: React.FC<
       <DataTable
         data-cy="basic-auth-table"
         columns={columns}
-        {...reqProps}
+        {...req}
         nameSearch
         leadingToolBar={leadingToolBar}
         text={{ searchPlaceholder: 'Search name, description, label' }}

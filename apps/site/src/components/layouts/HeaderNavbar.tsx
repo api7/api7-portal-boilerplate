@@ -1,7 +1,5 @@
-'use client';
-
 import { useBoolean } from 'ahooks';
-import { usePathname, useRouter } from 'next/navigation';
+import { useLocation, useRouter } from '@tanstack/react-router';
 import { type MouseEvent, useMemo, useState } from 'react';
 
 import { PATH_API_HUB, PATH_APPLICATIONS } from '@/constants/path-prefix';
@@ -37,7 +35,7 @@ const AnchorHoverAni = (
 
 const HeaderNavbar = ({ title, authorized, showApiHub }: HeaderNavbarProps) => {
   const router = useRouter();
-  const pathname = usePathname();
+  const { pathname } = useLocation();
   const orgSlug = useOrganizationSlug();
   const apiHubBasePath = useApiHubBasePath();
   const activeHref = useMemo(() => {
@@ -61,8 +59,11 @@ const HeaderNavbar = ({ title, authorized, showApiHub }: HeaderNavbarProps) => {
       | 'backward',
     onMouseOut: () => setLastHoverIdx(idx),
     onClick: (e: MouseEvent<HTMLAnchorElement>) => {
+      if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) {
+        return;
+      }
       e.preventDefault();
-      router.push(href);
+      router.navigate({ href });
     },
   });
 
@@ -87,7 +88,6 @@ const HeaderNavbar = ({ title, authorized, showApiHub }: HeaderNavbarProps) => {
             <AnchorHoverAni
               key={v.title}
               {...hoverConf(href, i + 1)}
-              {...v}
               href={href}
             >
               {v.title}

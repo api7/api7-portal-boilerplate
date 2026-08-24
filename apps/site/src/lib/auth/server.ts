@@ -1,12 +1,11 @@
-import 'server-only';
+import '@tanstack/react-start/server-only';
 
 import { BASE_ERROR_CODES } from '@better-auth/core/error';
 import { APIError, type BetterAuthPlugin, betterAuth } from 'better-auth';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { createAuthMiddleware } from 'better-auth/api';
-import { nextCookies } from 'better-auth/next-js';
 import {
-  GenericOAuthConfig,
+  type GenericOAuthConfig,
   admin,
   genericOAuth,
   magicLink,
@@ -23,21 +22,8 @@ import { getOrganizationPluginOptions } from './organization';
 
 const config = getConfig();
 
-export const getGenericOAuthConfigs = (): GenericOAuthConfig[] => {
-  const configProviders = config.auth.genericOAuthProviders ?? [];
-  if (process.env.NEXT_PUBLIC_TESTING !== 'true') return configProviders;
-  return [
-    ...configProviders,
-    {
-      providerId: 'keycloak',
-      clientId: 'devportal-oidc',
-      clientSecret: 'devportal-oidc-secret',
-      discoveryUrl:
-        'http://api7ee3-keycloak:8080/realms/master/.well-known/openid-configuration',
-      scopes: ['openid', 'profile', 'email'],
-    },
-  ];
-};
+export const getGenericOAuthConfigs = (): GenericOAuthConfig[] =>
+  config.auth.genericOAuthProviders ?? [];
 
 const getGenericOAuthPlugin = () => {
   const configs = getGenericOAuthConfigs();
@@ -46,7 +32,7 @@ const getGenericOAuthPlugin = () => {
 };
 
 const getTestingConfig = () => {
-  if (process.env.NEXT_PUBLIC_TESTING !== 'true') return [];
+  if (process.env.TESTING !== 'true') return [];
   return [
     // This uses smtp4dev for testing.
     // For production,
@@ -197,14 +183,14 @@ export const auth = betterAuth({
   basePath: AUTH_BASE_PATH,
   // In testing, many parallel workers share the same IP, easily hitting the
   // default 100 req/10s limit and causing 429s that break test fixtures.
-  ...(process.env.NEXT_PUBLIC_TESTING === 'true' && {
+  ...(process.env.TESTING === 'true' && {
     rateLimit: { enabled: false },
   }),
   database: drizzleAdapter(db, {
     provider: 'pg',
     usePlural: true,
   }),
-  experimental: { joins: true },
+  advanced: { database: { joins: true } },
   emailAndPassword: config.auth.emailAndPassword,
   session: {
     expiresIn: config.auth.session.expiresIn,
@@ -233,6 +219,5 @@ export const auth = betterAuth({
     ssoPolicyEnforcement(),
     rejectDuplicateEmailSignUp(),
     ...getTestingConfig(),
-    nextCookies(),
   ],
 });

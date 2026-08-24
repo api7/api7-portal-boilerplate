@@ -398,20 +398,7 @@ test.describe('Impersonation UI', () => {
           await expect(moreBtn).toBeDisabled();
         }
 
-        // Step 4: Write operations should return 403.
-        // site-start has no `/api/{slug}/applications` route to hit directly.
-        if (process.env.E2E_FE_TARGET !== 'site-start') {
-          const createAppRes = await page.request.post(
-            `/api/${ownerOrganizationSlug}/applications`,
-            {
-              data: { name: `test-app-after-downgrade-${Date.now()}` },
-              failOnStatusCode: false,
-            },
-          );
-          expect(createAppRes.status()).toBe(403);
-        }
-
-        // Step 5: Impersonation session remains active despite role change
+        // Step 4: Impersonation session remains active despite role change
         await expect(
           page.getByText('Currently in Impersonation Mode'),
         ).toBeVisible();

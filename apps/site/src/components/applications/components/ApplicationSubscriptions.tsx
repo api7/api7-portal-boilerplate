@@ -8,9 +8,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@api7/portal-ui/components/ui/dropdown-menu';
+import { Link } from '@tanstack/react-router';
 import { useCreation } from 'ahooks';
 import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
-import Link from 'next/link';
 import { useState } from 'react';
 
 import {
@@ -54,7 +54,7 @@ const SubscribeNewAPIProductBtn = ({
 };
 
 type ApplicationSubscriptionsProps = {
-  id?: string;
+  id: string;
 };
 
 const ApplicationSubscriptions = ({ id }: ApplicationSubscriptionsProps) => {
@@ -71,15 +71,18 @@ const ApplicationSubscriptions = ({ id }: ApplicationSubscriptionsProps) => {
       {
         header: 'API Product',
         accessorKey: 'api_product_name',
-        cell: ({ row }) => (
-          <Link
-            href={`${apiHubBasePath}/${row.original.api_product_id}`}
-            target="_blank"
-            className="text-primary hover:underline text-sm font-medium"
-          >
-            {row.original.api_product_name}
-          </Link>
-        ),
+        cell: ({ row }) => {
+          const href: string = `${apiHubBasePath}/${row.original.api_product_id}`;
+          return (
+            <Link
+              to={href}
+              target="_blank"
+              className="text-primary hover:underline text-sm font-medium"
+            >
+              {row.original.api_product_name}
+            </Link>
+          );
+        },
       },
       statusCol<SubscriptionItem>(PRODUCT_STATUS_CONFIG),
       {

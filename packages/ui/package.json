@@ -5,47 +5,74 @@
   "type": "module",
   "exports": {
     "./styles.css": "./src/styles.css",
-    "./lib/utils": { "types": "./dist/lib/utils.d.ts", "default": "./src/lib/utils.ts" },
-    "./hooks/use-mobile": { "types": "./dist/hooks/use-mobile.d.ts", "default": "./src/hooks/use-mobile.ts" },
-    "./components/ui/*": { "types": "./dist/components/ui/*.d.ts", "default": "./src/components/ui/*.tsx" },
-    "./components/auth/use-is-hydrated": { "types": "./dist/components/auth/use-is-hydrated.d.ts", "default": "./src/components/auth/use-is-hydrated.ts" },
-    "./components/auth/*": { "types": "./dist/components/auth/*.d.ts", "default": "./src/components/auth/*.tsx" },
-    "./lib/auth/organization-plugin": { "types": "./dist/lib/auth/organization-plugin.d.ts", "default": "./src/lib/auth/organization-plugin.tsx" },
-    "./lib/auth/*": { "types": "./dist/lib/auth/*.d.ts", "default": "./src/lib/auth/*.ts" },
-    "./lib/config/config-status-context": { "types": "./dist/lib/config/config-status-context.d.ts", "default": "./src/lib/config/config-status-context.tsx" }
+    "./lib/utils": {
+      "types": "./dist/lib/utils.d.ts",
+      "default": "./src/lib/utils.ts"
+    },
+    "./hooks/use-mobile": {
+      "types": "./dist/hooks/use-mobile.d.ts",
+      "default": "./src/hooks/use-mobile.ts"
+    },
+    "./components/ui/*": {
+      "types": "./dist/components/ui/*.d.ts",
+      "default": "./src/components/ui/*.tsx"
+    },
+    "./components/auth/use-is-hydrated": {
+      "types": "./dist/components/auth/use-is-hydrated.d.ts",
+      "default": "./src/components/auth/use-is-hydrated.ts"
+    },
+    "./components/auth/*": {
+      "types": "./dist/components/auth/*.d.ts",
+      "default": "./src/components/auth/*.tsx"
+    },
+    "./lib/auth/organization-plugin": {
+      "types": "./dist/lib/auth/organization-plugin.d.ts",
+      "default": "./src/lib/auth/organization-plugin.tsx"
+    },
+    "./lib/auth/*": {
+      "types": "./dist/lib/auth/*.d.ts",
+      "default": "./src/lib/auth/*.ts"
+    },
+    "./lib/config/config-status-context": {
+      "types": "./dist/lib/config/config-status-context.d.ts",
+      "default": "./src/lib/config/config-status-context.tsx"
+    }
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "prepare": "pnpm run build",
     "tsc": "tsc --noEmit --strict"
   },
   "dependencies": {
     "@base-ui/react": "^1.6.0",
     "@tanstack/react-pacer": "^0.22.1",
+    "bowser": "^2.14.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "date-fns": "^4.4.0",
+    "input-otp": "^1.4.2",
     "lucide-react": "^1.27.0",
     "next-themes": "^0.4.6",
     "radix-ui": "^1.6.7",
+    "react-day-picker": "^10.0.1",
     "shadcn": "^4.15.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.5.0",
     "vaul": "^1.1.2"
   },
   "peerDependencies": {
+    "@better-auth-ui/core": "1.7.5",
+    "@better-auth-ui/react": "1.7.5",
+    "@tanstack/react-query": "^5.101.4",
+    "better-auth": "^1.7.1",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "@better-auth-ui/core": "1.6.44",
-    "@better-auth-ui/react": "1.6.44",
-    "better-auth": "^1.6.25",
-    "@tanstack/react-query": "^5.101.4",
     "tailwindcss": "^4.3.3",
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@types/node": "^24.13.3",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@types/node": "^24.13.3",
     "typescript": "^6.0.3"
   }
 }

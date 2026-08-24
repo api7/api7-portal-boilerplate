@@ -4,7 +4,7 @@ import { useBoolean } from 'ahooks';
 import { useEffect } from 'react';
 import { CheckIcon, CopyIcon } from 'lucide-react';
 
-import { useForm, useStore } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
 import type { AnyFieldApi } from '@tanstack/react-form';
 
 import { type AlertProps } from '@/components/base/alert';
@@ -36,7 +36,7 @@ const ValidateModal = (props: Props) => {
     onSubmit: async () => {},
   });
 
-  const inputText = useStore(form.store, (s) => s.values.inputText);
+  const inputText = useSelector(form.store, (s) => s.values.inputText);
 
   useEffect(() => {
     if (rest.open) {
@@ -53,12 +53,17 @@ const ValidateModal = (props: Props) => {
 
   return (
     <Modal
-      okButtonProps={{
-        disabled: okDisabled,
-        className:
-          'rounded-md disabled:!text-white disabled:!bg-red-500 disabled:opacity-40',
-      }}
       {...rest}
+      okButtonProps={{
+        ...rest.okButtonProps,
+        disabled: okDisabled,
+        className: [
+          rest.okButtonProps?.className,
+          'rounded-md disabled:!text-white disabled:!bg-red-500 disabled:opacity-40',
+        ]
+          .filter(Boolean)
+          .join(' '),
+      }}
       afterClose={() => {
         rest.afterClose?.();
         okDisabledOp.setTrue();

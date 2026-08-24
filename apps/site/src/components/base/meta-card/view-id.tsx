@@ -1,15 +1,14 @@
-import { type FC, type ReactNode, useMemo } from 'react';
-
-import { CheckIcon, CopyIcon } from 'lucide-react';
-
 import { Button } from '@api7/portal-ui/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@api7/portal-ui/components/ui/popover';
-import { cn } from '@/lib/utils';
+import { CheckIcon, CopyIcon } from 'lucide-react';
+import { type FC, type ReactNode, useMemo } from 'react';
+
 import { useClipboard } from '@/lib/hooks/useClipboard';
+import { cn } from '@/lib/utils';
 
 const CopyButton: FC<{ content: string }> = ({ content }) => {
   const { hasCopied, onCopy } = useClipboard(content);
@@ -19,7 +18,7 @@ const CopyButton: FC<{ content: string }> = ({ content }) => {
       size="icon-xs"
       variant="outline"
       aria-label={hasCopied ? 'Copied' : 'Copy'}
-      onClick={onCopy}
+      onClick={() => onCopy()}
     >
       {hasCopied ? <CheckIcon /> : <CopyIcon />}
     </Button>

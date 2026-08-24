@@ -33,7 +33,7 @@ push-release-image:
 push-dev-image:
 	docker build -f Dockerfile \
 		-t ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-${ARCH} . \
-		--build-arg NEXT_PUBLIC_TESTING=true
+		--build-arg TESTING=true
 	docker push ${REGISTRY}/${REGISTRY_NS}/api7-ee-developer-portal-fe:${IMAGE_TAG}-${ARCH}
 .PHONY: push-dev-image
 

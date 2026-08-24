@@ -1,7 +1,7 @@
 'use client';
 
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { useDeepCompareEffect } from 'ahooks';
-import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 import {
@@ -55,16 +55,17 @@ function getPageRange(current: number, total: number): (number | 'ellipsis')[] {
 export default function DataTablePagination({
   total,
   pageIndex,
+  pageSize,
   goToPage,
   onPageSizeChange,
   savePage,
   text = { results: 'Results:', of: 'of' },
   className,
 }: DataTablePaginationProps) {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-  const pathname = usePathname();
-  const pageSizeFromUrl = (Number(searchParams.get('page_size')) || PAGE_SIZE_OPTIONS[0]) as PageSize;
+  const { pathname, searchStr } = useLocation();
+  const navigate = useNavigate();
+  const searchParams = new URLSearchParams(searchStr);
+  const pageSizeFromUrl = (Number(searchParams.get('page_size')) || pageSize || PAGE_SIZE_OPTIONS[0]) as PageSize;
   const [currentPageSize, setCurrentPageSize] = useState<PageSize>(pageSizeFromUrl);
   const [prevPageSizeFromUrl, setPrevPageSizeFromUrl] = useState(pageSizeFromUrl);
   if (prevPageSizeFromUrl !== pageSizeFromUrl) {
@@ -83,7 +84,7 @@ export default function DataTablePagination({
 
     if (!notInPageOptions && !isInvalidPage) return;
 
-    const newParams = new URLSearchParams(searchParams.toString());
+    const newParams = new URLSearchParams(searchStr);
     if (notInPageOptions) {
       newParams.set('page_size', String(PAGE_SIZE_OPTIONS[0]));
       newParams.set('page', '1');
@@ -94,10 +95,10 @@ export default function DataTablePagination({
     }
 
     if (searchParams.toString() === newParams.toString()) return;
-    setCurrentPageSize(Number(newParams.get('page_size')) as PageSize);
     if (!savePage) return;
-    router.replace(`${pathname}?${newParams.toString()}`);
-  }, [searchParams, currentPageSize, total, savePage, pathname]);
+    setCurrentPageSize(Number(newParams.get('page_size')) as PageSize);
+    navigate({ href: `${pathname}?${newParams.toString()}`, replace: true });
+  }, [searchStr, currentPageSize, total, savePage, pathname]);
 
 
   const pages = getPageRange(pageIndex, pageCount);

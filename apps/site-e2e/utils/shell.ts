@@ -37,16 +37,6 @@ const E2E_NETWORK = 'api7-ee_api7';
 const E2E_GATEWAY_HTTP_PORT = 9080;
 const E2E_GATEWAY_HTTPS_PORT = 9443;
 
-// site-start runs the same containerized way apps/site does.
-const E2E_SITE_START_CONTAINER = 'site-start-e2e';
-const E2E_SITE_START_IMAGE =
-  process.env.E2E_SITE_START_IMAGE || 'api7-ee-developer-portal-site-start-e2e:dev';
-export const E2E_SITE_START_PORT = 3002;
-export const E2E_SITE_START_CONFIG_PATH = path.join(
-  ROOT_DIR,
-  'apps/site-start/config.yaml',
-);
-
 type ExcludeFirst<T extends any[]> = T extends [any, ...infer Rest]
   ? Rest
   : never;
@@ -131,15 +121,8 @@ export const ensureSupportServices = async () => {
 
 export const buildDevPortalImage = async () => {
   await runChecked(
-    `cd ${shellQuote(ROOT_DIR)} && docker build -f Dockerfile --build-arg NEXT_PUBLIC_TESTING=true -t ${shellQuote(E2E_FE_IMAGE)} .`,
+    `cd ${shellQuote(ROOT_DIR)} && docker build -f Dockerfile --build-arg TESTING=true -t ${shellQuote(E2E_FE_IMAGE)} .`,
     'Failed to build E2E developer portal image',
-  );
-};
-
-export const buildSiteStartImage = async () => {
-  await runChecked(
-    `cd ${shellQuote(ROOT_DIR)} && docker build -f Dockerfile.site-start --build-arg TESTING=true -t ${shellQuote(E2E_SITE_START_IMAGE)} .`,
-    'Failed to build E2E site-start image',
   );
 };
 
@@ -196,48 +179,15 @@ const startDevPortalContainer = async () => {
   );
 };
 
-const startSiteStartContainer = async () => {
-  if (!fs.existsSync(E2E_SITE_START_CONFIG_PATH)) {
-    throw new Error(
-      `Missing E2E site-start config: ${E2E_SITE_START_CONFIG_PATH}`,
-    );
-  }
-
-  await x(`docker rm -f ${E2E_SITE_START_CONTAINER} || true`);
-  await runChecked(
-    [
-      'docker run -d',
-      `--name ${E2E_SITE_START_CONTAINER}`,
-      `--network ${E2E_NETWORK}`,
-      `-p 127.0.0.1:${E2E_SITE_START_PORT}:${E2E_SITE_START_PORT}`,
-      `-e PORT=${E2E_SITE_START_PORT}`,
-      `-v ${shellQuote(E2E_SITE_START_CONFIG_PATH)}:/app/apps/site-start/config.yaml:ro`,
-      shellQuote(E2E_SITE_START_IMAGE),
-    ].join(' '),
-    'Failed to start E2E site-start container',
-  );
-};
-
-// Routes to the site-start container when E2E_FE_TARGET says so, else apps/site.
 export const restartDevPortal = async (
   _deploymentName = 'developer-portal',
   _serviceName = 'developer-portal',
   _portForward: `${string}:${string}` = '3001:3001',
   _ns = DEFAULT_NAMESPACE,
 ) => {
-  if (process.env.E2E_FE_TARGET === 'site-start') {
-    await startSiteStartContainer();
-    await waitForPort(E2E_SITE_START_PORT, 120000);
-    await new Promise((resolve) => setTimeout(resolve, 5000));
-    return;
-  }
   await startDevPortalContainer();
   await waitForPort(3001, 120000);
   await new Promise((resolve) => setTimeout(resolve, 5000));
-};
-
-export const getSiteStartLogs = async (tail = 100) => {
-  return await x(`docker logs --tail=${tail} ${E2E_SITE_START_CONTAINER}`);
 };
 
 export const KEYCLOAK_PORT = 8080;

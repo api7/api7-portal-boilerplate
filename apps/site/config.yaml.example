@@ -21,7 +21,9 @@ db:
     # connectionTimeout: 2000
     # allowExitOnIdle: false
   # ssl: false
-  # ssl: true                                                # Enable SSL without certificate verification
+  # ssl: true                                                # Enable SSL with default certificate verification
+  # ssl:
+  #   rejectUnauthorized: false                               # SSL without certificate verification
   # ssl:                                                     # SSL with certificate verification
   #   rejectUnauthorized: true
   #   ca: ${DB_SSL_CA}

@@ -1,9 +1,5 @@
 'use client';
 
-import { useState } from 'react';
-
-import { toast } from 'sonner';
-
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,7 +10,10 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@api7/portal-ui/components/ui/alert-dialog';
-import { actOnApproval } from '@/lib/approvals/actions';
+import { useState } from 'react';
+import { toast } from 'sonner';
+
+import { actOnApproval } from '@/lib/dal/admin-approvals';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { type Approval } from '@/lib/portal-sdk/approval';
 
@@ -65,7 +64,7 @@ const ApprovalActionModal = ({
     if (submitting) return;
     setSubmitting(true);
     try {
-      await actOnApproval(approval.id, action);
+      await actOnApproval({ data: { approvalId: approval.id, action } });
       onOk?.();
       toast.success(config.success);
       onClose();
@@ -77,7 +76,12 @@ const ApprovalActionModal = ({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={(o) => { if (!o) onClose(); }}>
+    <AlertDialog
+      open={open}
+      onOpenChange={(o) => {
+        if (!o) onClose();
+      }}
+    >
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{config.title}</AlertDialogTitle>
@@ -86,7 +90,8 @@ const ApprovalActionModal = ({
           {config.lead} this {requestKind} request
           {applicant ? (
             <>
-              {' '}from{' '}
+              {' '}
+              from{' '}
               <strong className="font-semibold text-foreground break-all">
                 {applicant}
               </strong>
@@ -94,7 +99,8 @@ const ApprovalActionModal = ({
           ) : null}
           {approval.resource_name ? (
             <>
-              {' '}for{' '}
+              {' '}
+              for{' '}
               <strong className="font-semibold text-foreground">
                 {approval.resource_name}
               </strong>

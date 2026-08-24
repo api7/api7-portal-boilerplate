@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { debounce } from 'lodash-es';
 import { XIcon } from 'lucide-react';
+import { useEffect, useMemo, useRef } from 'react';
 
 
 import { Alert, type AlertProps } from '@/components/base/alert';
@@ -60,6 +61,20 @@ const Drawer: React.FC<DrawerProps> = ({
   setOpen: _setOpen,
   setClose: _setClose,
 }) => {
+  const onOkRef = useRef(onOk);
+  onOkRef.current = onOk;
+
+  const debouncedOk = useMemo(
+    () => debounce(() => onOkRef.current?.(), okDebounceWait),
+    [okDebounceWait],
+  );
+
+  useEffect(() => {
+    if (!open) debouncedOk.cancel();
+  }, [open, debouncedOk]);
+
+  useEffect(() => () => debouncedOk.cancel(), [debouncedOk]);
+
   return (
     <Sheet
       open={open}
@@ -104,7 +119,7 @@ const Drawer: React.FC<DrawerProps> = ({
             <Button
               size="lg"
               disabled={!!loading}
-              onClick={debounce(onOk, okDebounceWait)}
+              onClick={debouncedOk}
             >
               {loading && <Spinner data-icon="inline-start" />}
               {okText}

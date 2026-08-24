@@ -1,13 +1,8 @@
-'use client';
-
-import {
-  type OrganizationAuthClient,
-  useListOrganizations,
-  useSession,
-} from '@better-auth-ui/react';
+import type { OrganizationAuthClient } from '@better-auth-ui/core/plugins/organization';
+import { useSession } from '@better-auth-ui/react';
+import { useListOrganizations } from '@better-auth-ui/react/plugins/organization';
 
 import { authClient } from '@/lib/auth/client';
-
 import { useOrganizationSlug } from './useOrganizationSlug';
 
 /**
@@ -27,7 +22,7 @@ export const useActiveOrganizationId = () => {
   const { data: session } = useSession(authClient);
 
   const { data: orgs, isPending: isLoading } = useListOrganizations(
-    authClient as OrganizationAuthClient,
+    authClient as unknown as OrganizationAuthClient,
     { enabled: !!session?.user },
   );
 

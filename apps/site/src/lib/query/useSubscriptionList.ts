@@ -1,12 +1,12 @@
-import type { WithSavePage } from '@/types/utils';
-import { ListSubscriptionsData } from '@api7/portal-sdk/unstable-types';
+import type { ListSubscriptionsData } from '@api7/portal-sdk/unstable-types';
 import { useQuery } from '@tanstack/react-query';
 
+import { subscriptionListKey } from '@/lib/query/keys';
+import type { WithSavePage } from '@/types/utils';
+import { listSubscriptions } from '../dal/subscriptions';
 import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
 import { useParams } from '../hooks/useParams';
 import { useSavePage } from '../hooks/useSavePage';
-import { portalClient } from '../portal-sdk/client';
-import { subscriptionListKey } from '@/lib/query/keys';
 
 type SubscriptionListParams = NonNullable<ListSubscriptionsData['query']>;
 export type UseSubscriptionListParams = WithSavePage<
@@ -33,8 +33,11 @@ export const useSubscriptionList = (params: UseSubscriptionListParams = {}) => {
 
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
     queryKey: subscriptionListKey(orgSlug, paramsOnlyStr),
-    queryFn: () => portalClient.subscription.list(paramsOnlyStr),
-    enabled: enabled !== false,
+    queryFn: () =>
+      listSubscriptions({
+        data: { organizationSlug: orgSlug!, ...paramsOnlyStr },
+      }),
+    enabled: enabled !== false && !!orgSlug,
   });
 
   return {
@@ -52,7 +55,6 @@ export const useSubscriptionList = (params: UseSubscriptionListParams = {}) => {
     isValidating: isFetching,
     refetch,
     onParamsChange,
-    params: paramsOnlyStr,
   };
 };
 

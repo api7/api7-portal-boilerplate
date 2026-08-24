@@ -21,6 +21,15 @@
     "requireEmailVerification": false
   "twoFactor":
     "enabled": false
+  "genericOAuthProviders":
+    - "providerId": "keycloak"
+      "clientId": "devportal-oidc"
+      "clientSecret": "devportal-oidc-secret"
+      "discoveryUrl": "http://api7ee3-keycloak:8080/realms/master/.well-known/openid-configuration"
+      "scopes":
+        - "openid"
+        - "profile"
+        - "email"
 "app":
   "name": "Developer Portal"
   "baseURL": "http://127.0.0.1:3001"

@@ -28,38 +28,52 @@ COPY .moon ./.moon
 COPY apps/site ./apps/site
 COPY packages/ui ./packages/ui
 
-# Create config.yaml from example for build time
-# This is required because Next.js analyzes API routes during build
+# Create config.yaml from example for build time.
+# Required because Vite/Nitro (like Next.js) statically analyzes routes and
+# server functions during build, and config loading happens at import time.
 RUN node apps/site/scripts/prepare-build-config.mjs
 
-# NEXT_PUBLIC_TESTING enables testing-only auth providers such as the e2e
-# Keycloak and smtp4dev integrations. Enable it explicitly for e2e builds.
-ARG NEXT_PUBLIC_TESTING=false
-ENV NEXT_PUBLIC_TESTING=${NEXT_PUBLIC_TESTING}
-ENV NEXT_TELEMETRY_DISABLED=1
+# TESTING enables testing-only auth integrations such as magic-link sign-in
+# through smtp4dev. Enable it explicitly for e2e builds.
+ARG TESTING=false
+ENV TESTING=${TESTING}
+
+# Nitro/rolldown's build graph OOMs above ~3.5GB in constrained environments
+# (see impl/tanstack-start.md) — cap it explicitly rather than relying on
+# whatever headroom the build host happens to have.
+ENV NODE_OPTIONS="--max-old-space-size=3072"
+
 # No .git in this build context (see .dockerignore) — moon has no VCS to
 # consult and hashes task inputs directly off the filesystem instead, so
 # `ui:build` still runs correctly as `site:build`'s dependency.
-RUN --mount=type=cache,id=nextjs-cache,target=/app/apps/site/.next/cache \
-    corepack enable pnpm && \
+RUN corepack enable pnpm && \
     pnpm run build && \
     cd apps/site && \
-    pnpm dlx esbuild ./scripts/preflight.ts --bundle --platform=node --alias:server-only=./scripts/empty-module.js --outfile=dist/preflight.js
+    pnpm exec esbuild ./scripts/preflight.ts --bundle --platform=node --outfile=dist/preflight.js
 
 FROM base AS runner
-WORKDIR /app
+# Nitro's output is self-contained and doesn't care where it runs from —
+# WORKDIR is the config.yaml's home directory directly, so lilconfig's
+# default cwd search just works.
+WORKDIR /app/apps/site
 
 ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
+
+# TESTING is read from process.env at request time by src/lib/auth/server.ts
+# — the builder stage's ARG/ENV only affected the `pnpm run build` step, not
+# this running process, so it must be set again here.
+ARG TESTING=false
+ENV TESTING=${TESTING}
 
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-COPY --from=builder /app/apps/site/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/apps/site/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/apps/site/.next/static ./apps/site/.next/static
+# Nitro's node-server output is self-contained (its own package.json +
+# vendored node_modules for the handful of deps it can't bundle) — no
+# separate node_modules copy step needed.
+COPY --from=builder --chown=nextjs:nodejs /app/apps/site/.output ./.output
 COPY --from=builder --chown=nextjs:nodejs /app/apps/site/drizzle ./drizzle
 COPY --from=builder --chown=nextjs:nodejs /app/apps/site/dist/preflight.js ./preflight.js
 
@@ -71,4 +85,4 @@ USER nextjs
 EXPOSE 3001
 
 ENTRYPOINT ["./docker-entrypoint.sh"]
-CMD ["node", "apps/site/server.js"]
+CMD ["node", ".output/server/index.mjs"]

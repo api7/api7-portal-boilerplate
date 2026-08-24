@@ -1,7 +1,7 @@
 'use client';
 
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { ChevronDownIcon } from 'lucide-react';
-import { useRouter, useSearchParams } from 'next/navigation';
 import { useMemo } from 'react';
 
 import { useConfigStatus } from '@api7/portal-ui/lib/config/config-status-context';
@@ -40,8 +40,8 @@ const TAB_TO_PARAM: Record<string, string> = {
 };
 
 const DetailTabs = ({ applicationId }: { applicationId: string }) => {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+  const navigate = useNavigate();
+  const { pathname, searchStr } = useLocation();
   const { applicationDetail } = useConfigStatus();
 
   const items = useMemo(() => {
@@ -77,6 +77,7 @@ const DetailTabs = ({ applicationId }: { applicationId: string }) => {
     return allTabs.filter((tab) => tab.enabled);
   }, [applicationId, applicationDetail]);
 
+  const searchParams = new URLSearchParams(searchStr);
   const tabParam = searchParams.get('tab');
   const activeKey = tabParam ? PARAM_TO_TAB[tabParam] : undefined;
   const effectiveKey = (activeKey && items.find((t) => t.key === activeKey))
@@ -84,10 +85,10 @@ const DetailTabs = ({ applicationId }: { applicationId: string }) => {
     : items[0]?.key;
 
   const handleTabChange = (key: string) => {
-    const params = new URLSearchParams(searchParams.toString());
+    const params = new URLSearchParams(searchStr);
     params.set('tab', TAB_TO_PARAM[key] ?? key);
     if (key !== 'credentials') params.delete('authtype');
-    router.replace(`?${params.toString()}`, { scroll: false });
+    navigate({ href: `${pathname}?${params.toString()}`, replace: true });
   };
 
   return (
@@ -107,7 +108,7 @@ const DetailTabs = ({ applicationId }: { applicationId: string }) => {
 };
 
 const ApplicationDetail = ({ id }: { id: string }) => {
-  const router = useRouter();
+  const navigate = useNavigate();
   const orgSlug = useOrganizationSlug();
   const { canManageApplications } = useCanManageApplications();
   const req = useApplicationDetail({ id });
@@ -118,9 +119,9 @@ const ApplicationDetail = ({ id }: { id: string }) => {
     <>
       <Back
         onClick={() =>
-          router.push(
-            `/${orgSlug}${PATH_APPLICATIONS}`,
-          )
+          navigate({
+            href: `/${orgSlug}${PATH_APPLICATIONS}`,
+          })
         }
       />
       <MetaCard

@@ -1,8 +1,9 @@
+import { useNavigate } from '@tanstack/react-router';
+
 import SubscribeAPIProductApplicationModal from '@/components/applications/components/SubscribeAPIProductApplicationModal';
 import { PATH_LOGIN } from '@/constants/path-prefix';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import { cn } from '@/lib/utils';
-import { useRouter } from 'next/navigation';
 
 export const BareBlurPlaneButton = (
   props: React.ButtonHTMLAttributes<HTMLButtonElement>
@@ -18,13 +19,13 @@ export const BareBlurPlaneButton = (
   </div>
 );
 export const LoginThenSubscribeToUnlock = () => {
-  const router = useRouter();
+  const navigate = useNavigate();
   return (
     <BareBlurPlaneButton onClick={() => {
       const { pathname, search, hash } = window.location;
       const pathAndQuery = `${pathname}${search}${hash}`;
       const redirectToParam = encodeURIComponent(pathAndQuery);
-      return router.push(`${PATH_LOGIN}?redirectTo=${redirectToParam}`);
+      return navigate({ href: `${PATH_LOGIN}?redirectTo=${redirectToParam}` });
     }}>
       Login Then Subscribe To Unlock
     </BareBlurPlaneButton>

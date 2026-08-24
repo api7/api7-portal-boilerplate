@@ -83,7 +83,6 @@ const OAuthTable: React.FC<
       ...DEFAULT_LIST_PARAMS,
     },
   });
-  const { paramsOnlyStr: _, ...reqProps } = req;
   const editDisclosure = useDisclosure({ onClose: req.refetch });
   const [alertData, setAlertData] = useState<OAuthCredentialBasics['oauth']>();
   const [alertVariant, setAlertVariant] = useState<'created' | 'rotated'>(
@@ -226,7 +225,7 @@ const OAuthTable: React.FC<
       <DataTable
         data-cy="oauth-table"
         columns={columns}
-        {...reqProps}
+        {...req}
         nameSearch
         leadingToolBar={leadingToolBar}
         text={{ searchPlaceholder: 'Search Description' }}

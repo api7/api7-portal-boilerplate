@@ -1,14 +1,16 @@
 'use client';
 
 import type { DeveloperApplication } from '@api7/portal-sdk/unstable-types';
-import { useForm } from '@tanstack/react-form';
+import { useForm, useSelector } from '@tanstack/react-form';
+import { useMutation } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
+import { updateApplication } from '@/lib/dal/applications';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
-import { portalClient } from '@/lib/portal-sdk/client';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import type { FormLabel } from '@/types/utils';
 import {
   transformAPILabelToForm,
@@ -19,6 +21,15 @@ const ApplicationEditDrawer = (
   props: UseDisclosureReturn & { data?: DeveloperApplication },
 ) => {
   const { data, open, onClose, onOk, ...rest } = props;
+  const orgSlug = useOrganizationSlug();
+
+  const updateMutation = useMutation({
+    mutationFn: updateApplication,
+    onError: (err) =>
+      toast.error(
+        err instanceof Error ? err.message : 'Failed to edit application',
+      ),
+  });
 
   const form = useForm({
     defaultValues: {
@@ -27,16 +38,22 @@ const ApplicationEditDrawer = (
       labels: transformAPILabelToForm(data?.labels) as FormLabel,
     },
     onSubmit: async ({ value }) => {
-      await portalClient.application.update(data!.id, {
-        name: value.name,
-        desc: value.desc || undefined,
-        labels: transformFormLabelToAPI(value.labels),
+      if (!data?.id || !orgSlug) return;
+      await updateMutation.mutateAsync({
+        data: {
+          organizationSlug: orgSlug,
+          applicationId: data.id,
+          name: value.name,
+          desc: value.desc || undefined,
+          labels: transformFormLabelToAPI(value.labels),
+        },
       });
       onOk?.();
       toast.success('Edit Application Successfully');
       onClose();
     },
   });
+  const isSubmitting = useSelector(form.store, (s) => s.isSubmitting);
 
   useEffect(() => {
     if (open) {
@@ -55,7 +72,7 @@ const ApplicationEditDrawer = (
       open={open}
       onClose={onClose}
       onOk={() => form.handleSubmit()}
-      loading={form.state.isSubmitting}
+      loading={isSubmitting || !orgSlug}
       okText="Save"
       {...rest}
     >

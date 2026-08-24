@@ -28,19 +28,14 @@ export type CardListProps<T extends object> = {
     searchPlaceholder?: string;
   };
   skeletonCount?: number;
-} & (
-  | {
-      showPagination: true;
-      pagination?: undefined;
-    }
-  | {
-      showPagination?: false;
-      pagination: {
-        page: number;
-        pageSize: number;
-        total?: number;
-        goToPage: (pageIndex: number) => void;
-        text?: { results?: string; of?: string };
-      };
-    }
-);
+  // CardList defaults this to true and reads `pagination` through optional
+  // chaining either way, so the two props aren't correlated at runtime.
+  showPagination?: boolean;
+  pagination?: {
+    page: number;
+    pageSize: number;
+    total?: number;
+    goToPage: (pageIndex: number) => void;
+    text?: { results?: string; of?: string };
+  };
+};

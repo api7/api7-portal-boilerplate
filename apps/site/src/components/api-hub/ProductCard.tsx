@@ -1,6 +1,6 @@
+import { Link } from '@tanstack/react-router';
 import { map } from 'lodash-es';
 import { NetworkIcon } from 'lucide-react';
-import Link from 'next/link';
 
 import { StatusBadge } from '@/components/base/status-badge';
 import { Badge } from '@api7/portal-ui/components/ui/badge';
@@ -53,6 +53,7 @@ const SubsStatusTag = (props: {
 const ProductCard = (props: ApiProductListItem) => {
   const { name, id, desc = '', subscription_status = 'unsubscribed' } = props;
   const apiHubBasePath = useApiHubBasePathContext();
+  const href: string = `${apiHubBasePath}/${id}`;
   const finalTags =
     props.type === 'external'
       ? props?.tags
@@ -61,7 +62,7 @@ const ProductCard = (props: ApiProductListItem) => {
   return (
     <Link
       className="h-full min-w-0 flex flex-col"
-      href={`${apiHubBasePath}/${id}`}
+      to={href}
     >
       <CardHeader className="pt-6 pb-4 px-6">
         <div className="gap-2 flex min-w-0 items-start">
@@ -74,11 +75,13 @@ const ProductCard = (props: ApiProductListItem) => {
             <div className="flex w-full min-w-0 items-start gap-2 text-left">
               <div className="min-w-0 max-w-full overflow-hidden">
                 <Tooltip>
-                  <TooltipTrigger>
-                    <h3 className="mb-1! block! truncate text-lg! text-primary-content! [text-left] font-medium">
-                      {name}
-                    </h3>
-                  </TooltipTrigger>
+                  <TooltipTrigger
+                    render={
+                      <h3 className="mb-1! block! truncate text-lg! text-primary-content! [text-left] font-medium">
+                        {name}
+                      </h3>
+                    }
+                  />
                   <TooltipContent side="top">
                     <small className="text-sm leading-none font-medium">
                       {name}

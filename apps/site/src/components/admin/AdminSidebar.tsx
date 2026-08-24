@@ -1,8 +1,7 @@
 'use client';
 
+import { Link, useLocation } from '@tanstack/react-router';
 import { Building2, ClipboardList, Users } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 
 import {
   Sidebar,
@@ -23,7 +22,7 @@ const NAV_ITEMS = [
 ];
 
 export default function AdminSidebar() {
-  const pathname = usePathname();
+  const { pathname } = useLocation();
 
   return (
     <Sidebar>
@@ -35,7 +34,7 @@ export default function AdminSidebar() {
               {NAV_ITEMS.map((item) => (
                 <SidebarMenuItem key={item.href}>
                   <SidebarMenuButton
-                    render={<Link href={item.href} />}
+                    render={<Link to={item.href} />}
                     isActive={pathname === item.href || pathname.startsWith(`${item.href}/`)}
                   >
                     <item.icon />

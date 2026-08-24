@@ -1,5 +1,4 @@
 node_modules
-.next
 .output
 .git
 .DS_Store
@@ -12,5 +11,4 @@ coverage
 
 # Ignore local config files, use config.yaml.example during build
 apps/site/config.yaml
-apps/site-start/config.yaml
 .env*

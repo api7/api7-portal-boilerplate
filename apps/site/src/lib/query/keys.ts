@@ -1,14 +1,54 @@
 export const productListKey = (orgSlug: string | null, params: object) =>
-  orgSlug ? ['portal', 'org', orgSlug, 'products', params] : ['portal', 'products', params];
+  orgSlug
+    ? ['portal', 'org', orgSlug, 'products', params]
+    : ['portal', 'products', params];
 
-export const productDetailKey = (orgSlug: string | null, id: string | undefined) =>
-  orgSlug ? ['portal', 'org', orgSlug, 'product', id] : ['portal', 'product', id];
+export const productDetailKey = (
+  orgSlug: string | null,
+  id: string | undefined,
+) =>
+  orgSlug
+    ? ['portal', 'org', orgSlug, 'product', id]
+    : ['portal', 'product', id];
 
-export const applicationListKey = (orgSlug: string | null, params: object) =>
-  ['portal', 'org', orgSlug, 'applications', params];
+export const applicationListKey = (orgSlug: string | null, params: object) => [
+  'portal',
+  'org',
+  orgSlug,
+  'applications',
+  params,
+];
 
-export const applicationDetailKey = (orgSlug: string | null, id: string) =>
-  ['portal', 'org', orgSlug, 'application', id];
+export const applicationDetailKey = (orgSlug: string | null, id: string) => [
+  'portal',
+  'org',
+  orgSlug,
+  'application',
+  id,
+];
 
-export const subscriptionListKey = (orgSlug: string | null, params: object) =>
-  ['subscriptions', orgSlug, params];
+export const subscriptionListKey = (orgSlug: string | null, params: object) => [
+  'subscriptions',
+  orgSlug,
+  params,
+];
+
+export const organizationMembersListKey = (
+  orgSlug: string | null,
+  params: object,
+) => ['portal', 'org', orgSlug, 'members', params];
+
+export const organizationMemberPermissionsKey = (orgSlug: string | null) => [
+  'portal',
+  'org',
+  orgSlug,
+  'members',
+  'permissions',
+];
+
+export const organizationInvitationsListKey = (orgSlug: string | null) => [
+  'portal',
+  'org',
+  orgSlug,
+  'invitations',
+];
