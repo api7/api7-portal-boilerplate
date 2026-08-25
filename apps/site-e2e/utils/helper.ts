@@ -1,4 +1,4 @@
-import { expect, request } from '@playwright/test';
+import { request } from '@playwright/test';
 import { diff } from 'just-diff';
 import * as net from 'net';
 import { parse, stringify } from 'yaml';

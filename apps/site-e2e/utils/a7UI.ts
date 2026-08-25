@@ -79,7 +79,7 @@ export const a7UICreateExternalProduct = async (
     hasText: 'Add API Product',
   });
   await expect(header).toBeVisible();
-  await a7UIPage.setInputFiles("[data-cy='openapi-spec']", {
+  await a7UIPage.locator("[data-cy='openapi-spec']").setInputFiles({
     name: product,
     mimeType: 'application/yaml',
     buffer: Buffer.from(
@@ -183,6 +183,10 @@ export const a7UICreateGatewayProduct = async (
       .click();
   } else if (authType === 'dcr') {
     await a7UIPage.locator('label:has(input[value="dcr"])').click();
+    // The DCR provider dropdown trigger itself can be inert until the
+    // provider list finishes loading, so a7UISelect's own click-and-wait
+    // isn't guaranteed to catch it — give the list a head start.
+    // eslint-disable-next-line playwright/no-wait-for-timeout
     await a7UIPage.waitForTimeout(4000);
     await a7UISelect(a7UIPage, {
       name: '__dcr_provider_id',
@@ -244,7 +248,6 @@ export const a7UICreateGatewayProduct = async (
     }
   }
   await drawer.getByRole('button', { name: 'Add' }).click();
-  await a7UIPage.waitForTimeout(1000);
   await expect(drawer).toBeHidden();
   // should see service in list
   await expect(a7UIPage.locator('td', { hasText: service })).toBeVisible();

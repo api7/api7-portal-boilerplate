@@ -21,8 +21,6 @@ import {
   type RowData,
   type SortingState,
   flexRender,
-  rowSortingFeature,
-  tableFeatures,
   useTable,
 } from '@tanstack/react-table';
 import {
@@ -35,11 +33,10 @@ import {
 import { useState } from 'react';
 
 import { cn } from '@/lib/utils';
+import { dataTableFeatures } from './features';
 import DataTablePagination, {
   type DataTablePaginationProps,
 } from './pagination';
-
-export const dataTableFeatures = tableFeatures({ rowSortingFeature });
 
 export type DataTableColumnDef<T extends RowData> = ColumnDef<
   typeof dataTableFeatures,

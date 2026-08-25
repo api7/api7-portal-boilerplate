@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-import { API_PREFIX } from '@site/constants/api-prefix';
 import {
   PATH_ACCOUNT_SECURITY,
   PATH_ACCOUNT_TWO_FACTOR,
@@ -8,7 +7,6 @@ import {
 } from '@site/constants/path-prefix';
 
 import { test } from '../fixture';
-import { genCtx, login } from '../req/common';
 import { getConfigMapYaml, updateConfigMapYaml } from '../utils/devportal-config';
 import { restartDevPortal } from '../utils/shell';
 import {
@@ -33,15 +31,6 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
     defaultConfig = await getConfigMapYaml();
   });
 
-  test.afterAll(async () => {
-    if (!defaultConfig) {
-      return;
-    }
-
-    await updateConfigMapYaml(defaultConfig);
-    await restartDevPortal();
-  });
-
   // Every test flips `required` on for its own scenario after setting up a
   // fresh account (which needs `required` off, since org/application
   // creation is itself an org-scoped write the 403 guard would block).
@@ -52,6 +41,15 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
   // enforcement is on.
   test.afterEach(async () => {
     await updateConfigAndRestart(false);
+  });
+
+  test.afterAll(async () => {
+    if (!defaultConfig) {
+      return;
+    }
+
+    await updateConfigMapYaml(defaultConfig);
+    await restartDevPortal();
   });
 
   test('signing in straight into forced enrollment reuses the just-typed password, no second prompt', async ({
@@ -215,28 +213,6 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
       (url) => !url.pathname.startsWith(PATH_ACCOUNT_TWO_FACTOR),
       { timeout: 15_000 },
     );
-  });
-
-  test('direct API calls are rejected with 403 for a signed-in user who has not enrolled', async () => {
-    test.skip(true, 'no /api/{slug}/applications route to hit directly');
-    const auth = await createFreshAuth('totp-required-api');
-    await updateConfigAndRestart(true);
-
-    const ctx = await genCtx();
-    await login(ctx, auth);
-    // Derive the slug the same way createOrganization() does, rather than
-    // reading it back from the session's "active organization" — that's
-    // only reliably populated right after the org is created in the same
-    // session (see the @deprecated note on getActiveOrganizationId), and a
-    // fresh login here doesn't carry that over.
-    const orgSlug = auth.organization!.toLowerCase().replace(/\s+/g, '-');
-
-    const res = await ctx.get(`${API_PREFIX}/${orgSlug}/applications`, {
-      failOnStatusCode: false,
-    });
-    expect(res.status()).toBe(403);
-
-    await ctx.dispose();
   });
 
   test('security page offers Reset (not Disable) once enrolled, and reset mints a new secret without disabling', async ({

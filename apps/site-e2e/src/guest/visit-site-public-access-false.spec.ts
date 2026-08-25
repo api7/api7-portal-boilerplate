@@ -15,7 +15,7 @@ test.use({ storageState: { cookies: [], origins: [] } });
 
 const autoJumpPages = [...genCanViewPages(), ...genNotFoundPages()];
 
-test.describe('public access is `false`, test the behavior of guest users visiting pages', async () => {
+test.describe('public access is `false`, test the behavior of guest users visiting pages', () => {
   let productId: string;
 
   test.beforeAll(async ({ a7Ctx }) => {

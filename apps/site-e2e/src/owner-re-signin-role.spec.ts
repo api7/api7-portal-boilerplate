@@ -129,12 +129,14 @@ test.describe('Owner re-sign-in role restoration', () => {
     const orgIdAfter = orgAfter?.id;
     const orgSlugAfter = orgAfter?.slug;
     // In slug-path mode, session active org can be null; if present, it should match current URL context.
+    /* eslint-disable playwright/no-conditional-in-test, playwright/no-conditional-expect */
     if (orgIdAfter) {
       expect(orgIdAfter).toBe(orgIdBefore);
     }
     if (orgSlugAfter) {
       expect(orgSlugAfter).toBe(currentSlug);
     }
+    /* eslint-enable playwright/no-conditional-in-test, playwright/no-conditional-expect */
 
     // Save the page's updated storage state back to the worker state file.
     // After re-signin, the page has new session cookies; subsequent tests'

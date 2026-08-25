@@ -230,7 +230,11 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
       productId: productId2,
     });
 
-    // Small wait for auto-approval to process on backend
+    // Small wait for auto-approval to process on backend. The page reload
+    // right after re-fetches data once rather than polling, so a locator
+    // wait wouldn't retry against a fresher response the way it would for a
+    // live-updating element — an actual backend wait is needed here.
+    // eslint-disable-next-line playwright/no-wait-for-timeout
     await page.waitForTimeout(2000);
 
     // Navigate to API Hub
@@ -302,6 +306,7 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
     const waitApprovalProduct = page
       .getByRole('link', { name: product.name })
       .first();
+
     await test.step('After approval or Reject product then to check the detail', async () => {
       // go to provider console to reject the product
       await a7UIPage.goto('/approvals?tab=pending');
@@ -393,6 +398,10 @@ test.describe('Filter API Hub and Subscribe Product to View', () => {
       await expect(testRequestBtn.or(loginThenSubscribe)).toBeVisible({
         timeout: 15_000,
       });
+      // uiLogin above already confirms an authenticated session, so
+      // testRequestBtn (not loginThenSubscribe) is the branch that should
+      // actually be visible here; the .or() above is defensive.
+      // eslint-disable-next-line playwright/no-conditional-in-test
       if (await testRequestBtn.isVisible()) {
         await testRequestBtn.scrollIntoViewIfNeeded();
         await testRequestBtn.click();

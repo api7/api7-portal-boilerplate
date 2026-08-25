@@ -72,7 +72,9 @@ export const a7DeleteLoginOptionByName = async (
 export const a7DeleteDCRProviderList = async (ctx: A7Ctx) => {
   const allIds = [];
   const getAllProviders = await ctx.get(API_DCR_PROVIDERS);
-  const allProviders = (await getAllProviders.json()) as ListRes<{}>;
+  const allProviders = (await getAllProviders.json()) as ListRes<{
+    id: string;
+  }>;
   allIds.push(...(allProviders.list || []).map(({ id }) => id));
   return await Promise.allSettled(
     allIds.map((id) => ctx.delete(`${API_DCR_PROVIDERS}/${id}`)),

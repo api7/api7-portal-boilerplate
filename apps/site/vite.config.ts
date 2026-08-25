@@ -8,6 +8,8 @@ import { fumadocsMdx } from 'fumadocs-mdx/vite';
 import { nitro } from 'nitro/vite';
 import { defineConfig } from 'vite';
 
+import { patchServerEntry } from './scripts/patch-server-entry';
+
 export default defineConfig({
   resolve: {
     alias: {
@@ -49,6 +51,7 @@ export default defineConfig({
     routeRules: {
       '/docs.md': { proxy: '/llms.mdx/docs' },
     },
+    plugins: ['./server/plugins/preflight.ts'],
   },
   plugins: [
     fumadocsMdx({ macro: { include: ['src/**/*.ts', 'src/**/*.tsx'] } }),
@@ -57,5 +60,13 @@ export default defineConfig({
     rsc(),
     nitro(),
     viteReact(),
+    {
+      name: 'patch-server-entry',
+      apply: 'build',
+      buildApp: {
+        order: 'post',
+        handler: patchServerEntry,
+      },
+    },
   ],
 });

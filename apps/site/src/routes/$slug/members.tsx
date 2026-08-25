@@ -9,9 +9,8 @@ import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Settings as SettingsIcon, User2 as UserIcon } from 'lucide-react';
 
 import OrganizationInvitationsTable from '@/components/organization/OrganizationInvitationsTable';
-import OrganizationMembersTable, {
-  DEFAULT_MEMBERS_PARAMS,
-} from '@/components/organization/OrganizationMembersTable';
+import OrganizationMembersTable from '@/components/organization/OrganizationMembersTable';
+import { DEFAULT_MEMBERS_PARAMS } from '@/components/organization/organization-members-shared';
 import {
   getMemberActionPermissions,
   listOrganizationInvitations,

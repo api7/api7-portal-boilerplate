@@ -154,7 +154,9 @@ export const loadConfig = (searchFrom?: string): AppConfig => {
   try {
     raw = processEnvVars(parse(readFileSync(filepath, 'utf-8')));
   } catch (error) {
-    throw new Error(`Failed to parse YAML file ${filepath}: ${error}`);
+    throw new Error(`Failed to parse YAML file ${filepath}: ${error}`, {
+      cause: error,
+    });
   }
 
   cachedConfig = validateConfig(raw);

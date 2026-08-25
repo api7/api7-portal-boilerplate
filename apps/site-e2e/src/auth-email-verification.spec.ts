@@ -103,5 +103,6 @@ test.describe('Email verification enforcement', () => {
         url.pathname === '/auth/landing' || !url.pathname.startsWith('/auth/'),
       { timeout: 15_000 },
     );
+    await expect(page.getByRole('button', { name: 'Account' })).toBeVisible();
   });
 });

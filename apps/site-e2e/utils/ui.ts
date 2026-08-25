@@ -7,7 +7,6 @@ import {
 } from '@site/constants/path-prefix';
 
 import { getDefaultApplicationId } from '../req/common';
-import { getLastEmail } from '../req/email';
 import { BetterAuthLogin } from '../req/type';
 
 export const getOrgScopedPath = (page: Page, path: string) => {
@@ -102,7 +101,7 @@ export const uiVerifyToast = async (
 export const uiLogin = async (
   page: Page,
   auth: BetterAuthLogin,
-  { onetime = false, goToLogin = false, assertAccount = true } = {},
+  { goToLogin = false, assertAccount = true } = {},
 ) => {
   if (goToLogin) await page.goto(PATH_LOGIN);
   // Wait for React hydration to complete before interacting with the form.
@@ -237,6 +236,10 @@ export const uiSubscribeProductInAPIHub = async (
 ) => {
   const { applicationName, productId } = params;
 
+  // Called right after a write (e.g. creating the application/product this
+  // subscribes) from several different call sites — gives it a moment to
+  // land before the navigation below reads it back.
+  // eslint-disable-next-line playwright/no-wait-for-timeout
   await page.waitForTimeout(1000);
   // Navigate to /applications first — server redirects to /{slug}/applications,
   // so getOrgScopedPath can resolve the correct org-scoped api-hub base path.
@@ -350,8 +353,12 @@ export const uiAPIHubSearchProduct = async (
   await search.press('Enter');
 };
 
-const uiOpenDefaultApplicationDetail = async (page: Page) => {
+export const uiOpenDefaultApplicationDetail = async (page: Page) => {
   await uiGoToApplications(page);
+  // uiGoToApplications only waits for the table container to appear, not for
+  // its rows to finish loading — without this, the "is it empty" check below
+  // can race ahead of the real data and create a duplicate "default" app.
+  await page.waitForLoadState('networkidle');
   const defaultApp = page.getByRole('cell', {
     name: 'default',
     exact: true,
@@ -450,6 +457,10 @@ export const uiAddAPIKeyCredential = async (
     .getByTestId('drawer-footer')
     .locator('button:has-text("Add")')
     .click();
+  // Give the credential write a moment before navigating away — the check
+  // below reads it back from a freshly-loaded page, which can't retry
+  // against a write that hasn't landed yet the way a locator wait would.
+  // eslint-disable-next-line playwright/no-wait-for-timeout
   await page.waitForTimeout(1000);
   await uiGoToAPICredentials(page);
   // should exist the key auth

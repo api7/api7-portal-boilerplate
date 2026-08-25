@@ -84,13 +84,6 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
     ]);
   });
 
-  test.afterAll(async ({ a7Ctx, ctx }) => {
-    await deleteAllApplications(ctx);
-    await a7DeleteProductList(a7Ctx, [waitApprovalProductId]);
-    await a7DeletePublishedRoute(a7Ctx, routeId, gatewayGroupId);
-    await a7DeleteService(a7Ctx, serviceId, gatewayGroupId);
-  });
-
   test.beforeEach(async ({ page }) => {
     await page.goto(PATH_APPLICATIONS);
     // Clean up any existing test applications
@@ -102,6 +95,13 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
         await uiDeleteApplicationInList(page, appName);
       }
     }
+  });
+
+  test.afterAll(async ({ a7Ctx, ctx }) => {
+    await deleteAllApplications(ctx);
+    await a7DeleteProductList(a7Ctx, [waitApprovalProductId]);
+    await a7DeletePublishedRoute(a7Ctx, routeId, gatewayGroupId);
+    await a7DeleteService(a7Ctx, serviceId, gatewayGroupId);
   });
 
   test('subscription status should update in modal after subscribing to wait approval product', async ({
@@ -140,7 +140,6 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
         .first();
       await expect(searchInput).toBeVisible();
       await searchInput.click({ force: true });
-      await page.waitForTimeout(1000);
 
       const waitOption = page
         .locator('[data-slot="combobox-item"]')
@@ -152,7 +151,6 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
 
       // Close dropdown
       await dialog.getByText('Subscribe to New API Product').click();
-      await page.waitForTimeout(500);
 
       // Submit subscription
       const subscribeButton = dialog.getByRole('button', {
@@ -194,7 +192,6 @@ test.describe('Test SubscribeAPIProductModal auto refresh status after subscript
         .first();
       await expect(searchInput).toBeVisible();
       await searchInput.click({ force: true });
-      await page.waitForTimeout(1000);
 
       // Verify the product now shows as pending approval and is disabled
       const waitOption = page

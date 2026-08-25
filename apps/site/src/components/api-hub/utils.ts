@@ -8,6 +8,15 @@ export type ApiProductExternal = Extract<ApiProduct, { type: 'external' }>;
 export const getServerUrls = (data: ApiProductExternal): string[] =>
   'server_urls' in data ? data.server_urls : [data.server_url];
 
+export const getOpenAPITitle = (raw: string): string | undefined => {
+  try {
+    const title = (parse(raw) as { info?: { title?: unknown } })?.info?.title;
+    return typeof title === 'string' && title.trim() ? title : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
 export type ApiProductGateway = Extract<ApiProduct, { type: 'gateway' }>;
 export const useParsedProduct = (data: ApiProductGateway) => {
   // Declare the security schemes the API expects, but never auto-fill developer

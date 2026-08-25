@@ -148,7 +148,7 @@ test.describe(
         await search.fill(product.name);
         await search.press('Enter');
 
-        await page.route(`**${API_PRODUCTS}?page=1**`, async (route, req) => {
+        await page.route(`**${API_PRODUCTS}?page=1**`, async (route) => {
           const res = await route.fetch();
           const data = (await res.json()) as ProductListRes;
           // should only one product
@@ -224,6 +224,7 @@ test.describe(
 
       // set back timeout, to reduce the waiting time for failure
       test.setTimeout(30_000); // Increase timeout for debugging
+
       await test.step('test request modal should trim paste text', async () => {
         const testText = '   test space    ';
         // Already expanded by default; Scalar's key/value fields are

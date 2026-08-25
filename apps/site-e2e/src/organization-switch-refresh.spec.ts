@@ -3,7 +3,6 @@ import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
 import {
   PATH_APPLICATIONS,
   PATH_DASHBOARD_ORGANIZATIONS,
-  PATH_ORGANIZATION,
   PATH_ROOT,
 } from '@site/constants/path-prefix';
 
@@ -70,12 +69,10 @@ test.describe('Organization Switch - Data Refresh', () => {
     const testId = Date.now();
     const org1Name = `RouteOrgA${testId}`;
     const org2Name = `RouteOrgB${testId}`;
-    let org1Slug: string;
-    let org2Slug: string;
 
     await page.goto(PATH_ROOT);
-    org1Slug = await createOrganization(page, org1Name);
-    org2Slug = await createOrganization(page, org2Name);
+    const org1Slug = await createOrganization(page, org1Name);
+    const org2Slug = await createOrganization(page, org2Name);
 
     await page.goto(PATH_APPLICATIONS);
     await expect(page).toHaveURL(/\/applications(?:\?.*)?$/);
@@ -94,6 +91,7 @@ test.describe('Organization Switch - Data Refresh', () => {
   test('should keep non-org routes without slug on organization switch', async ({
     page,
   }) => {
+    // eslint-disable-next-line playwright/no-skipped-test -- flaky navigation target, not a removed route; intentionally left skipped
     test.skip(
       true,
       'Dashboard organizations route is not stable for this flow',
@@ -101,16 +99,14 @@ test.describe('Organization Switch - Data Refresh', () => {
     const testId = Date.now();
     const org1Name = `GlobalRouteOrgA${testId}`;
     const org2Name = `GlobalRouteOrgB${testId}`;
-    let org1Slug: string;
-    let org2Slug: string;
 
     await page.goto(PATH_ROOT);
-    org1Slug = await createOrganization(page, org1Name);
-    org2Slug = await createOrganization(page, org2Name);
+    const org1Slug = await createOrganization(page, org1Name);
+    const org2Slug = await createOrganization(page, org2Name);
 
     const accountOrgsPath = PATH_DASHBOARD_ORGANIZATIONS;
     await page.goto(accountOrgsPath);
-    await expect(page).toHaveURL(new RegExp(`${accountOrgsPath}(?:\?.*)?$`));
+    await expect(page).toHaveURL(new RegExp(`${accountOrgsPath}(?:\\?.*)?$`));
 
     await switchToOrganization(page, org1Name);
     await expect(page).toHaveURL(new RegExp(`${accountOrgsPath}(?:\\?.*)?$`));
@@ -148,12 +144,10 @@ test.describe('Organization Settings - Slug-Prefixed Routes', () => {
     const testId = Date.now();
     const org1Name = `OrgSettingsA${testId}`;
     const org2Name = `OrgSettingsB${testId}`;
-    let org1Slug: string;
-    let org2Slug: string;
 
     await page.goto(PATH_ROOT);
-    org1Slug = await createOrganization(page, org1Name);
-    org2Slug = await createOrganization(page, org2Name);
+    const org1Slug = await createOrganization(page, org1Name);
+    const org2Slug = await createOrganization(page, org2Name);
 
     // Navigate directly to org1's slug-prefixed settings page
     await page.goto(`/${org1Slug}/settings`);
@@ -169,46 +163,15 @@ test.describe('Organization Settings - Slug-Prefixed Routes', () => {
     );
   });
 
-  test('should redirect from /organization/* to slug-prefixed route when switching orgs', async ({
-    page,
-  }) => {
-    test.skip(
-      true,
-      'Old /organization route no longer matches the current app routing',
-    );
-    const testId = Date.now();
-    const org1Name = `OrgOldRouteA${testId}`;
-    const org2Name = `OrgOldRouteB${testId}`;
-    let org1Slug: string;
-    let org2Slug: string;
-
-    await page.goto(PATH_ROOT);
-    org1Slug = await createOrganization(page, org1Name);
-    org2Slug = await createOrganization(page, org2Name);
-
-    // Navigate to old (non-slug-prefixed) organization settings
-    await page.goto(`${PATH_ORGANIZATION}/settings`);
-    await expect(page).toHaveURL(
-      new RegExp(`${PATH_ORGANIZATION}/settings(?:\\?.*)?$`),
-    );
-
-    // Switch to org1 — should now redirect to the slug-prefixed URL
-    await switchToOrganization(page, org1Name);
-    await expect(page).toHaveURL(
-      new RegExp(`/${org1Slug}/settings`),
-    );
-  });
-
   test('should update URL when org slug is renamed in settings', async ({
     page,
     auth,
   }) => {
     const testId = Date.now();
     const orgName = `OrgRename${testId}`;
-    let orgSlug: string;
 
     await page.goto(PATH_ROOT);
-    orgSlug = await createOrganization(page, orgName);
+    const orgSlug = await createOrganization(page, orgName);
     const newSlug = `new-slug-${testId}`;
 
     // Navigate to slug-prefixed settings page

@@ -11,7 +11,6 @@ import {
   execPostgres,
   getDevPortalLogs,
   restartDevPortal,
-  x,
 } from '../utils/shell';
 
 const E2E_FE_DB_NAME = 'devportal_fe_e2e';
@@ -23,15 +22,13 @@ const ensureEnv = (value: string | undefined, name: string) => {
   return value;
 };
 
-const shellQuote = (value: string) => `'${value.replace(/'/g, `'"'"'`)}'`;
-
 async function resetDatabase(dbName: string) {
   console.log(`Resetting FE E2E database: ${dbName}`);
 
   const sqlCommands = [
     `SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '${dbName}' AND pid <> pg_backend_pid();`,
-    `DROP DATABASE IF EXISTS \"${dbName}\";`,
-    `CREATE DATABASE \"${dbName}\" OWNER \"api7ee\";`,
+    `DROP DATABASE IF EXISTS "${dbName}";`,
+    `CREATE DATABASE "${dbName}" OWNER "api7ee";`,
   ];
 
   for (const sql of sqlCommands) {

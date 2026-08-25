@@ -1,8 +1,8 @@
 import type { RowData } from '@tanstack/react-table';
 
 import type { DataTableColumnDef } from '@/components/base/data-table';
-import { StatusBadge } from '@/components/base/status-badge';
 import type { SubscriptionStatus } from '@/types/portal-sdk';
+import { StatusDisplay, type StatusConfig } from './StatusDisplay';
 
 export const PRODUCT_STATUS_CONFIG = {
   subscribed: {
@@ -21,26 +21,6 @@ export const PRODUCT_STATUS_CONFIG = {
     value: 'unsubscribed',
   },
 } as const;
-
-type StatusConfig = Record<
-  string,
-  { color: string; text: string; value: string }
->;
-
-type StatusDisplayProps = {
-  status: SubscriptionStatus;
-  statusConfig: StatusConfig;
-};
-
-const StatusDisplay = ({ status, statusConfig }: StatusDisplayProps) => {
-  const config = statusConfig[status];
-  if (!config) return null;
-  return (
-    <div className="w-fit">
-      <StatusBadge color={config.color}>{config.text}</StatusBadge>
-    </div>
-  );
-};
 
 export function statusCol<T extends RowData>(
   statusConfig: StatusConfig,

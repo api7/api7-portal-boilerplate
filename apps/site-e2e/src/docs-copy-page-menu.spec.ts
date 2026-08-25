@@ -28,6 +28,11 @@ test.describe('docs "Copy page" menu', () => {
       }) as typeof window.open;
     });
     await page.goto('/docs/getting-started');
+    // The docs route is RSC-rendered and can be slow to finish compiling on
+    // a freshly-started server — openMenu()'s click can otherwise land
+    // before the button is actually wired up, silently failing to open the
+    // menu and hanging the next locator for the full timeout.
+    await page.waitForLoadState('networkidle');
   });
 
   const openMenu = (page: import('@playwright/test').Page) =>

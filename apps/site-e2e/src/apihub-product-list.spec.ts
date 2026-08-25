@@ -31,12 +31,12 @@ test.describe('Test API Hub with Product List Pagination', () => {
     await expect(apihub).toBeVisible();
     await apihub.click();
 
-    const pageSizeSelector = page
+    const perPageSelector = page
       .locator('[data-slot="select-trigger"]')
       .filter({ hasText: /\/\s*page/ })
       .last();
-    await expect(pageSizeSelector).toBeVisible();
-    await pageSizeSelector.click();
+    await expect(perPageSelector).toBeVisible();
+    await perPageSelector.click();
 
     // Assert and click "20 / page" option
     const option20 = page
@@ -47,7 +47,7 @@ test.describe('Test API Hub with Product List Pagination', () => {
     await option20.click();
 
     // check page size is 20 and page have 2 pages, 20 products per page
-    await expect(pageSizeSelector).toContainText('20 / page');
+    await expect(perPageSelector).toContainText('20 / page');
     const httpbinElements = page.getByText('httpbin');
     await expect(httpbinElements).toHaveCount(20);
 
@@ -59,8 +59,8 @@ test.describe('Test API Hub with Product List Pagination', () => {
     expect(page.url()).toContain('/api-hub');
 
     // click next page
-    const nextPage = page.getByLabel('Next page');
-    await nextPage.click();
+    const nextPageButton = page.getByLabel('Next page');
+    await nextPageButton.click();
 
     expect(page.url()).toContain('/api-hub');
 
@@ -81,11 +81,11 @@ test.describe('Test API Hub with Product List Pagination', () => {
     await expect(page).toHaveURL(/.*\/api-hub/);
 
     // Optional: verify pagination shows page size 10
-    const pageSizeSelector = page
+    const perPageSelector = page
       .locator('[data-slot="select-trigger"]')
       .filter({ hasText: /\/\s*page/ })
       .last();
-    await expect(pageSizeSelector).toContainText('10 / page');
+    await expect(perPageSelector).toContainText('10 / page');
     await expect(page.getByTestId('result-text')).toContainText('1-10 of 21');
   });
 

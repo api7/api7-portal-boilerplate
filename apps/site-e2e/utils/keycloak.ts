@@ -23,7 +23,7 @@ export const kcAdmin = {
 
 export const kcUILogin = async (page: Page) => {
   await expect(page).toHaveURL(/keycloak/);
-  await page.fill('#username', kcAdmin.username);
-  await page.fill('#password', kcAdmin.password);
-  await page.click('#kc-login');
+  await page.locator('#username').fill(kcAdmin.username);
+  await page.locator('#password').fill(kcAdmin.password);
+  await page.locator('#kc-login').click();
 };

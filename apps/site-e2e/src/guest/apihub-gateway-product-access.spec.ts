@@ -47,7 +47,7 @@ test.describe(
   {
     tag: ['@user-story', '@gateway'],
   },
-  async () => {
+  () => {
     test.describe.configure({ timeout: 120_000 });
     test.setTimeout(120_000);
 
@@ -60,6 +60,7 @@ test.describe(
       gatewayId: string,
       serviceId: string,
       routeId: string;
+
     test.beforeAll(async ({ a7UIPage, a7Ctx }) => {
       test.setTimeout(120_000);
       // clear env
@@ -254,7 +255,13 @@ test.describe(
 
       // Visit product detail page as guest
       await page.goto(`${PATH_API_HUB}/${gatewayProductId}`);
-      await page.waitForSelector('.scalar-app', { state: 'attached', timeout: 15_000 });
+      // .scalar-app matches multiple elements on this page (tooltip,
+      // headlessui portal root, ...) — .first() to avoid a strict-mode
+      // violation, matching the old waitForSelector()'s any-match behavior.
+      await page
+        .locator('.scalar-app')
+        .first()
+        .waitFor({ state: 'attached', timeout: 15_000 });
 
       // Verify no subscription requests were made
       expect(subscriptionRequests).toHaveLength(0);
@@ -356,6 +363,9 @@ test.describe(
         let got200 = false;
         let lastStatus: number | null = null;
         let lastUrl = '';
+        // Manual retry loop for gateway propagation, not test logic
+        // branching on unpredictable page state.
+        /* eslint-disable playwright/no-conditional-in-test */
         for (let attempt = 1; attempt <= 6; attempt++) {
           // Attach response listener before click to avoid missing fast responses.
           const response = await Promise.all([
@@ -380,8 +390,11 @@ test.describe(
             break;
           }
 
+          // Backoff between polling attempts, not a fixed post-action wait.
+          // eslint-disable-next-line playwright/no-wait-for-timeout
           await page.waitForTimeout(3000);
         }
+        /* eslint-enable playwright/no-conditional-in-test */
 
         expect(
           got200,

@@ -4,13 +4,7 @@ import path from 'node:path';
 import { Page, test as baseTest } from '@playwright/test';
 
 import { PROVIDER_UI_PREFIX } from './constant';
-import {
-  Ctx,
-  createOrganization,
-  genCtx,
-  getSession,
-  login,
-} from './req/common';
+import { Ctx, createOrganization, genCtx, login } from './req/common';
 import {
   A7Ctx,
   a7ActivateLicenseAndChangePasswd,
@@ -79,7 +73,7 @@ export const test = baseTest.extend<
     },
     { scope: 'worker' },
   ],
-  a7Ctx: async ({ browser }, use) => {
+  a7Ctx: async ({}, use) => {
     const a7Ctx = await a7GenCtx(a7AuthConf);
     await a7ActivateLicenseAndChangePasswd(a7Ctx);
     await use(a7Ctx);

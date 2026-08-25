@@ -14,13 +14,20 @@ import { uiShowNotFound } from '../utils/ui';
 
 test.describe('Test API Hub with External Product', () => {
   let productId: string;
+  // Product name deliberately differs from the document's `info.title`, so the
+  // download test cannot pass on the product-name fallback alone.
+  let distinctNameProductId: string;
 
   test.beforeAll(async ({ a7Ctx }) => {
     productId = (await a7PostExternalProduct(a7Ctx)).value.id;
+    distinctNameProductId = (
+      await a7PostExternalProduct(a7Ctx, { name: 'external-download-filename' })
+    ).value.id;
   });
 
   test.afterAll(async ({ a7Ctx }) => {
     await a7DeleteProduct(a7Ctx, productId);
+    await a7DeleteProduct(a7Ctx, distinctNameProductId);
   });
 
   test('can visit api hub', async ({ page }) => {
@@ -82,7 +89,7 @@ test.describe('Test API Hub with External Product', () => {
       // Subscriptions tab should NOT be visible for external products (they cannot be subscribed)
       await expect(
         page.getByRole('tab', { name: 'Subscriptions' }),
-      ).not.toBeVisible();
+      ).toBeHidden();
       await getOperationLink.click();
       await expect(
         page
@@ -159,6 +166,28 @@ test.describe('Test API Hub with External Product', () => {
       await page.waitForTimeout(1000);
       expect(page.url()).not.toContain(PATH_LOGIN);
     });
+  });
+
+  test('downloaded OpenAPI document is named after the API', async ({
+    page,
+  }) => {
+    await page.goto(`${PATH_API_HUB}/${distinctNameProductId}`);
+    const downloadButtons = page
+      .locator('.scalar-app')
+      .getByRole('button', { name: 'Download OpenAPI Document' });
+    await expect(downloadButtons.first()).toBeVisible({ timeout: 15000 });
+
+    const [json] = await Promise.all([
+      page.waitForEvent('download'),
+      downloadButtons.nth(0).click(),
+    ]);
+    expect(json.suggestedFilename()).toBe('httpbin.json');
+
+    const [yaml] = await Promise.all([
+      page.waitForEvent('download'),
+      downloadButtons.nth(1).click(),
+    ]);
+    expect(yaml.suggestedFilename()).toBe('httpbin.yaml');
   });
 
   test('api hub should show 404 page, when the api not exist', async ({

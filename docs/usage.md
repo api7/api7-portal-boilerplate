@@ -12,8 +12,7 @@ The project includes reference configurations for Docker deployment and Compose-
 
 | File                                                                | Description                                                  |
 | ------------------------------------------------------------------- | ------------------------------------------------------------ |
-| `Dockerfile`                                                        | Multi-stage build using Node.js 22 Alpine                    |
-| `apps/site/docker-entrypoint.sh`                                    | Entrypoint script used by Docker image startup and preflight |
+| `Dockerfile`                                                        | Multi-stage build, distroless runtime image                  |
 | `apps/site-e2e/runtime/api7-ee-minimal/docker-compose.yaml`         | Minimal API7 EE control-plane Compose stack                  |
 | `apps/site-e2e/runtime/api7-ee-minimal/docker-compose.support.yaml` | E2E support services such as Keycloak, smtp4dev, and httpbin |
 
@@ -101,7 +100,7 @@ pnpm db:migrate    # Apply migrations
 pnpm db:generate   # Generate new migrations
 ```
 
-For local non-Docker runs, run migrations explicitly before starting the app. The Docker image entrypoint runs preflight before starting Next.js, including Portal connectivity, DB connectivity, and Drizzle migrations.
+For local non-Docker runs, run migrations explicitly before starting the app. In the Docker image, the server's own entry point runs preflight — Portal connectivity, DB connectivity, and Drizzle migrations — before it starts handling requests.
 
 ## Local E2E Runtime
 
@@ -232,9 +231,7 @@ portal:
 app:
   baseURL: "https://your-portal.example.com"
   # Used to handle CORS requirements for better auth and generate SEO related information.
-  # refs:
-  # - https://www.better-auth.com/docs/reference/security#trusted-origins
-  # - https://nextjs.org/docs/app/getting-started/metadata-and-og-images
+  # ref: https://www.better-auth.com/docs/reference/security#trusted-origins
   trustedOrigins:
   
     - "https://your-portal.example.com"
@@ -253,7 +250,7 @@ docker build -t api7-ee-developer-portal-fe:prod .
 Enable testing features only for e2e/dev images:
 
 ```bash
-docker build --build-arg NEXT_PUBLIC_TESTING=true -t api7-ee-developer-portal-fe:e2e .
+docker build --build-arg TESTING=true -t api7-ee-developer-portal-fe:e2e .
 ```
 
 ### Run the Docker Image
@@ -290,26 +287,33 @@ docker run --rm -p 3001:3001 \
 Expected startup sequence:
 
 ```text
-Running preflight checks...
+Loading configuration...
+Portal URL: http://provider-portal.example.com
+Checking portal connection...
 Portal connection successful
+Connecting to database...
 Database connection successful
+Running migrations...
 Migrations completed!
-Starting Next.js server...
+Preflight checks completed!
+➜ Listening on: http://localhost:3001/ (all interfaces)
 ```
 
-If any preflight step fails, the container exits before the web server starts.
+Preflight (Portal reachability, DB connectivity, Drizzle migrations) runs
+before the server starts listening, not just before it serves requests — the
+port doesn't open at all until it finishes. If preflight fails, the process
+logs the error and exits; the port never opens and no request is ever
+served.
 
 ---
 
 ## Personalization & Branding
 
-### Logo & Assets
+### Favicon
 
-| File    | Location                      | Purpose             |
-| ------- | ----------------------------- | ------------------- |
-| Favicon | `apps/site/app/favicon.ico`   | Browser tab icon    |
-| Logo    | `apps/site/public/logo.svg`   | Main logo           |
-| Hero BG | `apps/site/public/herobg.svg` | Homepage background |
+| File    | Location                        | Purpose          |
+| ------- | -------------------------------- | ---------------- |
+| Favicon | `apps/site/public/favicon.ico`  | Browser tab icon |
 
 ### Application Name
 
@@ -334,7 +338,7 @@ app:
 
 ### Theme
 
-Edit CSS variables in `apps/site/app/globals.css` for colors and styling.
+Edit CSS variables in `apps/site/src/globals.css` for colors and styling.
 
 ---
 
@@ -345,7 +349,7 @@ Edit CSS variables in `apps/site/app/globals.css` for colors and styling.
 3. [ ] Set authentication secret (`auth.secret`)
 4. [ ] Configure Portal API (`portal.url`, `portal.token`)
 5. [ ] Configure `app.baseURL` and `app.trustedOrigins` for the browser-facing URL
-6. [ ] Ensure database migrations are applied (`pnpm db:migrate` for local non-Docker runs, Docker preflight, or a one-off migration job)
+6. [ ] Ensure database migrations are applied (`pnpm db:migrate` for local non-Docker runs; the Docker image applies them itself on startup)
 7. [ ] Register the first user and configure `auth.adminUserIds` if platform admin access is required
 8. [ ] (Optional) Configure SSO providers
 9. [ ] (Optional) Customize branding
@@ -356,4 +360,4 @@ Edit CSS variables in `apps/site/app/globals.css` for colors and styling.
 
 - [Better Auth Documentation](https://www.better-auth.com/docs)
 - [Drizzle ORM Documentation](https://orm.drizzle.team/docs/overview)
-- [Next.js Documentation](https://nextjs.org/docs)
+- [TanStack Start Documentation](https://tanstack.com/start/latest/docs/framework/react/overview)

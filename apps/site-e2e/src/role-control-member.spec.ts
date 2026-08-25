@@ -9,10 +9,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { expect } from '@playwright/test';
-import {
-  API_PREFIX,
-  AUTH_BASE_PATH,
-} from '@site/constants/api-prefix';
+import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
 import {
   PATH_APPLICATIONS,
 } from '@site/constants/path-prefix';
@@ -313,243 +310,11 @@ test.describe('Role Control - Member Read-Only', () => {
     await memberContext.close();
   });
 
-  test('member: API POST applications returns 403', async ({
-    ctx,
-    page,
-    browser,
-  }) => {
-    test.skip(true, 'BFF proxy route removed');
-    const testId = `member-api-app-${Date.now()}`;
-    const memberAuth = {
-      email: `member${testId}@test.example.com`,
-      password: `Password3412.${testId}`,
-      name: `member-${testId}`,
-    };
-
-    const orgId = await getActiveOrganizationId(ctx);
-    const ownerSlug = await getActiveOrganizationSlug(ctx);
-    const outputDir = test.info().project.outputDir;
-    const memberStatePath = path.resolve(
-      outputDir,
-      '.auth',
-      `member-api-${testId}.json`,
-    );
-    fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
-
-    await setupMemberUser(page, memberAuth, orgId, memberStatePath);
-
-    const memberCtx = await genCtx({
-      storageState: memberStatePath,
-      extraHTTPHeaders: {
-        origin: process.env.E2E_TARGET_URL || 'http://localhost:3001',
-      },
-    });
-
-    await expectMemberWriteForbidden(
-      memberCtx,
-      'POST',
-      `${API_PREFIX}/${ownerSlug}/applications`,
-      {
-        name: 'ForbiddenApp',
-        desc: 'Should fail',
-      },
-    );
-
-    await memberCtx.dispose();
-  });
-
-  test('member: API DELETE applications returns 403', async ({
-    ctx,
-    page,
-    browser,
-  }) => {
-    test.skip(true, 'BFF proxy route removed');
-    const testId = `member-api-del-${Date.now()}`;
-    const appName = `AppToDelete${testId}`;
-
-    await page.goto(PATH_APPLICATIONS);
-    await uiAddApplication(page, { name: appName, desc: 'For delete test' });
-    const ownerSlug = await getActiveOrganizationSlug(ctx);
-    const appsRes = await ctx.get(`${API_PREFIX}/${ownerSlug}/applications`);
-    const appsData = await appsRes.json();
-    const app = appsData.list?.find(
-      (a: { name: string }) => a.name === appName,
-    );
-    expect(app?.id).toBeTruthy();
-
-    const orgId = await getActiveOrganizationId(ctx);
-    const memberAuth = {
-      email: `member${testId}@test.example.com`,
-      password: `Password3412.${testId}`,
-      name: `member-${testId}`,
-    };
-
-    const outputDir = test.info().project.outputDir;
-    const memberStatePath = path.resolve(
-      outputDir,
-      '.auth',
-      `member-api-del-${testId}.json`,
-    );
-    fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
-
-    await setupMemberUser(page, memberAuth, orgId, memberStatePath);
-
-    const memberCtx = await genCtx({
-      storageState: memberStatePath,
-      extraHTTPHeaders: {
-        origin: process.env.E2E_TARGET_URL || 'http://localhost:3001',
-      },
-    });
-
-    await expectMemberWriteForbidden(
-      memberCtx,
-      'DELETE',
-      `${API_PREFIX}/${ownerSlug}/applications/${app.id}`,
-    );
-
-    await memberCtx.dispose();
-  });
-
-  test('member: API POST credentials returns 403', async ({
-    ctx,
-    page,
-    browser,
-  }) => {
-    test.skip(true, 'BFF proxy route removed');
-    const testId = `member-api-cred-${Date.now()}`;
-
-    const ownerSlug = await getActiveOrganizationSlug(ctx);
-    const appsRes = await ctx.get(`${API_PREFIX}/${ownerSlug}/applications`);
-    const appsData = await appsRes.json();
-    const appId = appsData.list?.[0]?.id;
-    expect(appId).toBeTruthy();
-
-    const orgId = await getActiveOrganizationId(ctx);
-    const memberAuth = {
-      email: `member${testId}@test.example.com`,
-      password: `Password3412.${testId}`,
-      name: `member-${testId}`,
-    };
-
-    const outputDir = test.info().project.outputDir;
-    const memberStatePath = path.resolve(
-      outputDir,
-      '.auth',
-      `member-api-cred-${testId}.json`,
-    );
-    fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
-
-    await setupMemberUser(page, memberAuth, orgId, memberStatePath);
-
-    const memberCtx = await genCtx({
-      storageState: memberStatePath,
-      extraHTTPHeaders: {
-        origin: process.env.E2E_TARGET_URL || 'http://localhost:3001',
-      },
-    });
-
-    await expectMemberWriteForbidden(
-      memberCtx,
-      'POST',
-      `${API_PREFIX}/${ownerSlug}/credentials`,
-      {
-        name: 'ForbiddenCred',
-        auth_method: 'key-auth',
-        application_id: appId,
-      },
-    );
-
-    await memberCtx.dispose();
-  });
-
-  test('member: API POST subscriptions returns 403', async ({
-    ctx,
-    page,
-    browser,
-  }) => {
-    test.skip(true, 'BFF proxy route removed');
-    const testId = `member-api-sub-${Date.now()}`;
-
-    const ownerSlug = await getActiveOrganizationSlug(ctx);
-
-    // 403 comes from the proxy role check, before the portal API validates the
-    // request body — so fake IDs are sufficient here.
-    const orgId = await getActiveOrganizationId(ctx);
-    const memberAuth = {
-      email: `member${testId}@test.example.com`,
-      password: `Password3412.${testId}`,
-      name: `member-${testId}`,
-    };
-
-    const outputDir = test.info().project.outputDir;
-    const memberStatePath = path.resolve(
-      outputDir,
-      '.auth',
-      `member-api-sub-${testId}.json`,
-    );
-    fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
-
-    await setupMemberUser(page, memberAuth, orgId, memberStatePath);
-
-    const memberCtx = await genCtx({
-      storageState: memberStatePath,
-      extraHTTPHeaders: {
-        origin: process.env.E2E_TARGET_URL || 'http://localhost:3001',
-      },
-    });
-
-    await expectMemberWriteForbidden(
-      memberCtx,
-      'POST',
-      `${API_PREFIX}/${ownerSlug}/subscriptions`,
-      {
-        api_products: ['fake-product-id'],
-        applications: ['fake-app-id'],
-      },
-    );
-
-    await memberCtx.dispose();
-  });
-
-  test('member: API GET applications succeeds (read allowed)', async ({
-    ctx,
-    page,
-    browser,
-  }) => {
-    test.skip(true, 'BFF proxy route removed');
-    const testId = `member-api-get-${Date.now()}`;
-    const memberAuth = {
-      email: `member${testId}@test.example.com`,
-      password: `Password3412.${testId}`,
-      name: `member-${testId}`,
-    };
-
-    const orgId = await getActiveOrganizationId(ctx);
-    const outputDir = test.info().project.outputDir;
-    const memberStatePath = path.resolve(
-      outputDir,
-      '.auth',
-      `member-api-get-${testId}.json`,
-    );
-    fs.mkdirSync(path.dirname(memberStatePath), { recursive: true });
-
-    await setupMemberUser(page, memberAuth, orgId, memberStatePath);
-
-    const memberCtx = await genCtx({
-      storageState: memberStatePath,
-      extraHTTPHeaders: {
-        origin: process.env.E2E_TARGET_URL || 'http://localhost:3001',
-      },
-    });
-
-    const ownerSlug = await getActiveOrganizationSlug(ctx);
-    const res = await memberCtx.get(`${API_PREFIX}/${ownerSlug}/applications`, {
-      failOnStatusCode: false,
-    });
-    expect(res.status()).toBe(200);
-
-    await memberCtx.dispose();
-  });
+  // The five API-level 403 checks that used to live here (applications,
+  // credentials, subscriptions POST/DELETE via the BFF proxy) tested a proxy
+  // route this app no longer has — the TanStack Start rewrite replaced it
+  // with server functions, which the "Organization settings update is
+  // rejected server-side" test above already covers at the same boundary.
 });
 
 test.describe('Role Control - Admin', () => {
@@ -594,7 +359,6 @@ test.describe('Role Control - Admin', () => {
     a7Ctx,
     ctx,
     page,
-    browser,
   }) => {
     const testId = `admin-del-org-${Date.now()}`;
     const adminAuth = {

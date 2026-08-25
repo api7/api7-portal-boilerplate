@@ -72,6 +72,7 @@ test.describe('OIDC Authentication', () => {
 
   test('can sign in with OIDC (Keycloak)', async ({ page }) => {
     test.setTimeout(90_000);
+
     await test.step('navigate to login page', async () => {
       await page.goto(PATH_LOGIN);
       await expect(page.getByText('Sign In', { exact: true }).first()).toBeVisible();
@@ -96,9 +97,9 @@ test.describe('OIDC Authentication', () => {
       );
 
       // Fill in Keycloak credentials
-      await page.fill('#username', kcAdmin.username);
-      await page.fill('#password', kcAdmin.password);
-      await page.click('#kc-login');
+      await page.locator('#username').fill(kcAdmin.username);
+      await page.locator('#password').fill(kcAdmin.password);
+      await page.locator('#kc-login').click();
     });
 
     await test.step('verify successful authentication', async () => {

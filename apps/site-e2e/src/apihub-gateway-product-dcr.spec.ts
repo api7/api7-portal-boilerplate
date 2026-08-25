@@ -140,7 +140,7 @@ test.describe('Test Gateway Product with DCR', { tag: ['@gateway'] }, () => {
     await a7DeleteService(a7Ctx, serviceId, gatewayId);
   });
 
-  test('test gateway product with dcr', async ({ page, a7Ctx, a7UIPage }) => {
+  test('gateway product with dcr', async ({ page, a7Ctx, a7UIPage }) => {
     test.setTimeout(60_000);
 
     await test.step('create keycloak client initial access token', async () => {

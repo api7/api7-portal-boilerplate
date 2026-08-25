@@ -110,7 +110,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     });
 
     await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
-    await expect(page.getByRole('tab', { name: 'Subscriptions' })).not.toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Subscriptions' })).toBeHidden();
     await expect(page.getByRole('tab', { name: 'Authentication Type' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Usage' })).toBeVisible();
   });
@@ -123,7 +123,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     });
 
     await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
-    await expect(page.getByRole('tab', { name: 'Usage' })).not.toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Usage' })).toBeHidden();
     await expect(page.getByRole('tab', { name: 'Subscriptions' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Authentication Type' })).toBeVisible();
   });
@@ -137,7 +137,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
 
     await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
     await page.getByRole('tab', { name: 'Authentication Type' }).click();
-    await expect(page.getByRole('tab', { name: 'Key Authentication' })).not.toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Key Authentication' })).toBeHidden();
     await expect(page.getByRole('tab', { name: 'Basic Authentication' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'OAuth' })).toBeVisible();
   });
@@ -151,7 +151,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
 
     await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
     await page.getByRole('tab', { name: 'Authentication Type' }).click();
-    await expect(page.getByRole('tab', { name: 'Basic Authentication' })).not.toBeVisible();
+    await expect(page.getByRole('tab', { name: 'Basic Authentication' })).toBeHidden();
     await expect(page.getByRole('tab', { name: 'Key Authentication' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'OAuth' })).toBeVisible();
   });
@@ -165,7 +165,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
 
     await page.goto(`/${testOrgSlug}/applications/${testAppId}`);
     await page.getByRole('tab', { name: 'Authentication Type' }).click();
-    await expect(page.getByRole('tab', { name: 'OAuth' })).not.toBeVisible();
+    await expect(page.getByRole('tab', { name: 'OAuth' })).toBeHidden();
     await expect(page.getByRole('tab', { name: 'Key Authentication' })).toBeVisible();
     await expect(page.getByRole('tab', { name: 'Basic Authentication' })).toBeVisible();
   });
@@ -190,7 +190,7 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     // Authentication Type tab should not be visible when all sub-tabs are disabled
     await expect(
       page.getByRole('tab', { name: 'Authentication Type' })
-    ).not.toBeVisible();
+    ).toBeHidden();
 
     // Other tabs should still be visible
     await expect(
@@ -234,8 +234,8 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     // Disabled sub-tab switcher buttons should not be present
     await expect(
       page.getByRole('tab', { name: 'Basic Authentication' })
-    ).not.toBeVisible();
-    await expect(page.getByRole('tab', { name: 'OAuth' })).not.toBeVisible();
+    ).toBeHidden();
+    await expect(page.getByRole('tab', { name: 'OAuth' })).toBeHidden();
   });
 
   test('should handle multiple tabs hidden configuration', async ({ page }) => {
@@ -256,8 +256,8 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     // Hidden tabs should not be visible
     await expect(
       page.getByRole('tab', { name: 'Subscriptions' })
-    ).not.toBeVisible();
-    await expect(page.getByRole('tab', { name: 'Usage' })).not.toBeVisible();
+    ).toBeHidden();
+    await expect(page.getByRole('tab', { name: 'Usage' })).toBeHidden();
 
     // Only credentials tab should be visible (because basicAuth is enabled)
     await expect(
@@ -275,8 +275,8 @@ test.describe('Test Application Detail Tabs Configuration', () => {
     ).toBeVisible();
     await expect(
       page.getByRole('tab', { name: 'Key Authentication' })
-    ).not.toBeVisible();
-    await expect(page.getByRole('tab', { name: 'OAuth' })).not.toBeVisible();
+    ).toBeHidden();
+    await expect(page.getByRole('tab', { name: 'OAuth' })).toBeHidden();
   });
 
 });

@@ -1,6 +1,6 @@
 # API7 Developer Portal
 
-A customizable developer portal frontend for API7 Enterprise, built with Next.js 16, React 18, and Tailwind CSS.
+A customizable developer portal frontend for API7 Enterprise, built with TanStack Start, React 19, and Tailwind CSS.
 
 ## Requirements
 
@@ -24,7 +24,7 @@ pnpm db:migrate
 
 # Start development server
 pnpm dev
-# Visit the Local URL printed by Next.js
+# Visit the Local URL printed in the terminal
 ```
 
 ## Configuration
@@ -37,7 +37,7 @@ This is a pnpm workspace monorepo:
 
 ```text
 apps/
-├── site/          # Main Next.js application
+├── site/          # Main TanStack Start application
 └── site-e2e/      # Playwright E2E tests
 ```
 
@@ -81,7 +81,7 @@ Detailed Docker build modes, runtime config mounting, preflight behavior, and E2
 
 ## Tech Stack
 
-- **Framework:** Next.js 16, React 19
+- **Framework:** TanStack Start, React 19
 - **UI:** Base UI / shadcn components, Tailwind CSS 4
 - **Database:** PostgreSQL + Drizzle ORM
 - **Auth:** Better Auth

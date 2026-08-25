@@ -21,7 +21,7 @@ test.describe('Test Credential table sort', () => {
     name2: 'Credential2',
   };
 
-  test('test search and sort', async ({ page }) => {
+  test('search and sort', async ({ page }) => {
     test.setTimeout(120_000);
     await uiGoToAPICredentials(page);
     const nameCell1 = page.getByRole('cell', { name: data.name });

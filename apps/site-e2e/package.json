@@ -1,6 +1,6 @@
 {
   "name": "@api7ee/site-e2e",
-  "version": "0.4.9",
+  "version": "0.4.10",
   "private": true,
   "scripts": {
     "e2e": "playwright test",
@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "@estruyf/github-actions-reporter": "^1.9.2",
+    "@eslint/js": "^9.39.4",
     "@keycloak/keycloak-admin-client": "^26.7.0",
     "@playwright/test": "^1.62.0",
     "@swc-node/register": "~1.12.1",
@@ -18,11 +19,13 @@
     "@types/lodash": "^4",
     "@types/node": "^20",
     "dotenv": "^16.4.5",
-    "eslint": "^9.0.0",
-    "eslint-plugin-playwright": "^0.15.3",
+    "eslint": "^10.1.0",
+    "eslint-plugin-playwright": "^2.11.0",
+    "globals": "^17.9.0",
     "lodash": "^4.18.0",
     "ts-node": "10.9.2",
-    "typescript": "~5.5.2"
+    "typescript": "~5.5.2",
+    "typescript-eslint": "^8.61.1"
   },
   "dependencies": {
     "just-diff": "^6.0.2",

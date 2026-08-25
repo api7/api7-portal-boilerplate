@@ -13,6 +13,7 @@ import {
   a7PostPublishedService,
   a7PutServiceOAS,
 } from '../req/dashboard/service';
+import { deleteCredentials } from '../req/credential';
 import { a7UICreateDCR, a7UICreateGatewayProduct } from '../utils/a7UI';
 import { kcAdmin } from '../utils/keycloak';
 import {
@@ -78,18 +79,24 @@ test.describe('Test Gateway Product with DCR table coverage', () => {
     ]);
   });
 
+  test.afterEach(async ({ a7Ctx, ctx }) => {
+    // The developer-side OAuth client this test creates keeps its DCR
+    // provider from being deletable ("used by developer credentials") —
+    // delete it first, or the provider below is silently left behind and
+    // breaks the next run's dcr_provider_id auto-select (it only fires when
+    // exactly one provider exists account-wide).
+    await deleteCredentials(ctx);
+    await a7DeleteProductList(a7Ctx);
+    await a7DeleteDCRProviderList(a7Ctx);
+  });
+
   test.afterAll(async ({ a7Ctx }) => {
     test.setTimeout(600_000);
     await a7DeletePublishedRoute(a7Ctx, routeId, gatewayId);
     await a7DeleteService(a7Ctx, serviceId, gatewayId);
   });
 
-  test.afterEach(async ({ a7Ctx }) => {
-    await a7DeleteProductList(a7Ctx);
-    await a7DeleteDCRProviderList(a7Ctx);
-  });
-
-  test('test search oauth client', async ({ page, a7Ctx, a7UIPage }) => {
+  test('search oauth client', async ({ page, a7Ctx, a7UIPage }) => {
     test.setTimeout(60_000);
 
     await test.step('create keycloak client initial access token', async () => {

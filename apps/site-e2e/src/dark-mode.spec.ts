@@ -88,7 +88,7 @@ test.describe('Dark Mode', () => {
     await setTheme(page, 'dark');
     await expect(page.locator('html')).toHaveClass(/\bdark\b/);
 
-    // Use the header nav link for a real Next.js soft navigation.
+    // Use the header nav link for a real client-side soft navigation.
     await page
       .getByRole('navigation')
       .getByRole('link', { name: 'API Hub' })

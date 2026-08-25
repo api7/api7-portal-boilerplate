@@ -32,7 +32,7 @@ test.describe('Test API Hub Disabled Configuration', () => {
 
   test('nav bar should not show API Hub link', async ({ page }) => {
     await page.goto(PATH_ROOT);
-    await expect(page.getByRole('link', { name: 'API Hub' })).not.toBeVisible();
+    await expect(page.getByRole('link', { name: 'API Hub' })).toBeHidden();
   });
 
   test('/api-hub should return 404', async ({ page }) => {

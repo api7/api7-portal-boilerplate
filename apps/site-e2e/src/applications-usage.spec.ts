@@ -26,7 +26,7 @@ import {
 } from '../utils/shell';
 import {
   uiAddAPIKeyCredential,
-  uiGoToApplications,
+  uiOpenDefaultApplicationDetail,
   uiSubscribeProductProduct,
 } from '../utils/ui';
 
@@ -125,19 +125,17 @@ test.describe(
       test.setTimeout(60_000);
       let applicationId: string | null = null;
       const productName = product.name ?? `gateway-product-${seed}`;
+
       await test.step('navigate to application detail', async () => {
-        await uiGoToApplications(page);
-        const nameCell = page.getByRole('cell', { name: 'default' });
-        const nameLink = nameCell.getByRole('link', { name: 'default' });
-        await nameLink.click();
+        // The shared worker org's "default" application can be removed and
+        // recreated by other tests in the same worker — this recovers
+        // deterministically instead of assuming it's still there.
+        await uiOpenDefaultApplicationDetail(page);
         await expect(page).toHaveURL(/\/applications\/[^/]+$/);
         // Extract application ID from URL
         const url = page.url();
         applicationId = url.split('/').pop() ?? null;
         expect(applicationId).toBeTruthy();
-        if (!applicationId) {
-          throw new Error(`Failed to read application id from url: ${url}`);
-        }
         await uiAddAPIKeyCredential(page);
       });
 

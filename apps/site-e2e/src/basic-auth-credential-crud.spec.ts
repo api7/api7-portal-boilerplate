@@ -118,7 +118,6 @@ test.describe('Test Basic Auth Credential CRUD', () => {
     });
 
     const editBtn = defaultRow.getByRole('button', { name: 'Edit' });
-    const moreMenuBtn = uiGetMoreOptionsButton(defaultRow);
     const nameInput = page.locator('input#name');
     const editBasicsTitle = page.getByText(
       'Edit Basic Authentication Credential',

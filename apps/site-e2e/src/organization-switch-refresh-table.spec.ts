@@ -78,7 +78,7 @@ test.describe('Organization Switch table coverage', () => {
       await expect(page.getByRole('cell', { name: app2Name })).toBeVisible();
       await expect(
         page.getByRole('cell', { name: app1Name }),
-      ).not.toBeVisible();
+      ).toBeHidden();
     });
 
     await test.step('Switch back to first organization and verify applications refresh', async () => {
@@ -90,7 +90,7 @@ test.describe('Organization Switch table coverage', () => {
       await expect(page.getByRole('cell', { name: app1Name })).toBeVisible();
       await expect(
         page.getByRole('cell', { name: app2Name }),
-      ).not.toBeVisible();
+      ).toBeHidden();
     });
 
     await test.step('Switch to second organization and verify again', async () => {
@@ -102,7 +102,7 @@ test.describe('Organization Switch table coverage', () => {
       await expect(page.getByRole('cell', { name: app2Name })).toBeVisible();
       await expect(
         page.getByRole('cell', { name: app1Name }),
-      ).not.toBeVisible();
+      ).toBeHidden();
     });
   });
 

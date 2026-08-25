@@ -95,12 +95,14 @@ test.describe('subscription status should be updated when product is subscribed 
     page,
   }) => {
     const applicationName = `application-${seed}`;
+
     await test.step('create new application', async () => {
       await uiGoToApplications(page);
       await uiAddApplication(page, {
         name: applicationName,
       });
     });
+
     await test.step('subscribe product to application', async () => {
       await uiSubscribeProductInAPIHub(page, {
         applicationName,
@@ -116,7 +118,7 @@ test.describe('subscription status should be updated when product is subscribed 
       const applicationRow = page
         .getByRole('row')
         .filter({ hasText: applicationName });
-      await expect(applicationRow.getByText('Invalid Date')).not.toBeVisible();
+      await expect(applicationRow.getByText('Invalid Date')).toBeHidden();
       await expect(applicationRow.getByText('Wait For Approval')).toBeVisible();
 
       const subscribeBtn = page.getByRole('button', {

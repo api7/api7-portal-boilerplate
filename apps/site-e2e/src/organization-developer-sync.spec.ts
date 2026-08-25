@@ -43,7 +43,8 @@ const uiCreateOrganization = async (page: Page, orgName: string) => {
     { timeout: 15_000 },
   );
 
-  await page.waitForTimeout(500);
+  // Wait for React hydration to settle before the caller interacts further.
+  await page.waitForLoadState('networkidle');
 
   return { id, slug };
 };

@@ -38,16 +38,13 @@ import {
   type DataTableColumnDef,
 } from '@/components/base/data-table';
 import { SectionHeader } from '@/components/base/section-header';
-import {
-  getMemberActionPermissions,
-  listOrganizationMembers,
-} from '@/lib/dal/organization-members';
+import { listOrganizationMembers } from '@/lib/dal/organization-members';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import {
   organizationInvitationsListKey,
-  organizationMemberPermissionsKey,
   organizationMembersListKey,
 } from '@/lib/query/keys';
+import { useMemberActionPermissions } from './organization-members-shared';
 
 type MemberRow = Member & { user: Partial<User> };
 
@@ -189,30 +186,8 @@ function MemberActionsCell({
   );
 }
 
-// Matches the loader's prefetch params exactly so the initial `useQuery`
-// call below hits the SSR-hydrated cache instead of fetching on mount.
-export const DEFAULT_MEMBERS_PARAMS = {
-  limit: 10,
-  offset: 0,
-  sortBy: 'createdAt',
-  sortDirection: 'desc' as const,
-};
-
 // Comfortably above better-auth's own 100-member default.
 const MEMBER_SEARCH_LIMIT = 1000;
-
-// Server-rendered so the actions column isn't blank until per-row permission
-// checks round-trip; shared with the invitations table.
-export function useMemberActionPermissions() {
-  const orgSlug = useOrganizationSlug();
-  return useQuery({
-    queryKey: organizationMemberPermissionsKey(orgSlug),
-    queryFn: () =>
-      getMemberActionPermissions({ data: { organizationSlug: orgSlug! } }),
-    enabled: !!orgSlug,
-    staleTime: 30_000,
-  });
-}
 
 const OrganizationMembersTable: React.FC = () => {
   const orgSlug = useOrganizationSlug();

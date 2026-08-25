@@ -287,6 +287,7 @@ export const deleteOrganizationAsAdmin = createServerFn({ method: 'POST' })
           SDKAPIError.isAPIError(error) && error.message
             ? error.message
             : 'Failed to delete developer resources.',
+          { cause: error },
         );
       }
     }

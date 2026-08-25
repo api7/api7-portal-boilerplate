@@ -61,11 +61,22 @@ const Drawer: React.FC<DrawerProps> = ({
   setOpen: _setOpen,
   setClose: _setClose,
 }) => {
+  // Debounced wrapper must stay the same function identity across renders
+  // (recreating it would reset the pending debounce timer), so it can't
+  // close over `onOk` directly — a ref keeps it reading the latest value.
   const onOkRef = useRef(onOk);
-  onOkRef.current = onOk;
+  useEffect(() => {
+    onOkRef.current = onOk;
+  });
 
   const debouncedOk = useMemo(
-    () => debounce(() => onOkRef.current?.(), okDebounceWait),
+    () =>
+      debounce(
+        // Deferred by lodash's debounce, this never actually runs during render.
+        // eslint-disable-next-line react-hooks/refs
+        () => onOkRef.current?.(),
+        okDebounceWait,
+      ),
     [okDebounceWait],
   );
 

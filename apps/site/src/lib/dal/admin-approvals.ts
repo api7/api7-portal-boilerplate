@@ -74,8 +74,8 @@ export const actOnApproval = createServerFn({ method: 'POST' })
       });
     } catch (error) {
       if (APIError.isAPIError(error)) {
-        throw new Error(error.message);
+        throw new Error(error.message, { cause: error });
       }
-      throw new Error('Operation failed. Please try again.');
+      throw new Error('Operation failed. Please try again.', { cause: error });
     }
   });

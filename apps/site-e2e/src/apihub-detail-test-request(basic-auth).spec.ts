@@ -65,6 +65,7 @@ test.describe('auth type auto fill in detail page', () => {
 
   test('basic auth type should auto selected', async ({ page }) => {
     test.slow();
+
     await test.step('add application', async () => {
       await uiGoToApplications(page);
       await uiAddApplication(page, { name: applicationName });

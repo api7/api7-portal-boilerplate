@@ -37,7 +37,7 @@ const E2E_NETWORK = 'api7-ee_api7';
 const E2E_GATEWAY_HTTP_PORT = 9080;
 const E2E_GATEWAY_HTTPS_PORT = 9443;
 
-type ExcludeFirst<T extends any[]> = T extends [any, ...infer Rest]
+type ExcludeFirst<T extends unknown[]> = T extends [unknown, ...infer Rest]
   ? Rest
   : never;
 type XArgs = ExcludeFirst<Parameters<Awaited<typeof tinyexecPromise>>>;

@@ -15,10 +15,11 @@ import { headerNavs } from '@site/lib/config/navs';
 // Reset storage state for this file to avoid being authenticated
 test.use({ storageState: { cookies: [], origins: [] } });
 
-test.describe('public access is `true`, test the behavior of guest users visiting pages', async () => {
+test.describe('public access is `true`, test the behavior of guest users visiting pages', () => {
   const canViewPages = genCanViewPages();
   const notFoundPages = genNotFoundPages();
   let publicProductId: string, loggedInProductId: string;
+
   test.beforeAll(async ({ a7Ctx }) => {
     // We will have a separate file to use ui to test product related logic, here we just test accessibility
     await a7PutPublicAccess(a7Ctx, true);
@@ -48,6 +49,9 @@ test.describe('public access is `true`, test the behavior of guest users visitin
     test(`${url} can be seen`, async ({ page }) => {
       await page.goto(url);
       expect(page.url()).toContain(url);
+      // Asserting the absence of a redirect that hasn't happened yet has no
+      // locator to wait on — give one a chance to fire before checking.
+      // eslint-disable-next-line playwright/no-wait-for-timeout
       await page.waitForTimeout(500);
       expect(page.url()).not.toContain(PATH_LOGIN);
     });

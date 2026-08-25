@@ -46,6 +46,7 @@ test.describe('Auth sign-up slot', () => {
     await restartDevPortal();
   });
 
+  // eslint-disable-next-line playwright/no-skipped-test -- pending Phase 2 rework, see TODO below
   test.skip('renders configured html before sign-up button', async ({ page }) => {
     // TODO Phase 2: beforeSignUpButton slot not yet wired into new Auth/SignUp components
     await updateConfigAndRestart(BEFORE_SIGN_UP_NOTICE_HTML);

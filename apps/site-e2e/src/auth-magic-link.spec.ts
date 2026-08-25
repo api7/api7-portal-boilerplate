@@ -20,7 +20,11 @@ test.describe('Magic Link Authentication', () => {
     await clearAllEmails();
   });
 
+  // eslint-disable-next-line playwright/no-skipped-test -- pending Phase 2 rework, see TODO below
   test.skip('can sign in with magic link', async ({ page }) => {
+    /* eslint-disable playwright/no-wait-for-timeout, playwright/no-conditional-in-test, playwright/no-conditional-expect --
+       dead until the Phase 2 rework above; not worth restructuring code that
+       never runs and can't be verified until then */
     // TODO Phase 2: magic link button moved to /auth/magic-link — update flow
     await test.step('navigate to login page', async () => {
       await page.goto(PATH_LOGIN);
@@ -99,6 +103,7 @@ test.describe('Magic Link Authentication', () => {
         );
       }
     });
+    /* eslint-enable playwright/no-wait-for-timeout, playwright/no-conditional-in-test, playwright/no-conditional-expect */
   });
 
   test('shows error for invalid magic link', async ({ page }) => {
@@ -106,6 +111,7 @@ test.describe('Magic Link Authentication', () => {
     await expect(page.getByText('Sign In', { exact: true }).first()).toBeVisible();
   });
 
+  // eslint-disable-next-line playwright/no-skipped-test -- pending Phase 2 rework, see TODO below
   test.skip('magic link button is visible on login page', async ({ page }) => {
     // TODO Phase 2: magic link entry point moved to /auth/magic-link
     await page.goto(PATH_LOGIN);

@@ -129,18 +129,6 @@ test.describe('Test Application Subscriptions', () => {
     externalProductId = externalProduct.value.id;
   });
 
-  test.afterAll(async ({ a7Ctx }) => {
-    await a7DeleteProductList(a7Ctx, [
-      autoApprovalProductId,
-      manualApprovalProductId,
-      externalProductId,
-    ]);
-    await a7DeletePublishedRoute(a7Ctx, routeId, gatewayGroupId);
-    await a7DeletePublishedRoute(a7Ctx, routeId2, gatewayGroupId);
-    await a7DeleteService(a7Ctx, serviceId, gatewayGroupId);
-    await a7DeleteService(a7Ctx, serviceId2, gatewayGroupId);
-  });
-
   test.beforeEach(async ({ page }) => {
     await uiGoToApplications(page);
     const table = page.getByTestId('application-table');
@@ -159,6 +147,18 @@ test.describe('Test Application Subscriptions', () => {
       }
       await uiDeleteApplicationInList(page, name);
     }
+  });
+
+  test.afterAll(async ({ a7Ctx }) => {
+    await a7DeleteProductList(a7Ctx, [
+      autoApprovalProductId,
+      manualApprovalProductId,
+      externalProductId,
+    ]);
+    await a7DeletePublishedRoute(a7Ctx, routeId, gatewayGroupId);
+    await a7DeletePublishedRoute(a7Ctx, routeId2, gatewayGroupId);
+    await a7DeleteService(a7Ctx, serviceId, gatewayGroupId);
+    await a7DeleteService(a7Ctx, serviceId2, gatewayGroupId);
   });
 
   test('can navigate to application subscriptions tab', async ({ page }) => {
@@ -224,9 +224,6 @@ test.describe('Test Application Subscriptions', () => {
     });
 
     await test.step('verify subscription appears in table', async () => {
-      // Wait for table to update
-      await page.waitForTimeout(1000);
-
       const productNameCell = page.getByRole('cell', {
         name: autoApprovalProduct.name,
       });

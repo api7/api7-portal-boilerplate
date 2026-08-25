@@ -1,5 +1,4 @@
 import { expect } from '@playwright/test';
-import { PATH_ROOT } from '@site/constants/path-prefix';
 
 import { test } from '../fixture';
 import {
@@ -23,6 +22,7 @@ test.describe('Test Credential CRUD', () => {
   });
 
   const defaultKeyAuth = 'default-key-auth';
+
   test('can RUD default key auth', async ({ page }) => {
     await uiGoToAPICredentials(page);
     await uiAddAPIKeyCredential(page);

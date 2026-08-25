@@ -2,9 +2,9 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { Pool } from 'pg';
 
-import { API_PUBLIC_ACCESS } from '../src/constants/api-prefix';
-import { getConfig } from '../src/lib/config';
-import type { AppConfig } from '../src/lib/config/schema';
+import { API_PUBLIC_ACCESS } from '@/constants/api-prefix';
+import { getConfig } from '@/lib/config';
+import type { AppConfig } from '@/lib/config/schema';
 
 async function checkPortal(portalConfig: { url: string; token: string }) {
   console.log(`Portal URL: ${portalConfig.url}`);
@@ -57,7 +57,7 @@ async function checkAndMigrateDb(dbConfig: AppConfig['db']) {
   await pool.end();
 }
 
-async function preflight() {
+export async function runPreflightChecks() {
   console.log('Loading configuration...');
   const config = getConfig();
 
@@ -66,10 +66,3 @@ async function preflight() {
 
   console.log('Preflight checks completed!');
 }
-
-preflight()
-  .then(() => process.exit(0))
-  .catch((err) => {
-    console.error('Preflight failed:', err);
-    process.exit(1);
-  });

@@ -17,10 +17,11 @@ test.describe(
   {
     tag: ['@user-story'],
   },
-  async () => {
+  () => {
     const externalProductPublic = 'guest-external-public',
       externalProductLoggedIn = 'guest-external-logged-in';
     let externalProductPublicId: string, externalProductLoggedInId: string;
+
     test.beforeAll(async ({ a7UIPage, a7Ctx }) => {
       // clear env
       await a7DeleteProductList(a7Ctx);

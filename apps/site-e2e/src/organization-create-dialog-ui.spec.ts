@@ -30,7 +30,7 @@ test.describe('Create Organization Dialog UI', () => {
     await expect(nameInput).toBeVisible();
 
     // Slug field is now auto-generated — should not be shown
-    await expect(dialog.locator('input[name="slug"]')).not.toBeVisible();
+    await expect(dialog.locator('input[name="slug"]')).toBeHidden();
   });
 
   test('should create organization with provided name and slug', async ({

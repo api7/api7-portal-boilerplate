@@ -22,6 +22,7 @@ function withSearchPath(url: string, schema: string): string {
     throw new Error(
       `[drizzle] Failed to inject search_path into db.url for schema "${schema}": ` +
         (err instanceof Error ? err.message : String(err)),
+      { cause: err },
     );
   }
 }

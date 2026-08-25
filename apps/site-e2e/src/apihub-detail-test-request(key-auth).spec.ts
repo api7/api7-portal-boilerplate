@@ -62,8 +62,9 @@ test.describe('auth type auto fill in detail page', () => {
     await a7DeleteService(a7Ctx, serviceId, gateway_group_id);
   });
 
-  test('auth type should auto selected', async ({ page, ctx }) => {
+  test('auth type should auto selected', async ({ page }) => {
     test.slow();
+
     await test.step('add application', async () => {
       await uiGoToApplications(page);
       await uiAddApplication(page, { name: applicationName });

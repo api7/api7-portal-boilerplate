@@ -37,7 +37,7 @@ import { SectionHeader } from '@/components/base/section-header';
 import { listOrganizationInvitations } from '@/lib/dal/organization-members';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import { organizationInvitationsListKey } from '@/lib/query/keys';
-import { useMemberActionPermissions } from './OrganizationMembersTable';
+import { useMemberActionPermissions } from './organization-members-shared';
 
 const statusBadgeClasses: Record<string, string> = {
   pending: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
@@ -170,7 +170,7 @@ function InvitationActionsCell({
 
 // Matches the loader's prefetch key exactly so the initial `useQuery` call
 // below hits the SSR-hydrated cache instead of fetching on mount.
-export function useOrganizationInvitations() {
+function useOrganizationInvitations() {
   const orgSlug = useOrganizationSlug();
   return useQuery({
     queryKey: organizationInvitationsListKey(orgSlug),

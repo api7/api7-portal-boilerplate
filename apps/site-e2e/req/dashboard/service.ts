@@ -11,7 +11,7 @@ enum ActiveStatus {
 type Service = {
   name: string;
   status: ActiveStatus;
-  upstream: any;
+  upstream: Record<string, unknown>;
   type: 'http' | 'stream';
 } & Partial<{
   hosts: string[];
