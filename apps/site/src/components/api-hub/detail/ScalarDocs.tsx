@@ -44,37 +44,11 @@ const trimPasteContentEvent = (event: ClipboardEvent) => {
     );
     inputOrTextarea.dispatchEvent(inputEvent);
   } else if (target.isContentEditable) {
-    // Retrieve the pasted text from the clipboard, trimming any leading/trailing whitespace. If no text is found, use an empty string.
-
-    // Get the current text selection in the window.
-    const selection = window.getSelection();
-
-    // If there is no selection (i.e., rangeCount is 0), exit the function.
-    if (!selection?.rangeCount) return;
-
-    // Get the first (and potentially only) range of the selection.
-    const range = selection.getRangeAt(0);
-
-    // Delete the contents within the selected range.
-    range.deleteContents();
-
-    // Create a new text node with the pasted text.
-    const textNode = document.createTextNode(pasteText);
-
-    // Insert the new text node into the previously selected range.
-    range.insertNode(textNode);
-
-    // Move the range's start point to just after the newly inserted text node.
-    range.setStartAfter(textNode);
-
-    // Collapse the range to the new start point, effectively making it a point selection.
-    range.collapse(true);
-
-    // Clear all existing ranges in the selection.
-    selection.removeAllRanges();
-
-    // Add the updated range back to the selection.
-    selection.addRange(range);
+    // Scalar's contenteditable inputs (e.g. Basic Auth username) track their
+    // value off the `input` event, not the DOM directly — execCommand fires
+    // that event natively, unlike manually splicing a text node into the
+    // Range/Selection, which left Scalar's own state stuck empty.
+    document.execCommand('insertText', false, pasteText.replace(/\r?\n/g, ' '));
   }
 };
 

@@ -131,6 +131,41 @@ test.describe('Test API Hub with External Product', () => {
       await password.press('Enter');
       await expect(password).toBeVisible();
 
+      // Pasting into the Basic Auth username field should not desync from
+      // the sent request. Unlike the password field, Username is one of
+      // Scalar's contenteditable inputs — placeholder lives in
+      // data-placeholder, not a real placeholder attribute, so
+      // getByPlaceholder can't see it.
+      const authUsername = 'jane.doe';
+      const authPassword = 'hunter2';
+      const usernameField = page
+        .getByLabel('API Client')
+        .locator('[data-placeholder="janedoe"]');
+      await usernameField.fill(authUsername);
+      // Route the value through a real paste event (not .fill()'s direct
+      // input synthesis) — that's the code path that dropped the value.
+      await usernameField.press('ControlOrMeta+a');
+      await usernameField.press('ControlOrMeta+c');
+      await usernameField.press('ControlOrMeta+v');
+      await expect(usernameField).toHaveText(authUsername);
+
+      await password.fill(authPassword);
+
+      const sendBtn = page.getByRole('button', {
+        name: 'Send get request to http://',
+      });
+      const [request] = await Promise.all([
+        page.waitForRequest((req) => req.url().includes(`${HTTPBIN_URL}/get`)),
+        sendBtn.click(),
+      ]);
+
+      // The DOM can look right while Scalar's own model stays empty — check
+      // the actual request, since that's what a 401 depends on.
+      const authHeader = await request.headerValue('authorization');
+      expect(authHeader).toBe(
+        `Basic ${Buffer.from(`${authUsername}:${authPassword}`).toString('base64')}`,
+      );
+
       // Already expanded by default; Scalar's key/value fields are
       // contenteditable, exposed as combobox rather than textbox.
       // exact: true — Scalar also renders a separate "Cookies (Collapsed)"
