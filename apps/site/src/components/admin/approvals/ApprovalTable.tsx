@@ -1,14 +1,5 @@
 'use client';
 
-import { Button } from '@api7/portal-ui/components/ui/button';
-import { ButtonGroup } from '@api7/portal-ui/components/ui/button-group';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@api7/portal-ui/components/ui/dropdown-menu';
 import { useLocation, useNavigate } from '@tanstack/react-router';
 import { useCreation } from 'ahooks';
 import { CheckIcon, EllipsisVerticalIcon, XIcon } from 'lucide-react';
@@ -20,6 +11,15 @@ import {
 } from '@/components/base/data-table';
 import { StatusBadge } from '@/components/base/status-badge';
 import TimeFormat from '@/components/slices/time-format';
+import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PATH_APPROVALS } from '@/constants/path-prefix';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import { type Approval, resolveOperatorName } from '@/lib/portal-sdk/approval';

@@ -180,9 +180,15 @@ test.describe('Organization Settings - Slug-Prefixed Routes', () => {
       new RegExp(`/${orgSlug}/settings`),
     );
 
-    // Update the org slug via the settings form
+    // Update the org slug via the settings form. Wait for the form to finish
+    // loading first: it resets to the fetched organization whenever that
+    // query resolves, which would overwrite a value typed in too early.
     const slugInput = page.locator('input[name="slug"]');
+    await expect(slugInput).toHaveValue(orgSlug);
+    await expect(slugInput).toBeEnabled();
+    await page.waitForLoadState('networkidle');
     await slugInput.fill(newSlug);
+    await expect(slugInput).toHaveValue(newSlug);
 
     const updateResponsePromise = page.waitForResponse(
       (response) =>

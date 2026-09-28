@@ -1,15 +1,15 @@
-import { Badge } from '@api7/portal-ui/components/ui/badge';
+import { Badge } from '@/components/ui/badge';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@api7/portal-ui/components/ui/popover';
+} from '@/components/ui/popover';
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from '@api7/portal-ui/components/ui/tooltip';
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 type BadgeListProps = {

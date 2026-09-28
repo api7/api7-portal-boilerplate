@@ -1,19 +1,5 @@
 'use client';
 
-import { Badge } from '@api7/portal-ui/components/ui/badge';
-import { Button, buttonVariants } from '@api7/portal-ui/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@api7/portal-ui/components/ui/dropdown-menu';
-import { Spinner } from '@api7/portal-ui/components/ui/spinner';
-import { organizationPlugin } from '@api7/portal-ui/lib/auth/organization-plugin';
-import { cn } from '@api7/portal-ui/lib/utils';
 import type {
   OrganizationAuthClient,
   OrganizationLocalization,
@@ -34,9 +20,23 @@ import {
   type DataTableColumnDef,
 } from '@/components/base/data-table';
 import { SectionHeader } from '@/components/base/section-header';
+import { Badge } from '@/components/ui/badge';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Spinner } from '@/components/ui/spinner';
+import { organizationPlugin } from '@/lib/auth/organization-plugin';
 import { listOrganizationInvitations } from '@/lib/dal/organization-members';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import { organizationInvitationsListKey } from '@/lib/query/keys';
+import { cn } from '@/lib/utils';
 import { useMemberActionPermissions } from './organization-members-shared';
 
 const statusBadgeClasses: Record<string, string> = {

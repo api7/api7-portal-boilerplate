@@ -15,25 +15,25 @@
     "e2e:headed": "cd apps/site-e2e && pnpm e2e:headed"
   },
   "dependencies": {
-    "@changesets/changelog-github": "^0.7.0",
-    "@changesets/cli": "^2.30.0"
+    "@changesets/changelog-github": "^1.0.1",
+    "@changesets/cli": "^3.0.3"
   },
   "engines": {
     "node": ">=22.13.0"
   },
   "devDependencies": {
-    "@moonrepo/cli": "^2.4.3",
+    "@moonrepo/cli": "^2.5.5",
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
-    "@typescript-eslint/eslint-plugin": "^8.58.0",
-    "@typescript-eslint/parser": "^8.58.0",
-    "eslint": "^10.1.0",
+    "@typescript-eslint/eslint-plugin": "^8.70.1",
+    "@typescript-eslint/parser": "^8.70.1",
+    "eslint": "catalog:",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.5",
-    "eslint-plugin-unused-imports": "^4.4.1",
+    "eslint-plugin-unused-imports": "catalog:",
     "husky": "^9.1.7",
     "license-checker": "^25.0.1",
-    "prettier": "^3.8.1",
-    "typescript": "~6.0.2"
+    "prettier": "^3.9.8",
+    "typescript": "catalog:"
   },
-  "packageManager": "pnpm@11.24.0+sha512.bd27e345e976dcb0be0b7a1228217b049a817e21b1f355c90dbe7dc46671895a8bc1e6d06c24554505ea93ea0b45f489a27ec1bfbc8de6a9659fca0f16fa0000"
+  "packageManager": "pnpm@12.6.0+sha512.3ef68f951cb111ac204b4a5a16f0b2ddf0da56a96e0413e81d855d9f0b55ef926714709028e1cd00c405c2c5fb7b9e8ec4dc46777c805d0373c2f2ff00fd20ec"
 }

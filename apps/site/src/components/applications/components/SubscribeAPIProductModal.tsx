@@ -1,7 +1,13 @@
 'use client';
 
-import { Button } from '@api7/portal-ui/components/ui/button';
-import { Checkbox } from '@api7/portal-ui/components/ui/checkbox';
+import { useMutation } from '@tanstack/react-query';
+import { useCreation, useMemoizedFn } from 'ahooks';
+import { InfoIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'sonner';
+
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import {
   Combobox,
   ComboboxChip,
@@ -13,7 +19,7 @@ import {
   ComboboxList,
   ComboboxValue,
   useComboboxAnchor,
-} from '@api7/portal-ui/components/ui/combobox';
+} from '@/components/ui/combobox';
 import {
   Dialog,
   DialogClose,
@@ -22,8 +28,8 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from '@api7/portal-ui/components/ui/dialog';
-import { Field, FieldGroup } from '@api7/portal-ui/components/ui/field';
+} from '@/components/ui/dialog';
+import { Field, FieldGroup } from '@/components/ui/field';
 import {
   Item,
   ItemActions,
@@ -31,15 +37,9 @@ import {
   ItemDescription,
   ItemMedia,
   ItemTitle,
-} from '@api7/portal-ui/components/ui/item';
-import { Label } from '@api7/portal-ui/components/ui/label';
-import { Spinner } from '@api7/portal-ui/components/ui/spinner';
-import { useMutation } from '@tanstack/react-query';
-import { useCreation, useMemoizedFn } from 'ahooks';
-import { InfoIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { toast } from 'sonner';
-
+} from '@/components/ui/item';
+import { Label } from '@/components/ui/label';
+import { Spinner } from '@/components/ui/spinner';
 import { bulkSubscribe } from '@/lib/dal/subscriptions';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';

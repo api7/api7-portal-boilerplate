@@ -1,4 +1,3 @@
-import { Auth } from '@api7/portal-ui/components/auth/auth';
 import { useAuth } from '@better-auth-ui/react';
 import {
   CatchNotFound,
@@ -7,6 +6,7 @@ import {
   useLoaderData,
 } from '@tanstack/react-router';
 
+import { Auth } from '@/components/auth/auth';
 import { PageNotFound } from '@/components/slices/NotFound';
 import { checkEmailPolicy } from '@/lib/auth/email-policy';
 

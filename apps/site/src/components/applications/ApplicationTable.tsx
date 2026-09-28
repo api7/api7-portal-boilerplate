@@ -1,15 +1,6 @@
 'use client';
 
 import type { DeveloperApplication } from '@api7/portal-sdk/unstable-types';
-import { Button } from '@api7/portal-ui/components/ui/button';
-import { ButtonGroup } from '@api7/portal-ui/components/ui/button-group';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@api7/portal-ui/components/ui/dropdown-menu';
 import { Link } from '@tanstack/react-router';
 import { useCreation } from 'ahooks';
 import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
@@ -22,6 +13,15 @@ import {
 import { tableColDesc } from '@/components/slices/table-col/desc';
 import { tableColLabels } from '@/components/slices/table-col/labels';
 import TimeFormat from '@/components/slices/time-format';
+import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';

@@ -5,7 +5,7 @@ import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@api7/portal-ui/components/ui/tooltip';
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 
 import { absoluteTimeFormat } from './constant';

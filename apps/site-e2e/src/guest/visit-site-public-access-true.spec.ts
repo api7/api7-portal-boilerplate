@@ -7,7 +7,6 @@ import {
 } from '@site/constants/path-prefix';
 import { test } from '../../fixture';
 import { expect } from '@playwright/test';
-import { a7DeleteProductList } from '../../req/dashboard/product';
 import { uiShowLogin, uiShowNotFound } from '../../utils/ui';
 import { genCanViewPages, genNotFoundPages } from './utils/helper';
 import { headerNavs } from '@site/lib/config/navs';
@@ -18,15 +17,10 @@ test.use({ storageState: { cookies: [], origins: [] } });
 test.describe('public access is `true`, test the behavior of guest users visiting pages', () => {
   const canViewPages = genCanViewPages();
   const notFoundPages = genNotFoundPages();
-  let publicProductId: string, loggedInProductId: string;
 
   test.beforeAll(async ({ a7Ctx }) => {
     // We will have a separate file to use ui to test product related logic, here we just test accessibility
     await a7PutPublicAccess(a7Ctx, true);
-  });
-
-  test.afterAll(async ({ a7Ctx }) => {
-    await a7DeleteProductList(a7Ctx, [publicProductId, loggedInProductId]);
   });
 
   test('cannot see applications, user menu in nav bar', async ({ page }) => {

@@ -1,7 +1,5 @@
 'use client';
 
-import { Button } from '@api7/portal-ui/components/ui/button';
-import { Input } from '@api7/portal-ui/components/ui/input';
 import { useForm, useSelector } from '@tanstack/react-form';
 import type {
   AnyFieldApi,
@@ -16,6 +14,8 @@ import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
 import FormPartBasics from '@/components/slices/form/FormPartBasics';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { createCredential } from '@/lib/dal/credentials';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';

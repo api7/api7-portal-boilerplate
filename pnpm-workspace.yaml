@@ -1,6 +1,15 @@
 packages:
   - 'apps/*'
-  - 'packages/*'
+
+catalog:
+  '@eslint/js': '^10.0.1'
+  '@types/node': '^24.13.6'
+  dotenv: '^18.0.3'
+  eslint: '^10.11.0'
+  eslint-plugin-unused-imports: '^4.4.1'
+  globals: '^17.12.0'
+  typescript: '~6.0.3'
+  typescript-eslint: '^8.70.1'
 
 shamefullyHoist: true
 
@@ -20,10 +29,10 @@ overrides:
   nanoid@<3.3.18: '>=3.3.18'
   nanoid@>=4.0.0 <5.1.16: '>=5.1.16'
   form-data: '4.0.6'
-  esbuild: '0.28.1'
+  esbuild: '0.28.2'
   '@babel/core': '7.29.7'
   undici: '>=8.9.0 <9'
-  brace-expansion@<2.0.3: '>=2.0.3 <3'
+  brace-expansion@<2.0.3: '>=2.0.3 <6'
   minimatch@>=8.0.0 <8.0.6: '>=8.0.6'
   picomatch@>=4.0.0 <4.0.4: '>=4.0.4'
   path-to-regexp@>=8.0.0 <8.4.0: '>=8.4.0'
@@ -31,15 +40,15 @@ overrides:
   ajv@>=7.0.0-alpha.0 <8.18.0: '>=8.18.0 <9'
   diff@>=4.0.0 <4.0.4: '>=4.0.4'
   mdast-util-to-hast@>=13.0.0 <13.2.1: '>=13.2.1'
-  js-yaml: '4.3.1'
+  js-yaml: '5.4.2'
   tmp@<0.2.4: '>=0.2.4'
   qs@>=6.7.0 <=6.14.1: '>=6.14.2'
   minimatch@<3.1.4: '>=3.1.4'
-  ajv@<6.14.0: '>=6.15.0 <7'
-  fast-uri@<3.1.5: '>=3.1.5 <4'
+  ajv@<6.14.0: '>=6.15.0 <9'
+  fast-uri@<3.1.5: '>=3.1.5 <5'
   immutable@>=5.0.0 <5.1.5: '>=5.1.5'
   flatted@<=3.4.1: '>=3.4.2'
-  kysely@<0.28.17: '>=0.28.17 <0.29'
+  kysely@<0.28.17: '>=0.28.17 <0.30'
   picomatch@<2.3.2: '>=2.3.2'
   yaml@>=1.0.0 <1.10.3: '>=1.10.3'
   yaml@>=2.0.0 <2.8.3: '>=2.8.3'
@@ -48,28 +57,17 @@ overrides:
   follow-redirects@<1.16.0: '>=1.16.0'
   postcss@<8.5.18: '>=8.5.18'
   axios@>=1.0.0 <1.15.0: '>=1.15.0'
-  unhead@<2.1.13: '>=2.1.13 <3.0.0'
-  read-yaml-file: 2.1.0
+  unhead@<2.1.13: '>=2.1.13 <4.0.0'
+  read-yaml-file: 3.0.0
   ip-address@<=10.3.0: '>=10.3.1'
   ws@<8.20.1: '>=8.20.1 <9'
-  uuid@>=11.0.0 <11.1.1: '>=11.1.1 <12'
+  uuid@>=11.0.0 <11.1.1: '>=11.1.1 <15'
   sharp@<0.35.0: '>=0.35.0'
   hono@<4.12.34: '>=4.12.34'
   '@hono/node-server@<2.0.5': '>=2.0.5 <3'
   '@noble/ciphers@<2.2.0': '>=2.2.0'
-  # Pin these two so better-auth/@better-auth-ui resolve to one physical
-  # instance across apps/site and packages/ui, instead of forking on a loose
-  # transitive peer range depending on which workspace package pulls it in.
-  # kysely must stay <0.29 — that's better-auth's own peer range, not just a
-  # dedup choice; 0.29.x resolving here elsewhere was a latent peer violation.
-  kysely: '0.28.17'
-  srvx: '0.12.5'
+  # kysely must stay <0.29, which is better-auth's own peer range.
+  kysely: '0.29.6'
 
 minimumReleaseAgeExclude:
   - '@api7/portal-sdk'
-  - '@fumadocs/base-ui@16.14.3'
-  - fumadocs-core@16.14.3
-  - fumadocs-mdx@15.2.3
-  - '@better-auth-ui/core@1.6.44 || 1.7.5'
-  - '@better-auth-ui/react@1.6.44 || 1.7.5'
-  - eslint-plugin-react-refresh@0.5.4

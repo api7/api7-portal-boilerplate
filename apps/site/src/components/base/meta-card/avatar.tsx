@@ -1,6 +1,6 @@
 import React, { useId } from 'react';
 
-import { Skeleton } from '@api7/portal-ui/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
 type BgFn = (props: React.SVGAttributes<SVGElement>, p: string) => React.ReactNode;
 

@@ -2,7 +2,7 @@ import { ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
-import { Button } from '@api7/portal-ui/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { PATH_DASHBOARD_ORGANIZATIONS } from '@/constants/path-prefix';
 import { authClient } from '@/lib/auth/client';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';

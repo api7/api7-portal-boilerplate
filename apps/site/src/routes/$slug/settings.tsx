@@ -1,6 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router';
 
-import { Organization } from '@api7/portal-ui/components/auth/organization/organization';
+import { Organization } from '@/components/auth/organization/organization';
 
 export const Route = createFileRoute('/$slug/settings')({
   component: OrganizationSettingsPage,

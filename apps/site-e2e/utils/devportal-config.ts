@@ -42,6 +42,7 @@ const createDefaultConfig = (portalToken = ''): ConfigMapData => ({
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: false,
+      revokeSessionsOnPasswordReset: true,
     },
     twoFactor: {
       enabled: false,
@@ -144,6 +145,7 @@ export async function patchConfigMapYaml<T extends object = ConfigMapData>(
       `Failed to patch E2E config file: ${
         error instanceof Error ? error.message : String(error)
       }`,
+      { cause: error },
     );
   }
 }

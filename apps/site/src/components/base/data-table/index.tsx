@@ -1,22 +1,6 @@
 'use client';
 
 import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from '@api7/portal-ui/components/ui/input-group';
-import { Skeleton } from '@api7/portal-ui/components/ui/skeleton';
-import { Spinner } from '@api7/portal-ui/components/ui/spinner';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@api7/portal-ui/components/ui/table';
-import {
   type ColumnDef,
   type RowData,
   type SortingState,
@@ -32,6 +16,22 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from '@/components/ui/input-group';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { cn } from '@/lib/utils';
 import { dataTableFeatures } from './features';
 import DataTablePagination, {

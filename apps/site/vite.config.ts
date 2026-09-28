@@ -21,20 +21,10 @@ export default defineConfig({
       ),
       'next/link': fileURLToPath(new URL('./src/lib/compat/next-link.tsx', import.meta.url)),
     },
-    // packages/ui (no framework peer in its own tree) and apps/site
-    // (has @tanstack/react-start) resolve @better-auth-ui/* to two
-    // genuinely different pnpm-installed instances, because better-auth's
-    // optional peer on the framework adapter makes pnpm compute a different
-    // peer-satisfying instance per consumer. Two instances means two
-    // separate `createContext()` calls at runtime — <AuthProvider> from one
-    // instance's Context is invisible to useAuth() resolving the other.
-    // dedupe forces every import of these names to the single instance Vite
-    // resolves first, regardless of which file (app or package) does the
-    // importing.
-    dedupe: ['@better-auth-ui/core', '@better-auth-ui/react', 'better-auth', 'react', 'react-dom'],
   },
   // Keeps `pg`/`pg-pool`'s circular require lazy instead of hoisted to a static import.
-  ssr: { external: ['pg', 'pg-pool', 'pg-native'] },
+  // dotenv's CJS build starts with a shebang that breaks the dev SSR runner's ESM transform.
+  ssr: { external: ['pg', 'pg-pool', 'pg-native', 'dotenv'] },
   build: {
     sourcemap: false,
     rolldownOptions: {

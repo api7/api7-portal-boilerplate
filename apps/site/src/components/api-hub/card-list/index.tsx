@@ -6,9 +6,9 @@ import {
   InputGroup,
   InputGroupAddon,
   InputGroupInput,
-} from '@api7/portal-ui/components/ui/input-group';
+} from '@/components/ui/input-group';
 import DataTablePagination from '@/components/base/data-table/pagination';
-import { Skeleton } from '@api7/portal-ui/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import ListEmpty from '@/components/base/empty';
 import ListLoading from '@/components/base/data-table/table-loading';
 import { cn } from '@/lib/utils';

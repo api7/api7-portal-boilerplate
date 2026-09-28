@@ -2,7 +2,7 @@ import { memo } from 'react';
 
 import { useDebounce } from 'ahooks';
 
-import { Spinner } from '@api7/portal-ui/components/ui/spinner';
+import { Spinner } from '@/components/ui/spinner';
 import { cn } from '@/lib/utils';
 
 type TableLoadingProps = {

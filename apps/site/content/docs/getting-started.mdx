@@ -9,9 +9,11 @@ description: Install dependencies, configure the app, and start the dev server.
 
 | Requirement | Version            |
 | ----------- | ------------------ |
-| Node.js     | 20.9+ (22/24 LTS)  |
-| pnpm        | 11                 |
+| Node.js     | 22 or 24 (LTS)     |
+| pnpm        | 12                 |
 | PostgreSQL  | any recent release |
+
+The pnpm version is pinned in the root `package.json` (`packageManager`). Run `corepack enable`, or use [proto](https://moonrepo.dev/proto), and the pinned version is activated automatically.
 
 ## Install
 

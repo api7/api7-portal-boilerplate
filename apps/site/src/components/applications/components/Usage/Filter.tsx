@@ -6,8 +6,8 @@ import { CalendarIcon } from 'lucide-react';
 import { useState } from 'react';
 import { type DateRange } from 'react-day-picker';
 
-import { Button } from '@api7/portal-ui/components/ui/button';
-import { Calendar } from '@api7/portal-ui/components/ui/calendar';
+import { Button } from '@/components/ui/button';
+import { Calendar } from '@/components/ui/calendar';
 import {
   Combobox,
   ComboboxChip,
@@ -19,12 +19,12 @@ import {
   ComboboxList,
   ComboboxValue,
   useComboboxAnchor,
-} from '@api7/portal-ui/components/ui/combobox';
+} from '@/components/ui/combobox';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@api7/portal-ui/components/ui/popover';
+} from '@/components/ui/popover';
 import useCredentialList from '@/lib/query/useCredentialList';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';
 

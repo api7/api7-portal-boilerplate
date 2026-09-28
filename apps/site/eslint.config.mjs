@@ -15,6 +15,9 @@ const eslintConfig = defineConfig([
     '.tanstack/**',
     'dist/**',
     'src/routeTree.gen.ts',
+    // Vendored shadcn / better-auth-ui registry code, overwritten on re-fetch.
+    'src/components/ui/**',
+    'src/components/auth/**',
   ]),
   {
     // TanStack Start is isomorphic — the same `src/**` tree runs both in the

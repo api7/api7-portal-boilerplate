@@ -1,13 +1,5 @@
 'use client';
 
-import { Button } from '@api7/portal-ui/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@api7/portal-ui/components/ui/dropdown-menu';
 import { Link } from '@tanstack/react-router';
 import { useCreation } from 'ahooks';
 import { EllipsisVerticalIcon, PlusIcon, Trash2Icon } from 'lucide-react';
@@ -18,6 +10,14 @@ import {
   type DataTableColumnDef,
 } from '@/components/base/data-table';
 import TimeFormat from '@/components/slices/time-format';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import { useApiHubBasePath } from '@/lib/hooks/useApiHubBasePath';
 import useDisclosure from '@/lib/hooks/useDisclosure';

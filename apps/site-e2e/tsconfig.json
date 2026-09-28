@@ -1,7 +1,7 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["es2021", "dom"],
+    "lib": ["es2022", "dom"],
     "allowJs": true,
     "outDir": "../../dist/out-tsc",
     "module": "ESNext",
@@ -12,6 +12,10 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "noImplicitAny": false,
+    "paths": {
+      "@site/*": ["../site/src/*"],
+      "@/*": ["../site/src/*"]
+    },
   },
   "include": [
     "**/*.ts",

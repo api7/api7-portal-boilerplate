@@ -2,14 +2,14 @@
 
 import { CheckIcon, CopyIcon, InfoIcon } from 'lucide-react';
 
-import { Alert, AlertDescription, AlertTitle } from '@api7/portal-ui/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import {
   InputGroup,
   InputGroupAddon,
   InputGroupButton,
   InputGroupInput,
   InputGroupText,
-} from '@api7/portal-ui/components/ui/input-group';
+} from '@/components/ui/input-group';
 import { useClipboard } from '@/lib/hooks/useClipboard';
 
 type SecretAlertItem = {

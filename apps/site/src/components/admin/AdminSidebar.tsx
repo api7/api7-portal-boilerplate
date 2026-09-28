@@ -12,7 +12,7 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from '@api7/portal-ui/components/ui/sidebar';
+} from '@/components/ui/sidebar';
 import { PATH_APPROVALS, PATH_DASHBOARD_ORGANIZATIONS, PATH_DASHBOARD_USERS } from '@/constants/path-prefix';
 
 const NAV_ITEMS = [

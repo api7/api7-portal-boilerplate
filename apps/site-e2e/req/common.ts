@@ -304,11 +304,16 @@ export const inviteMemberViaUI = async (
   const dialog = ownerPage.getByRole('dialog', { name: 'Invite member' });
   await expect(dialog).toBeVisible();
   await dialog.getByRole('textbox', { name: 'Email' }).fill(memberEmail);
-  if (role === 'admin') {
-    await dialog.getByRole('combobox', { name: 'Role' }).click();
-    // Radix Select renders options in a portal outside the dialog
-    await ownerPage.getByRole('option', { name: 'Admin' }).click();
-  }
+  // Always pick the role explicitly: the dialog's preselected default can be
+  // cleared by a re-render that lands before the form is touched.
+  await dialog.getByRole('combobox', { name: 'Role' }).click();
+  // Select renders options in a portal outside the dialog
+  await ownerPage
+    .getByRole('option', { name: role === 'admin' ? 'Admin' : 'Member' })
+    .click();
+  await expect(dialog.getByRole('combobox', { name: 'Role' })).toContainText(
+    role === 'admin' ? 'Admin' : 'Member',
+  );
   await dialog.getByRole('button', { name: 'Invite member' }).click();
   await expect(dialog).toBeHidden();
 };

@@ -7,7 +7,7 @@ import {
 import { usePreventHashScroll } from './usePreventHashScroll';
 import ScalarDocs from './ScalarDocs';
 import { type ApiProductGateway, useParsedProduct } from '../utils';
-import { Skeleton } from '@api7/portal-ui/components/ui/skeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 import { placeholderOpenAPI } from '@/constants/placeholder-openapi';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useSubscriptionList from '@/lib/query/useSubscriptionList';

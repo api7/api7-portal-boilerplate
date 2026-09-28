@@ -80,7 +80,7 @@ test.describe('Test API Hub with External Product', () => {
       await expect(title).toBeVisible({ timeout: 15000 });
       const getOperationLink = page
         .locator('.scalar-app')
-        .getByRole('button', { name: /\/get\b.*\bGET\b/i })
+        .getByRole('link', { name: /\/get\b.*\bGET\b/i })
         .first();
       await expect(getOperationLink).toBeVisible({ timeout: 15000 });
       // detail page render well

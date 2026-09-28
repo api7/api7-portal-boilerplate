@@ -1,12 +1,12 @@
-import { Button } from '@api7/portal-ui/components/ui/button';
+import { CheckIcon, CopyIcon } from 'lucide-react';
+import { type FC, type ReactNode, useMemo } from 'react';
+
+import { Button } from '@/components/ui/button';
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from '@api7/portal-ui/components/ui/popover';
-import { CheckIcon, CopyIcon } from 'lucide-react';
-import { type FC, type ReactNode, useMemo } from 'react';
-
+} from '@/components/ui/popover';
 import { useClipboard } from '@/lib/hooks/useClipboard';
 import { cn } from '@/lib/utils';
 

@@ -1,14 +1,14 @@
 'use client';
 
+import { useLocation } from '@tanstack/react-router';
+import { Check, ChevronDown, Copy, ExternalLink, FileText } from 'lucide-react';
+
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@api7/portal-ui/components/ui/dropdown-menu';
-import { useLocation } from '@tanstack/react-router';
-import { Check, ChevronDown, Copy, ExternalLink, FileText } from 'lucide-react';
-
+} from '@/components/ui/dropdown-menu';
 import { useClipboard } from '@/lib/hooks/useClipboard';
 
 export default function CopyPageButton({ title }: { title: string }) {

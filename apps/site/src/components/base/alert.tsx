@@ -6,7 +6,7 @@ import {
   Alert as AlertPrimitive,
   AlertDescription,
   AlertTitle,
-} from "@api7/portal-ui/components/ui/alert"
+} from "@/components/ui/alert"
 import { cn } from "@/lib/utils"
 
 const alertVariants = cva("", {

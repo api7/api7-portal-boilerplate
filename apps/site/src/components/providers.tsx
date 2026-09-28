@@ -7,13 +7,13 @@ import { ThemeProvider } from 'next-themes';
 import Link from 'next/link';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { AuthProvider } from '@api7/portal-ui/components/auth/auth-provider';
+import { AuthProvider } from '@/components/auth/auth-provider';
 import { authClient } from '@/lib/auth/client';
-import { organizationPlugin } from '@api7/portal-ui/lib/auth/organization-plugin';
-import { twoFactorPlugin } from '@api7/portal-ui/lib/auth/two-factor-plugin';
+import { organizationPlugin } from '@/lib/auth/organization-plugin';
+import { twoFactorPlugin } from '@/lib/auth/two-factor-plugin';
 import { PATH_ACCOUNT_SECURITY, PATH_ACCOUNT_TWO_FACTOR } from '@/constants/path-prefix';
 import type { ConfigStatus } from '@/lib/config/config-status';
-import { ConfigStatusProvider } from '@api7/portal-ui/lib/config/config-status-context';
+import { ConfigStatusProvider } from '@/lib/config/config-status-context';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 
 function AuthProviderWrapper({
@@ -68,6 +68,7 @@ function AuthProviderWrapper({
     const list = [
       organizationPlugin({
         slug: activeOrgSlug ?? null,
+        allowMultipleRoles: false,
         viewPaths: {
           settings: { organizations: 'organizations' },
           organization: { settings: 'settings', people: 'members' },

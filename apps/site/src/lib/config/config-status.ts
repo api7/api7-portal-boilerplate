@@ -1,8 +1,8 @@
-import type { ConfigStatus } from '@api7/portal-ui/lib/config/config-status-context';
 import type { BetterAuthPlugin } from 'better-auth';
 
 import { auth, getGenericOAuthConfigs } from '@/lib/auth/server';
 import { getConfig } from '@/lib/config';
+import type { ConfigStatus } from '@/lib/config/config-status-context';
 
 export type { ConfigStatus };
 

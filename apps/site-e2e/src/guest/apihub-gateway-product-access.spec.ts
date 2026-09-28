@@ -216,7 +216,7 @@ test.describe(
       await expect(title).toBeVisible();
       const getOperationLink = page
         .locator('.scalar-app')
-        .getByRole('button', { name: /\/get\b.*\bGET\b/i })
+        .getByRole('link', { name: /\/get\b.*\bGET\b/i })
         .first();
       await expect(getOperationLink).toBeVisible({ timeout: 15000 });
       // detail page render well
@@ -298,7 +298,7 @@ test.describe(
       await link.click();
       const getOperationLink = page
         .locator('.scalar-app')
-        .getByRole('button', { name: /\/get\b.*\bGET\b/i })
+        .getByRole('link', { name: /\/get\b.*\bGET\b/i })
         .first();
       await expect(getOperationLink).toBeVisible({ timeout: 15000 });
 

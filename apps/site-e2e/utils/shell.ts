@@ -295,6 +295,7 @@ export const deployGatewayContainer = async (
         `ps:\n${String(ps.stdout ?? '').trim()}`,
         `logs:\n${String(logs.stdout ?? logs.stderr ?? '').trim()}`,
       ].join('\n\n'),
+      { cause: err },
     );
   }
 };

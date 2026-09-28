@@ -1,23 +1,5 @@
 'use client';
 
-import { InviteMemberDialog } from '@api7/portal-ui/components/auth/organization/invite-member-dialog';
-import { LeaveOrganizationDialog } from '@api7/portal-ui/components/auth/organization/leave-organization-dialog';
-import { RemoveMemberDialog } from '@api7/portal-ui/components/auth/organization/remove-member-dialog';
-import { UserView } from '@api7/portal-ui/components/auth/user/user-view';
-import { Button, buttonVariants } from '@api7/portal-ui/components/ui/button';
-import { ButtonGroup } from '@api7/portal-ui/components/ui/button-group';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-  DropdownMenuTrigger,
-} from '@api7/portal-ui/components/ui/dropdown-menu';
-import { Spinner } from '@api7/portal-ui/components/ui/spinner';
-import { organizationPlugin } from '@api7/portal-ui/lib/auth/organization-plugin';
-import { cn } from '@api7/portal-ui/lib/utils';
 import type {
   OrganizationAuthClient,
   OrganizationLocalization,
@@ -33,17 +15,35 @@ import { EllipsisVerticalIcon, Filter, LogOut, Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { toast } from 'sonner';
 
+import { InviteMemberDialog } from '@/components/auth/organization/invite-member-dialog';
+import { LeaveOrganizationDialog } from '@/components/auth/organization/leave-organization-dialog';
+import { RemoveMemberDialog } from '@/components/auth/organization/remove-member-dialog';
+import { UserView } from '@/components/auth/user/user-view';
 import {
   DataTable,
   type DataTableColumnDef,
 } from '@/components/base/data-table';
 import { SectionHeader } from '@/components/base/section-header';
+import { Button, buttonVariants } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { Spinner } from '@/components/ui/spinner';
+import { organizationPlugin } from '@/lib/auth/organization-plugin';
 import { listOrganizationMembers } from '@/lib/dal/organization-members';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import {
   organizationInvitationsListKey,
   organizationMembersListKey,
 } from '@/lib/query/keys';
+import { cn } from '@/lib/utils';
 import { useMemberActionPermissions } from './organization-members-shared';
 
 type MemberRow = Member & { user: Partial<User> };

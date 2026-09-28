@@ -1,6 +1,6 @@
 import { ArrowLeftIcon } from 'lucide-react';
 
-import { Button } from '@api7/portal-ui/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 type BackProps = Pick<React.HTMLAttributes<HTMLDivElement>, 'className'> & {

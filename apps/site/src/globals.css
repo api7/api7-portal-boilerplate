@@ -1,6 +1,6 @@
 @import "tw-animate-css";
 @import "tailwindcss";
-@import "@api7/portal-ui/styles.css";
+@import "./theme.css";
 @import "fumadocs-ui/css/shadcn.css";
 @import "fumadocs-ui/css/preset.css";
 @import "@fontsource-variable/inter";

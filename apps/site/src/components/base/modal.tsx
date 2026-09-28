@@ -1,5 +1,5 @@
 import { Alert, type AlertProps } from '@/components/base/alert';
-import { Button } from '@api7/portal-ui/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogClose,
@@ -7,7 +7,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@api7/portal-ui/components/ui/dialog';
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 
 export type ModalProps = {

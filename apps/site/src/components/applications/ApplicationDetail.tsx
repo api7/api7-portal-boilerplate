@@ -4,20 +4,20 @@ import { useLocation, useNavigate } from '@tanstack/react-router';
 import { ChevronDownIcon } from 'lucide-react';
 import { useMemo } from 'react';
 
-import { useConfigStatus } from '@api7/portal-ui/lib/config/config-status-context';
+import { useConfigStatus } from '@/lib/config/config-status-context';
 import ApplicationDeleteModal from '@/components/applications/ApplicationDeleteModal';
 import ApplicationEditDrawer from '@/components/applications/ApplicationEditDrawer';
 import { ApplicationCredentials } from '@/components/credentials';
 import Back from '@/components/base/back';
 import { MetaCard } from '@/components/base/meta-card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@api7/portal-ui/components/ui/tabs';
-import { Button } from '@api7/portal-ui/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@api7/portal-ui/components/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';

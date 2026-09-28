@@ -1,5 +1,8 @@
 'use client';
 
+import { useState } from 'react';
+import { toast } from 'sonner';
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -9,10 +12,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@api7/portal-ui/components/ui/alert-dialog';
-import { useState } from 'react';
-import { toast } from 'sonner';
-
+} from '@/components/ui/alert-dialog';
 import { actOnApproval } from '@/lib/dal/admin-approvals';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { type Approval } from '@/lib/portal-sdk/approval';

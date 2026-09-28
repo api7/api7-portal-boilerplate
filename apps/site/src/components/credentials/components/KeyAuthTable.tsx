@@ -1,15 +1,5 @@
 'use client';
 
-import { Button } from '@api7/portal-ui/components/ui/button';
-import { ButtonGroup } from '@api7/portal-ui/components/ui/button-group';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@api7/portal-ui/components/ui/dropdown-menu';
 import { useCreation } from 'ahooks';
 import {
   EllipsisVerticalIcon,
@@ -26,6 +16,16 @@ import {
 import { tableColDesc } from '@/components/slices/table-col/desc';
 import { tableColLabels } from '@/components/slices/table-col/labels';
 import TimeFormat from '@/components/slices/time-format';
+import { Button } from '@/components/ui/button';
+import { ButtonGroup } from '@/components/ui/button-group';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { DEFAULT_LIST_PARAMS } from '@/constants/common';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';

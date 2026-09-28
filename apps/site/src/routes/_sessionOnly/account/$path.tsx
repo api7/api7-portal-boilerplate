@@ -1,6 +1,6 @@
 import { createFileRoute, notFound } from '@tanstack/react-router';
 
-import { Settings } from '@api7/portal-ui/components/auth/settings/settings';
+import { Settings } from '@/components/auth/settings/settings';
 
 const VALID_ACCOUNT_PATHS = new Set(['settings', 'security', 'organizations']);
 

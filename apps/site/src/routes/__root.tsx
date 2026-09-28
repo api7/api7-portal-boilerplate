@@ -9,7 +9,7 @@ import { createServerFn } from '@tanstack/react-start';
 import type { ReactNode } from 'react';
 
 import { Providers } from '@/components/providers';
-import { Toaster } from '@api7/portal-ui/components/ui/sonner';
+import { Toaster } from '@/components/ui/sonner';
 import { getConfigStatus } from '@/lib/config/config-status';
 
 import appCss from '../globals.css?url';

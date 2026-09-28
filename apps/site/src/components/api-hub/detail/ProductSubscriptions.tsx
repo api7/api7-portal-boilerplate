@@ -1,11 +1,3 @@
-import { Button } from '@api7/portal-ui/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@api7/portal-ui/components/ui/dropdown-menu';
 import { useMutation } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useCreation } from 'ahooks';
@@ -19,6 +11,14 @@ import {
 } from '@/components/base/data-table';
 import ValidateModal from '@/components/slices/modal/ValidateModal';
 import TimeFormat from '@/components/slices/time-format';
+import { Button } from '@/components/ui/button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import { unsubscribe } from '@/lib/dal/subscriptions';

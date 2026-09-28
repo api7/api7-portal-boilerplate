@@ -12,8 +12,8 @@ import {
   ChartTooltip,
   ChartTooltipContent,
   type ChartConfig,
-} from '@api7/portal-ui/components/ui/chart';
-import { Spinner } from '@api7/portal-ui/components/ui/spinner';
+} from '@/components/ui/chart';
+import { Spinner } from '@/components/ui/spinner';
 import type { UsageDataPoint } from '@/types/portal-sdk';
 
 interface ChartProps {

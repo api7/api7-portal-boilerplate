@@ -10,7 +10,7 @@ import {
   PaginationEllipsis,
   PaginationItem,
   PaginationLink,
-} from '@api7/portal-ui/components/ui/pagination';
+} from '@/components/ui/pagination';
 import {
   Select,
   SelectContent,
@@ -18,7 +18,7 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@api7/portal-ui/components/ui/select';
+} from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { ChevronLeftIcon, ChevronRightIcon } from 'lucide-react';
 

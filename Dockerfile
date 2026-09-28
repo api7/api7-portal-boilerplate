@@ -6,7 +6,6 @@ WORKDIR /app
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/site/package.json ./apps/site/
-COPY packages/ui/package.json ./packages/ui/
 
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     corepack enable pnpm && pnpm i --frozen-lockfile --ignore-scripts
@@ -16,13 +15,11 @@ WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/apps/site/node_modules ./apps/site/node_modules
-COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY tsconfig.base.json ./
 COPY .moon ./.moon
 COPY apps/site ./apps/site
-COPY packages/ui ./packages/ui
 
 RUN node apps/site/scripts/prepare-build-config.mjs
 

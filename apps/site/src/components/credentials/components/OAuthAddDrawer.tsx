@@ -1,15 +1,5 @@
 'use client';
 
-import { Button } from '@api7/portal-ui/components/ui/button';
-import { Input } from '@api7/portal-ui/components/ui/input';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@api7/portal-ui/components/ui/select';
-import { Textarea } from '@api7/portal-ui/components/ui/textarea';
 import { useForm, useSelector } from '@tanstack/react-form';
 import type {
   AnyFieldApi,
@@ -24,6 +14,16 @@ import { useEffect } from 'react';
 import { toast } from 'sonner';
 
 import Drawer from '@/components/base/drawer';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { createCredential } from '@/lib/dal/credentials';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';

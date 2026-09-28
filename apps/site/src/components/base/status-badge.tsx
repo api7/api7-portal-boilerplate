@@ -1,6 +1,6 @@
 import { type ReactNode } from "react"
 
-import { Badge } from "@api7/portal-ui/components/ui/badge"
+import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 const colorClasses: Record<string, { dot: string; badge: string }> = {

@@ -1,7 +1,7 @@
 'use client';
 
 import TimeFormatWithPrefix from '@/components/slices/time-format/TimeFormatWithPrefix';
-import { Separator } from '@api7/portal-ui/components/ui/separator';
+import { Separator } from '@/components/ui/separator';
 
 export type TimeProps = {
   created_at?: Date | number;

@@ -1,9 +1,3 @@
-import {
-  Tabs,
-  TabsList,
-  TabsTrigger,
-} from '@api7/portal-ui/components/ui/tabs';
-import { organizationPlugin } from '@api7/portal-ui/lib/auth/organization-plugin';
 import { useAuth, useAuthPlugin } from '@better-auth-ui/react';
 import { createFileRoute, useNavigate } from '@tanstack/react-router';
 import { Settings as SettingsIcon, User2 as UserIcon } from 'lucide-react';
@@ -11,6 +5,8 @@ import { Settings as SettingsIcon, User2 as UserIcon } from 'lucide-react';
 import OrganizationInvitationsTable from '@/components/organization/OrganizationInvitationsTable';
 import OrganizationMembersTable from '@/components/organization/OrganizationMembersTable';
 import { DEFAULT_MEMBERS_PARAMS } from '@/components/organization/organization-members-shared';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { organizationPlugin } from '@/lib/auth/organization-plugin';
 import {
   getMemberActionPermissions,
   listOrganizationInvitations,

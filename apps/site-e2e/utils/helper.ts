@@ -61,7 +61,8 @@ export function parseYaml<T>(yaml: string): T {
     return parsed as T;
   } catch (e) {
     throw new Error(
-      `Failed to parse YAML: ${e instanceof Error ? e.message : String(e)}`
+      `Failed to parse YAML: ${e instanceof Error ? e.message : String(e)}`,
+      { cause: e }
     );
   }
 }
@@ -79,7 +80,8 @@ export function stringifyYaml(obj: unknown): string {
     });
   } catch (e) {
     throw new Error(
-      `Failed to serialize YAML: ${e instanceof Error ? e.message : String(e)}`
+      `Failed to serialize YAML: ${e instanceof Error ? e.message : String(e)}`,
+      { cause: e }
     );
   }
 }

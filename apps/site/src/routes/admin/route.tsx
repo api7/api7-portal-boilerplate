@@ -2,7 +2,7 @@ import { createFileRoute, Outlet, redirect, useLoaderData } from '@tanstack/reac
 
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import Header from '@/components/layouts/Header';
-import { SidebarInset, SidebarProvider } from '@api7/portal-ui/components/ui/sidebar';
+import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { PATH_ROOT } from '@/constants/path-prefix';
 import { getSessionAndOrganizations } from '@/lib/dal/session';
 

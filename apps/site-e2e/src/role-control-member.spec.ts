@@ -1,7 +1,7 @@
 /**
  * Role control: Member is read-only for applications and organization.
- * - UI: Application-related buttons disabled; Invite Member disabled; Organization settings Save disabled
- * - API: POST/PUT/PATCH/DELETE to applications, credentials, subscriptions return 403
+ * - UI: Application-related buttons disabled; Invite Member disabled; Organization settings Save not offered
+ * - API: POST/PUT/PATCH/DELETE to applications, credentials, subscriptions and organization update return 403
  *
  * Uses invitation flow: owner invites member by email -> member accepts.
  */
@@ -209,15 +209,11 @@ test.describe('Role Control - Member Read-Only', () => {
     await memberContext.close();
   });
 
-  test('member: Organization settings update is rejected server-side', async ({
+  test('member: Organization settings update is blocked in the UI and rejected server-side', async ({
     ctx,
     page,
     browser,
   }) => {
-    // The Save button itself isn't disabled for a member — the vendored
-    // `OrganizationProfile` component has no client-side permission gate for
-    // it — so this only asserts the boundary that actually exists: the
-    // server rejects the update.
     const testId = `member-settings-${Date.now()}`;
     const memberAuth = {
       email: `member${testId}@test.example.com`,
@@ -243,21 +239,36 @@ test.describe('Role Control - Member Read-Only', () => {
     });
     const memberPage = await memberContext.newPage();
 
+    // Client-side gate: the profile form offers no Save action without
+    // `organization:update` permission.
     await memberPage.goto(`/${orgSlug}/settings`);
-    const saveBtn = memberPage.getByRole('button', { name: 'Save' }).first();
-    await expect(saveBtn).toBeVisible();
-
-    const updateResponsePromise = memberPage.waitForResponse(
-      (response) =>
-        response.url().includes('/organization/update') &&
-        response.request().method() === 'POST',
-      { timeout: 15_000 },
-    );
-    await saveBtn.click();
-    const updateResponse = await updateResponsePromise;
-    expect(updateResponse.status()).not.toBe(200);
+    const nameInput = memberPage.locator('input[name="name"]');
+    await expect(nameInput).toBeVisible();
+    await expect(nameInput).toBeDisabled();
+    await expect(
+      memberPage
+        .locator('form', { has: nameInput })
+        .getByRole('button', { name: 'Save' }),
+    ).toHaveCount(0);
 
     await memberContext.close();
+
+    // Server-side fallback: a request that bypasses the UI is still rejected.
+    const memberCtx = await genCtx({
+      storageState: memberStatePath,
+      extraHTTPHeaders: {
+        origin: E2E_TARGET_URL,
+      },
+    });
+
+    await expectMemberWriteForbidden(
+      memberCtx,
+      'POST',
+      `${AUTH_BASE_PATH}/organization/update`,
+      { organizationId: orgId, data: { name: `renamed-${testId}` } },
+    );
+
+    await memberCtx.dispose();
   });
 
   test('member: Add credential buttons are disabled', async ({

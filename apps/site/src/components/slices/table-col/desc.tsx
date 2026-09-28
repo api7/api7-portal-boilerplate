@@ -1,11 +1,11 @@
+import type { RowData } from '@tanstack/react-table';
+
+import type { DataTableColumnDef } from '@/components/base/data-table';
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@api7/portal-ui/components/ui/tooltip';
-import type { RowData } from '@tanstack/react-table';
-
-import type { DataTableColumnDef } from '@/components/base/data-table';
+} from '@/components/ui/tooltip';
 
 export const tableColDesc = <T extends RowData>(
   param: DataTableColumnDef<T>,

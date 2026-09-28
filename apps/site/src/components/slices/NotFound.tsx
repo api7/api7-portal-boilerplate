@@ -3,7 +3,7 @@
 import { useNavigate } from '@tanstack/react-router';
 import { motion, useReducedMotion } from 'framer-motion';
 
-import { Button } from '@api7/portal-ui/components/ui/button';
+import { Button } from '@/components/ui/button';
 import { PATH_ROOT } from '@/constants/path-prefix';
 
 export const BarePageNotFound = () => {

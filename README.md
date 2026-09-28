@@ -5,7 +5,7 @@ A customizable developer portal frontend for API7 Enterprise, built with TanStac
 ## Requirements
 
 - Node.js 22 LTS or 24 LTS
-- pnpm 11 (enforced via `packageManager`)
+- pnpm 12, pinned via `packageManager`; `corepack enable` or [proto](https://moonrepo.dev/proto) activates it automatically
 - PostgreSQL database
 
 ## Quick Start

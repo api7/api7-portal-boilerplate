@@ -11,7 +11,7 @@ import CardList from '@/components/api-hub/card-list';
 import Filter, { type FilterParamProps } from '@/components/api-hub/Filter';
 import ProductCard from '@/components/api-hub/ProductCard';
 import { ApiHubBasePathContext } from '@/components/api-hub/ApiHubBasePathContext';
-import { Button } from '@api7/portal-ui/components/ui/button';
+import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +20,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@api7/portal-ui/components/ui/dropdown-menu';
+} from '@/components/ui/dropdown-menu';
 import { PATH_API_HUB } from '@/constants/path-prefix';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import { cn } from '@/lib/utils';
