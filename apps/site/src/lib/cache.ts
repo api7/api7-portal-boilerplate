@@ -11,9 +11,10 @@ export function memoizeWithTtl<T>(fn: () => Promise<T>, ttlMs: number): () => Pr
         cached = { value, expiresAt: Date.now() + ttlMs };
         return value;
       });
-      void inFlight.finally(() => {
+      const clear = () => {
         inFlight = undefined;
-      });
+      };
+      void inFlight.then(clear, clear);
     }
 
     return inFlight;

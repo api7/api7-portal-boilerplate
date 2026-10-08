@@ -63,7 +63,7 @@ function OrganizationMembersPage() {
     useAuthPlugin(organizationPlugin);
 
   return (
-    <main className="container p-4 md:p-6 flex flex-col gap-6">
+    <div className="flex flex-col gap-6 p-4">
       <Tabs value="people" className="w-full gap-4 md:gap-6">
         <TabsList aria-label={localization.settings.settings}>
           <TabsTrigger
@@ -86,6 +86,6 @@ function OrganizationMembersPage() {
 
       <OrganizationMembersTable />
       <OrganizationInvitationsTable />
-    </main>
+    </div>
   );
 }

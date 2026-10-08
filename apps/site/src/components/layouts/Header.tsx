@@ -16,7 +16,7 @@ const Header = ({
 }: HeaderProps) => {
   return (
     <>
-      <nav className="navbar flex sticky top-0 h-(--app-header-height) font-medium align-middle bg-background border-b border-border z-50">
+      <nav className="navbar flex h-(--app-header-height) font-medium align-middle bg-background border-b border-border">
         <div className="flex-1 flex items-center gap-1 pl-2">
           <img
             src="/favicon.ico"

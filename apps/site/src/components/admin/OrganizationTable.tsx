@@ -31,6 +31,7 @@ import {
   AlertDialogMedia,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -64,6 +65,7 @@ function ActionCell({
   organizationName,
   organizationSlug,
   ownerId,
+  ownerBanned,
   showApiHub,
   onDeleted,
 }: {
@@ -71,6 +73,7 @@ function ActionCell({
   organizationName: string;
   organizationSlug: string;
   ownerId: string | null;
+  ownerBanned: boolean;
   showApiHub: boolean;
   onDeleted: () => void;
 }) {
@@ -81,7 +84,7 @@ function ActionCell({
   const [deletePending, setDeletePending] = useState(false);
 
   const handleImpersonate = async () => {
-    if (!ownerId) return;
+    if (!ownerId || ownerBanned) return;
     setImpersonatePending(true);
     try {
       const result = await authClient.admin.impersonateUser({
@@ -139,13 +142,17 @@ function ActionCell({
         >
           <MoreHorizontal />
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
+        <DropdownMenuContent align="end" className="w-auto">
           <DropdownMenuItem
-            disabled={!ownerId || impersonatePending}
+            disabled={!ownerId || ownerBanned || impersonatePending}
             onClick={handleImpersonate}
           >
             <UserRoundSearch />
-            {impersonatePending ? 'Impersonating…' : 'Impersonate'}
+            {impersonatePending
+              ? 'Impersonating…'
+              : ownerBanned
+                ? 'Impersonate (owner is banned)'
+                : 'Impersonate'}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setTakeoverOpen(true)}>
             <ShieldPlus />
@@ -281,7 +288,10 @@ export default function OrganizationTable({
             );
           return (
             <div className="flex flex-col gap-0.5">
-              <span>{owner.name || '—'}</span>
+              <span className="flex items-center gap-1.5">
+                {owner.name || '—'}
+                {owner.banned && <Badge variant="destructive">Banned</Badge>}
+              </span>
               <span className="text-xs text-muted-foreground">
                 {owner.email}
               </span>
@@ -298,6 +308,7 @@ export default function OrganizationTable({
             organizationName={row.original.name}
             organizationSlug={row.original.slug}
             ownerId={row.original.owner?.user_id ?? null}
+            ownerBanned={row.original.owner?.banned ?? false}
             showApiHub={showApiHub}
             onDeleted={() => router.invalidate()}
           />

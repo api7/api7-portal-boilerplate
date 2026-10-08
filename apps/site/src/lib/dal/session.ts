@@ -15,6 +15,15 @@ const getPublicAccessCached = memoizeWithTtl(
   5 * 60 * 1000,
 );
 
+async function isPublicAccessEnabled(): Promise<boolean> {
+  try {
+    return await getPublicAccessCached();
+  } catch (error) {
+    console.error('Failed to fetch portal public access setting:', error);
+    return false;
+  }
+}
+
 // `typeof AuthApi` (not the `auth` value import) so the client bundle's
 // createServerFn split can drop the server-only auth/db chain — a
 // value-position `typeof auth.api...` here would keep `auth` imported even
@@ -55,10 +64,6 @@ export const getSessionAndOrganizations = createServerFn({ method: 'GET' })
     async ({
       data: { respectPublicAccess },
     }): Promise<SessionAndOrganizations & { publicAccessEnabled: boolean }> => {
-      const publicAccessEnabled = respectPublicAccess
-        ? await getPublicAccessCached()
-        : false;
-
       // Gates page-level access (org membership, platform-admin) on every
       // navigation, so it can't trust a stale cached cookie — a role change,
       // membership change, or ending impersonation must take effect immediately.
@@ -70,7 +75,9 @@ export const getSessionAndOrganizations = createServerFn({ method: 'GET' })
         return {
           session: null,
           orgs: null,
-          publicAccessEnabled,
+          publicAccessEnabled: respectPublicAccess
+            ? await isPublicAccessEnabled()
+            : false,
           requiresTwoFactorEnrollment: false,
         };
       }
@@ -91,7 +98,7 @@ export const getSessionAndOrganizations = createServerFn({ method: 'GET' })
           canAccessAdmin: !isImpersonating && isPlatformAdmin(session.user),
         },
         orgs,
-        publicAccessEnabled,
+        publicAccessEnabled: false,
         requiresTwoFactorEnrollment:
           getConfig().auth.twoFactor.required &&
           !isTwoFactorEnabled(session.user as UserWithTwoFactor),

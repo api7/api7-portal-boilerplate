@@ -104,7 +104,7 @@ async function getSitemap() {
   const entries = await (async () => {
     if (!apiHubEnabled) return staticPages;
 
-    const publicAccess = await getPublicAccessCached();
+    const publicAccess = await getPublicAccessCached().catch(() => false);
     if (!publicAccess) return staticPages;
 
     try {

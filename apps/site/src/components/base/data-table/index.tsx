@@ -11,11 +11,13 @@ import {
   ArrowDownIcon,
   ArrowUpIcon,
   ChevronsUpDownIcon,
+  RotateCwIcon,
   SearchIcon,
   XIcon,
 } from 'lucide-react';
 import { useState } from 'react';
 
+import { Button } from '@/components/ui/button';
 import {
   InputGroup,
   InputGroupAddon,
@@ -58,7 +60,7 @@ type DataTableProps<T extends RowData, P = object> = Omit<
   nameSearch?: boolean;
   defaultSearch?: string;
   defaultSorting?: SortingState;
-  text?: { searchPlaceholder?: string; noData?: string };
+  text?: { searchPlaceholder?: string; noData?: string; error?: string };
   onParamsChange: (params: P) => void;
   refetch?: () => void;
   getRowId?: (row: T) => string;
@@ -82,7 +84,7 @@ export function DataTable<T extends RowData, P = object>({
   data = [],
   isLoading,
   isValidating = false,
-  isError: _isError,
+  isError = false,
   toolBar = [],
   leadingToolBar,
   nameSearch = false,
@@ -92,7 +94,7 @@ export function DataTable<T extends RowData, P = object>({
   onParamsChange,
   hidePagination,
   pagination,
-  refetch: _refetch,
+  refetch,
   getRowId,
   className,
   savePage,
@@ -101,6 +103,7 @@ export function DataTable<T extends RowData, P = object>({
   const resolvedText = {
     searchPlaceholder: 'Search',
     noData: 'No Data',
+    error: 'Failed to load data',
     ...text,
   };
 
@@ -259,7 +262,30 @@ export function DataTable<T extends RowData, P = object>({
               ))}
             </TableHeader>
             <TableBody>
-              {rows.length > 0 ? (
+              {isError ? (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="p-0 h-48">
+                    <div
+                      role="alert"
+                      className="flex h-full w-full flex-col items-center justify-center gap-3"
+                    >
+                      <p className="text-xl font-medium text-gray-600">
+                        {resolvedText.error}
+                      </p>
+                      {refetch && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => refetch()}
+                        >
+                          <RotateCwIcon />
+                          Retry
+                        </Button>
+                      )}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : rows.length > 0 ? (
                 rows.map((row) => (
                   <TableRow key={row.id}>
                     {row.getAllCells().map((cell) => (

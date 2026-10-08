@@ -36,15 +36,11 @@ export const dialogContent = (page: Page) =>
   page.locator('[data-slot="dialog-content"]');
 
 // Fills and submits the OTP for a pending TOTP verification inside `dialog`,
-// then — unless resuming an interrupted setup, which skips straight past it
-// (see `expectBackupCodes: false`) — acknowledges the Backup Codes step that
-// follows a fresh enrollment.
+// then acknowledges the Backup Codes step that follows.
 export async function completeTotpVerification(
   dialog: Locator,
   totpURI: string,
-  options: { expectBackupCodes?: boolean } = {},
 ): Promise<void> {
-  const { expectBackupCodes = true } = options;
   const otpInput = dialog.locator('input[autocomplete="one-time-code"]');
 
   await expect(otpInput).toBeVisible({ timeout: 15_000 });
@@ -57,16 +53,14 @@ export async function completeTotpVerification(
   // (which has no "Verify" button) before the click ever executes, hanging
   // until actionTimeout with no such button ever appearing.
 
-  if (expectBackupCodes) {
-    // The dialog title stays "Two-Factor Authentication" on this step too —
-    // there's no "Backup Codes" heading to match. Use the step's actual copy.
-    await expect(
-      dialog.getByText(
-        'Save these somewhere safe. Each code works once if you lose your authenticator.',
-      ),
-    ).toBeVisible({ timeout: 15_000 });
-    await dialog.getByRole('button', { name: /^done$/i }).click();
-  }
+  // The dialog title stays "Two-Factor Authentication" on this step too —
+  // there's no "Backup Codes" heading to match. Use the step's actual copy.
+  await expect(
+    dialog.getByText(
+      'Save these somewhere safe. Each code works once if you lose your authenticator.',
+    ),
+  ).toBeVisible({ timeout: 15_000 });
+  await dialog.getByRole('button', { name: /^done$/i }).click();
 }
 
 // Sign-in is two-phase: email → Continue → password → Sign In

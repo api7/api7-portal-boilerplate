@@ -119,13 +119,13 @@ const ScalarDocs: FC<{ configuration: AnyApiReferenceConfiguration }> = ({
     }
   });
   // Offset Scalar's sticky elements (e.g. the left sidebar) by the app
-  // Header height so the sidebar doesn't get covered by the sticky Header.
+  // top bar height so the sidebar doesn't get covered by the sticky top bar.
   // Scalar honors `--scalar-custom-header-height` when computing its
-  // internal sticky top offsets. We read the shared `--app-header-height`
-  // defined in globals.css so Header height stays in one place.
+  // internal sticky top offsets. We read the shared `--app-top-bar-height`
+  // defined in theme.css so the top bar height stays in one place.
   // See https://github.com/api7/api7ee-developer-portal/issues/349
   const scalarHeaderOffsetStyle = {
-    '--scalar-custom-header-height': 'var(--app-header-height, 4rem)',
+    '--scalar-custom-header-height': 'var(--app-top-bar-height, 4rem)',
   } as CSSProperties;
 
   return (

@@ -13,7 +13,8 @@ export const authClient = createAuthClient({
   basePath: AUTH_BASE_PATH,
   plugins: [
     adminClient(),
-    twoFactorClient({ twoFactorPage: '/auth/two-factor' }),
+    // No twoFactorPage: useSignInContinuation navigates to the challenge with redirectTo.
+    twoFactorClient(),
     organizationClient({
       ac,
       roles,

@@ -47,7 +47,8 @@ export function ChangeEmail({ className }: ChangeEmailProps) {
   })
 
   useEffect(() => {
-    if (session) form.reset({ email: session.user.email })
+    if (session)
+      form.reset({ email: session.user.email }, { keepDefaultValues: true })
   }, [form, session])
 
   return (

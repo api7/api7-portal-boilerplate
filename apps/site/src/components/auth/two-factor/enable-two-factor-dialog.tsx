@@ -1,13 +1,20 @@
 "use client"
 
-import { createQrCodeSvgData } from "@better-auth-ui/core"
+import {
+  type AuthQueryError,
+  createAuthQueryFetchOptions,
+  createQrCodeSvgData
+} from "@better-auth-ui/core"
 import type { TwoFactorAuthClient } from "@better-auth-ui/core/plugins/two-factor"
 import {
   useAuth,
   useAuthPlugin,
   useCopyToClipboard
 } from "@better-auth-ui/react"
-import { useVerifyTotp } from "@better-auth-ui/react/plugins/two-factor"
+import {
+  useGenerateBackupCodes,
+  useVerifyTotp
+} from "@better-auth-ui/react/plugins/two-factor"
 import { Check, Copy, ShieldCheck } from "lucide-react"
 import {
   type SyntheticEvent,
@@ -39,6 +46,7 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { consumeTwoFactorPassword } from "@/lib/auth/pending-two-factor-password"
 import { twoFactorPlugin } from "@/lib/auth/two-factor-plugin"
+import { useResendCooldown } from "@/lib/auth/use-resend-cooldown"
 import { useTwoFactorPasswordRequirement } from "@/lib/auth/use-two-factor-password"
 import { OtpField } from "../otp-field"
 import { BackupCodes } from "./backup-codes"
@@ -114,6 +122,7 @@ export function EnableTwoFactorDialog({
   const [isEnrolling, setIsEnrolling] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
   const autoAttempted = useRef(false)
+  const resumedPassword = useRef<string | undefined>(undefined)
 
   // `required`/`onEnrolled`/`mode` reflect live props, but the caller may
   // recompute them mid-flow (e.g. a session refetch after `verifyTotp`
@@ -185,6 +194,7 @@ export function EnableTwoFactorDialog({
             )
           if (!resumeError) {
             if (resumeData?.totpURI) setTotpUri(resumeData.totpURI)
+            resumedPassword.current = password
             setStep("verify")
             return
           }
@@ -266,6 +276,40 @@ export function EnableTwoFactorDialog({
     }
   }, [open, isResolvingPasswordRequirement, requiresPassword, enroll])
 
+  const {
+    cooldown: retryCooldown,
+    isCoolingDown: isRetryCoolingDown,
+    startCooldown: startRetryCooldown
+  } = useResendCooldown()
+
+  const {
+    mutate: generateBackupCodes,
+    isPending: isGeneratingBackupCodes,
+    isError: backupCodesFailed,
+    reset: resetBackupCodesGeneration
+  } = useGenerateBackupCodes(twoFactorClient, {
+    onError: (error) => {
+      const { status, retryAfterMs } = error as AuthQueryError
+      if (status === 429) {
+        startRetryCooldown(Math.ceil((retryAfterMs ?? 10_000) / 1000))
+      }
+    },
+    onSuccess: (data) => {
+      resumedPassword.current = undefined
+      setBackupCodes(data.backupCodes)
+    }
+  })
+
+  const generateMissingBackupCodes = () =>
+    generateBackupCodes({
+      ...(resumedPassword.current ? { password: resumedPassword.current } : {}),
+      // Surfaces the rate limiter's retry-after as `retryAfterMs` on the error.
+      fetchOptions: createAuthQueryFetchOptions(
+        undefined,
+        new AbortController().signal
+      )
+    })
+
   const { mutate: verifyTotp, isPending: isVerifying } = useVerifyTotp(
     twoFactorClient,
     {
@@ -273,24 +317,20 @@ export function EnableTwoFactorDialog({
       onSuccess: () => {
         toast.success(twoFactorLocalization.twoFactorEnabled)
         setIsVerified(true)
+        setStep("backupCodes")
 
-        // Resuming an interrupted setup never repopulates `backupCodes` —
-        // they were already shown once, before whatever interrupted it — so
-        // there's nothing to show here. Finish immediately instead of
-        // rendering an empty "Backup Codes" step.
-        if (backupCodes.length > 0) {
-          setStep("backupCodes")
-        } else if (onEnrolledSnapshot.current) {
-          onEnrolledSnapshot.current()
-        } else {
-          onOpenChange(false)
-          resetLocalState()
-        }
+        // Backup codes are only shown after verification, so a resumed setup
+        // never showed the ones `enable()` returned; issue fresh ones instead.
+        if (backupCodes.length === 0) generateMissingBackupCodes()
       }
     }
   )
 
-  const isPending = isEnrolling || isVerifying || isResolvingPasswordRequirement
+  const isPending =
+    isEnrolling ||
+    isVerifying ||
+    isGeneratingBackupCodes ||
+    isResolvingPasswordRequirement
 
   const verifyCode = (completedCode: string) => {
     if (isPending || step !== "verify" || completedCode.length !== codeLength) {
@@ -307,6 +347,9 @@ export function EnableTwoFactorDialog({
     setCode("")
     setPasswordError(undefined)
     setIsVerified(false)
+    resetBackupCodesGeneration()
+    startRetryCooldown(0)
+    resumedPassword.current = undefined
     resetSetupKeyCopy()
     setIsRequiredSession(false)
     autoAttempted.current = false
@@ -326,6 +369,7 @@ export function EnableTwoFactorDialog({
     e.preventDefault()
 
     if (step === "backupCodes") {
+      resumedPassword.current = undefined
       if (onEnrolledSnapshot.current) {
         onEnrolledSnapshot.current()
       } else {
@@ -361,23 +405,33 @@ export function EnableTwoFactorDialog({
     <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent showCloseButton={!isRequiredSession}>
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-          <DialogHeader>
-            <DialogTitle>
-              <ShieldCheck />
-              {modeSnapshot === "reset" ? "Reset two-factor" : twoFactorLocalization.twoFactor}
-            </DialogTitle>
+          <DialogHeader className="flex-row items-start gap-3">
+            <div
+              aria-hidden="true"
+              className="inline-flex size-10 shrink-0 items-center justify-center rounded-md bg-muted"
+            >
+              <ShieldCheck className="size-5" />
+            </div>
 
-            <DialogDescription>
-              {isRequiredSession && step === "password"
-                ? "Two-factor authentication is required. Enter your password to begin setup."
-                : step === "password" && requiresPassword
-                  ? modeSnapshot === "reset"
-                    ? "Enter your password to set up a new authenticator. Your existing codes will stop working once the new one is verified."
-                    : twoFactorLocalization.passwordConfirmation
-                  : step === "verify"
-                    ? twoFactorLocalization.scanQrCode
-                    : twoFactorLocalization.twoFactorDescription}
-            </DialogDescription>
+            <div className="flex flex-col gap-1.5">
+              <DialogTitle>
+                {modeSnapshot === "reset"
+                  ? "Reset two-factor"
+                  : twoFactorLocalization.twoFactor}
+              </DialogTitle>
+
+              <DialogDescription>
+                {isRequiredSession && step === "password"
+                  ? "Two-factor authentication is required. Enter your password to begin setup."
+                  : step === "password" && requiresPassword
+                    ? modeSnapshot === "reset"
+                      ? "Enter your password to set up a new authenticator. Your existing codes will stop working once the new one is verified."
+                      : twoFactorLocalization.passwordConfirmation
+                    : step === "verify"
+                      ? twoFactorLocalization.scanQrCode
+                      : twoFactorLocalization.twoFactorDescription}
+              </DialogDescription>
+            </div>
           </DialogHeader>
 
           {step === "password" && requiresPassword && (
@@ -470,7 +524,30 @@ export function EnableTwoFactorDialog({
             </div>
           )}
 
-          {step === "backupCodes" && <BackupCodes codes={backupCodes} />}
+          {step === "backupCodes" && backupCodes.length > 0 && (
+            <BackupCodes codes={backupCodes} />
+          )}
+
+          {step === "backupCodes" && backupCodesFailed && (
+            <div className="flex flex-col items-start gap-3">
+              <p className="text-muted-foreground text-sm">
+                Backup codes couldn't be generated. Try again, or regenerate
+                them later from your security settings.
+              </p>
+
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isPending || isRetryCoolingDown}
+                onClick={generateMissingBackupCodes}
+              >
+                {isRetryCoolingDown
+                  ? `Try again in ${retryCooldown}s`
+                  : "Try again"}
+              </Button>
+            </div>
+          )}
 
           <DialogFooter>
             {!isRequiredSession && step !== "backupCodes" && (

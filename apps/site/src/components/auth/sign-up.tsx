@@ -5,6 +5,7 @@ import {
   getAdditionalFieldDefaultValues,
   getAdditionalFieldSubmitValues,
   getAuthLinkURL,
+  getSafeRedirectTo,
   isPasswordCompromisedError,
   validateEmailAddress,
   validateMatchingValue,
@@ -18,6 +19,7 @@ import {
 } from "@better-auth-ui/react"
 import { useIsMutating } from "@tanstack/react-query"
 import { Eye, EyeOff } from "lucide-react"
+import { useSearchParams } from "next/navigation"
 import { useMemo, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -37,6 +39,7 @@ import {
   InputGroupInput
 } from "@/components/ui/input-group"
 import { cn } from "@/lib/utils"
+import { AcceptInvitationNotice } from "./accept-invitation-notice"
 import {
   getAuthAdditionalFieldValidators,
   isAuthFormFieldInvalid,
@@ -84,6 +87,7 @@ export function SignUp({
     additionalFields,
     authClient,
     basePaths,
+    baseURL,
     emailAndPassword,
     localization,
     plugins,
@@ -93,6 +97,12 @@ export function SignUp({
     navigate,
     Link
   } = useAuth()
+
+  const searchParams = useSearchParams()
+  const signInRedirectTo = getSafeRedirectTo(
+    searchParams.get("redirectTo"),
+    baseURL
+  )
 
   const { fetchOptions, resetFetchOptions } = useFetchOptions()
 
@@ -179,6 +189,7 @@ export function SignUp({
   return (
     <Card className={cn("w-full max-w-sm", className)}>
       <AuthPrompts view="signUp" />
+      <AcceptInvitationNotice />
       <CardHeader>
         <CardTitle className="text-xl font-semibold">
           {localization.auth.signUp}
@@ -604,7 +615,7 @@ export function SignUp({
               <Link
                 href={getAuthLinkURL(
                   `${basePaths.auth}/${viewPaths.auth.signIn}`,
-                  redirectTo
+                  signInRedirectTo
                 )}
                 className="underline underline-offset-4"
               >

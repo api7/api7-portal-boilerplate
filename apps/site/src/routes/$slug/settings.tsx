@@ -8,8 +8,8 @@ export const Route = createFileRoute('/$slug/settings')({
 
 function OrganizationSettingsPage() {
   return (
-    <main className="container p-4 md:p-6">
+    <div className="p-4">
       <Organization path="settings" />
-    </main>
+    </div>
   );
 }

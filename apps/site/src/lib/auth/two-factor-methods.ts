@@ -2,6 +2,9 @@ export type TwoFactorMethod = "totp" | "otp"
 
 const TWO_FACTOR_METHODS: TwoFactorMethod[] = ["totp", "otp"]
 
+/** Methods offered when the sign-in response's method list is unavailable. */
+export const DEFAULT_TWO_FACTOR_METHODS: TwoFactorMethod[] = ["totp"]
+
 /** Auth plugin id used by Better Auth UI's two-factor integration. */
 export const TWO_FACTOR_PLUGIN_ID = "twoFactor"
 
@@ -45,22 +48,22 @@ export function storeTwoFactorMethods(methods?: unknown) {
       JSON.stringify(parseTwoFactorMethods(methods))
     )
   } catch {
-    // The challenge falls back to every method when storage is unavailable.
+    // The challenge falls back to TOTP when storage is unavailable.
   }
 }
 
-/** Read the stored methods, falling back to every supported challenge. */
+/** Read the stored methods, falling back to TOTP. */
 export function readTwoFactorMethods(): TwoFactorMethod[] {
-  if (typeof sessionStorage === "undefined") return TWO_FACTOR_METHODS
+  if (typeof sessionStorage === "undefined") return DEFAULT_TWO_FACTOR_METHODS
 
   try {
     const stored = sessionStorage.getItem(TWO_FACTOR_METHODS_STORAGE_KEY)
-    if (!stored) return TWO_FACTOR_METHODS
+    if (!stored) return DEFAULT_TWO_FACTOR_METHODS
 
     const methods = parseTwoFactorMethods(JSON.parse(stored))
-    return methods.length ? methods : TWO_FACTOR_METHODS
+    return methods.length ? methods : DEFAULT_TWO_FACTOR_METHODS
   } catch {
-    return TWO_FACTOR_METHODS
+    return DEFAULT_TWO_FACTOR_METHODS
   }
 }
 

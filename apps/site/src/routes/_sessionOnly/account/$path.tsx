@@ -16,8 +16,8 @@ export const Route = createFileRoute('/_sessionOnly/account/$path')({
 function AccountPage() {
   const { path } = Route.useParams();
   return (
-    <main className="container p-4 md:p-6">
+    <div className="p-4">
       <Settings path={path} />
-    </main>
+    </div>
   );
 }

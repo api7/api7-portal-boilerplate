@@ -17,6 +17,7 @@ import {
 import { AUTH_BASE_PATH } from '../../constants/api-prefix';
 import { getConfig } from '../config';
 import { db } from '../db';
+import { BANNED_USER_MESSAGE } from './auth-error-message';
 import { isSsoPolicyEmail } from './email-policy';
 import { getOrganizationPluginOptions } from './organization';
 
@@ -208,6 +209,7 @@ export const auth = betterAuth({
     admin({
       adminUserIds: config.auth.adminUserIds,
       impersonationSessionDuration: 60 * 60,
+      bannedUserMessage: BANNED_USER_MESSAGE,
     }),
     ...getTwoFactorConfig(),
     organization(

@@ -2,6 +2,7 @@ import { createFileRoute, Outlet, redirect, useLoaderData } from '@tanstack/reac
 
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import Header from '@/components/layouts/Header';
+import TopBar from '@/components/layouts/TopBar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { PATH_ROOT } from '@/constants/path-prefix';
 import { getSessionAndOrganizations } from '@/lib/dal/session';
@@ -30,9 +31,11 @@ function AdminLayout() {
 
   return (
     <>
-      <Header authorized canAccessAdmin showApiHub={showApiHub} />
+      <TopBar>
+        <Header authorized canAccessAdmin showApiHub={showApiHub} />
+      </TopBar>
       <div data-admin-layout="true">
-        <SidebarProvider>
+        <SidebarProvider className="min-h-[calc(100svh-var(--app-header-height))]">
           <AdminSidebar />
           <SidebarInset>
             <div className="p-6 bg-background">

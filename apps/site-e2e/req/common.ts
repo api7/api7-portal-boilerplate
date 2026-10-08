@@ -292,6 +292,45 @@ export const createOrganization = async (ctx: Ctx, name: string) => {
   return body;
 };
 
+/** Restore the state `createOrganization` sets up, recreating it if gone. */
+export const ensureOrganization = async (ctx: Ctx, name: string) => {
+  const res = await ctx.get(`${AUTH_BASE_PATH}/organization/list`, {
+    failOnStatusCode: false,
+  });
+  expect(res.status()).toBe(200);
+  const orgs: { id: string; slug: string }[] = await res.json();
+  const org = orgs.find(
+    ({ slug }) => slug === name.toLowerCase().replace(/\s+/g, '-'),
+  );
+  if (!org) {
+    await createOrganization(ctx, name);
+    return;
+  }
+
+  for (const { id } of orgs.filter(({ id }) => id !== org.id)) {
+    await ctx.post(`${AUTH_BASE_PATH}/organization/delete`, {
+      data: { organizationId: id },
+      failOnStatusCode: true,
+    });
+  }
+
+  const setActiveRes = await ctx.post(ORG_SET_ACTIVE, {
+    data: { organizationId: org.id },
+    failOnStatusCode: false,
+  });
+  expect(setActiveRes.status()).toBe(200);
+
+  const appsRes = await portalApiRequest(org.id, 'get', '/api/applications', {
+    params: { page_size: 100 },
+    failOnStatusCode: false,
+  });
+  expect(appsRes.status()).toBe(200);
+  const apps: { list?: { name: string }[] } = await appsRes.json();
+  if (!apps.list?.some((app) => app.name === 'default')) {
+    await createApplication(ctx, { name: 'default' }, org.slug);
+  }
+};
+
 /** Invite a member via UI: members page -> Invite member -> fill email -> submit. */
 export const inviteMemberViaUI = async (
   ownerPage: Page,

@@ -63,15 +63,18 @@ export function UserProfile({ className }: UserProfileProps) {
 
   useEffect(() => {
     if (!session) return
-    form.reset({
-      additionalFields: getAdditionalFieldDefaultValues(
-        fieldsWithModelValues(
-          profileFields,
-          session.user as Record<string, unknown>
-        )
-      ),
-      name: session.user.name
-    })
+    form.reset(
+      {
+        additionalFields: getAdditionalFieldDefaultValues(
+          fieldsWithModelValues(
+            profileFields,
+            session.user as Record<string, unknown>
+          )
+        ),
+        name: session.user.name
+      },
+      { keepDefaultValues: true }
+    )
   }, [form, profileFields, session])
 
   if (!avatar.enabled && !hasProfileFields) return null

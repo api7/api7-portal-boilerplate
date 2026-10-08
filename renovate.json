@@ -3,5 +3,24 @@
   "extends": [
     "config:recommended"
   ],
-  "minimumReleaseAge": "1 day"
+  "minimumReleaseAge": "1 day",
+  "platformAutomerge": true,
+  "packageRules": [
+    {
+      "description": "Automerge minor and patch updates once required checks pass",
+      "matchUpdateTypes": ["minor", "patch"],
+      "automerge": true
+    },
+    {
+      "description": "0.x minor releases can be breaking, so only automerge their patches",
+      "matchUpdateTypes": ["minor"],
+      "matchCurrentVersion": "<1.0.0",
+      "automerge": false
+    },
+    {
+      "description": "better-auth-ui components are vendored and must be re-fetched on upgrade (see apps/site/src/components/auth/README.md)",
+      "matchPackageNames": ["better-auth", "@better-auth/**", "@better-auth-ui/**"],
+      "automerge": false
+    }
+  ]
 }

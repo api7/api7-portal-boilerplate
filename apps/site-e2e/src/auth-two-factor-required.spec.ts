@@ -204,10 +204,19 @@ test.describe('Force two-factor authentication (auth.twoFactor.required)', () =>
     const { totpURI: resumedTotpURI } = await resumeResponse.json() as { totpURI: string };
     expect(resumedTotpURI).toBe(firstTotpURI);
 
-    // Resuming skips backup codes entirely (already shown once, before the
-    // reload) — verifying finishes enrollment and navigates on directly.
-    await completeTotpVerification(dialog, resumedTotpURI, {
-      expectBackupCodes: false,
+    // The backup codes from the first enable() were never shown, so
+    // verifying the resumed setup issues fresh ones with the re-entered password.
+    const backupCodesResponsePromise = page.waitForResponse(
+      (response) =>
+        response.url().includes('/two-factor/generate-backup-codes') &&
+        response.request().method() === 'POST',
+      { timeout: 15_000 },
+    );
+    await completeTotpVerification(dialog, resumedTotpURI);
+    const backupCodesResponse = await backupCodesResponsePromise;
+    expect(backupCodesResponse.status()).toBe(200);
+    expect(backupCodesResponse.request().postDataJSON()).toEqual({
+      password: auth.password,
     });
     await page.waitForURL(
       (url) => !url.pathname.startsWith(PATH_ACCOUNT_TWO_FACTOR),

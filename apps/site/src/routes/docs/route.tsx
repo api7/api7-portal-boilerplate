@@ -6,6 +6,7 @@ import { RootProvider } from 'fumadocs-ui/provider/tanstack';
 import DocsSearch from '@/components/docs/DocsSearch';
 import Header from '@/components/layouts/Header';
 import ImpersonationBanner from '@/components/layouts/ImpersonationBanner';
+import TopBar from '@/components/layouts/TopBar';
 import { getSessionAndOrganizations } from '@/lib/dal/session';
 import { getDocsTree } from '@/lib/docs/data';
 
@@ -31,23 +32,25 @@ function DocsPublicLayout() {
 
   return (
     <>
-      {session?.isImpersonating && session.user.email && (
-        <ImpersonationBanner
-          email={session.user.email}
-          orgs={orgs.map((org) => ({ slug: org.slug, name: org.name }))}
+      <TopBar>
+        {session?.isImpersonating && session.user.email && (
+          <ImpersonationBanner
+            email={session.user.email}
+            orgs={orgs.map((org) => ({ slug: org.slug, name: org.name }))}
+          />
+        )}
+        <Header
+          authorized={!!session}
+          canAccessAdmin={session?.canAccessAdmin ?? false}
+          showApiHub={showApiHub}
         />
-      )}
-      <Header
-        authorized={!!session}
-        canAccessAdmin={session?.canAccessAdmin ?? false}
-        showApiHub={showApiHub}
-      />
+      </TopBar>
       <RootProvider theme={{ enabled: false }} search={{ SearchDialog: DocsSearch }}>
         <DocsLayout
           tree={pageTree}
           themeSwitch={{ enabled: false }}
           containerProps={{
-            style: { '--fd-docs-row-1': 'var(--app-header-height)' } as React.CSSProperties,
+            style: { '--fd-docs-row-1': 'var(--app-top-bar-height)' } as React.CSSProperties,
           }}
         >
           <Outlet />

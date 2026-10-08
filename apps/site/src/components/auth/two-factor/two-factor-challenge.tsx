@@ -31,6 +31,7 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import {
   clearTwoFactorMethods,
+  DEFAULT_TWO_FACTOR_METHODS,
   readTwoFactorMethods,
   type TwoFactorMethod
 } from "@/lib/auth/two-factor-methods"
@@ -84,7 +85,7 @@ export function TwoFactorChallenge({ className }: TwoFactorChallengeProps) {
   const isHydrated = useIsHydrated()
 
   const [methods, setMethods] = useState<TwoFactorMethod[]>(() =>
-    isHydrated ? readTwoFactorMethods() : ["totp", "otp"]
+    isHydrated ? readTwoFactorMethods() : DEFAULT_TWO_FACTOR_METHODS
   )
   const [method, setMethod] = useState<ChallengeMethod>(
     () => methods[0] ?? "totp"

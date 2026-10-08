@@ -1,16 +1,6 @@
 import { APIError as SDKAPIError } from '@api7/portal-sdk';
 import { createServerFn } from '@tanstack/react-start';
-import {
-  and,
-  asc,
-  count,
-  desc,
-  eq,
-  ilike,
-  inArray,
-  isNull,
-  or,
-} from 'drizzle-orm';
+import { and, asc, count, desc, eq, ilike, inArray, or } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { MAX_PAGE_SIZE } from '@/constants/common';
@@ -35,6 +25,7 @@ export type AdminOrganizationListItem = {
     user_id: string;
     name: string | null;
     email: string;
+    banned: boolean;
     created_at: Date;
   } | null;
 };
@@ -106,6 +97,7 @@ const getOwnersByOrganizationIds = async (organizationIds: string[]) => {
       userId: user.id,
       name: user.name,
       email: user.email,
+      banned: user.banned,
       createdAt: member.createdAt,
     })
     .from(member)
@@ -114,14 +106,16 @@ const getOwnersByOrganizationIds = async (organizationIds: string[]) => {
       and(
         inArray(member.organizationId, organizationIds),
         eq(member.role, 'owner'),
-        or(isNull(user.banned), eq(user.banned, false)),
       ),
     )
     .orderBy(asc(member.createdAt), asc(member.id));
 
   const owners = new Map<string, AdminOrganizationListItem['owner']>();
   for (const row of ownerRows) {
-    if (owners.has(row.organizationId)) {
+    const current = owners.get(row.organizationId);
+    const banned = !!row.banned;
+    // Earliest owner wins, but an active owner takes precedence over a banned one.
+    if (current && (!current.banned || banned)) {
       continue;
     }
 
@@ -129,6 +123,7 @@ const getOwnersByOrganizationIds = async (organizationIds: string[]) => {
       user_id: row.userId,
       name: row.name,
       email: row.email,
+      banned,
       created_at: row.createdAt,
     });
   }

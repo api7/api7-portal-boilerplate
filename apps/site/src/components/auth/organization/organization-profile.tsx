@@ -108,16 +108,19 @@ export function OrganizationProfile({
 
   useEffect(() => {
     if (!activeOrganization) return
-    form.reset({
-      additionalFields: getAdditionalFieldDefaultValues(
-        fieldsWithModelValues(
-          additionalFields,
-          activeOrganization as Record<string, unknown>
-        )
-      ),
-      name: activeOrganization.name,
-      slug: activeOrganization.slug
-    })
+    form.reset(
+      {
+        additionalFields: getAdditionalFieldDefaultValues(
+          fieldsWithModelValues(
+            additionalFields,
+            activeOrganization as Record<string, unknown>
+          )
+        ),
+        name: activeOrganization.name,
+        slug: activeOrganization.slug
+      },
+      { keepDefaultValues: true }
+    )
   }, [activeOrganization, additionalFields, form])
 
   const nameInputId = `${activeOrganization?.id ?? "org"}-name`

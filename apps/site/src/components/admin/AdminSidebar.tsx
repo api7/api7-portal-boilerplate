@@ -25,7 +25,8 @@ export default function AdminSidebar() {
   const { pathname } = useLocation();
 
   return (
-    <Sidebar>
+    // The sidebar is fixed to the viewport; start it below the sticky navbar.
+    <Sidebar className="top-(--app-header-height) h-[calc(100svh-var(--app-header-height))]!">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Admin</SidebarGroupLabel>

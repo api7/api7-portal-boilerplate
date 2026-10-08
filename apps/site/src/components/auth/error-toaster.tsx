@@ -2,7 +2,6 @@ import {
   authMutationKeys,
   authQueryKeys,
   getAuthErrorCode,
-  getAuthErrorMessage,
   getAuthErrorPresentation,
   isPasswordCompromisedError
 } from "@better-auth-ui/core"
@@ -15,6 +14,8 @@ import {
 } from "@tanstack/react-query"
 import { useEffect } from "react"
 import { toast } from "sonner"
+
+import { getAuthErrorMessage } from "@/lib/auth/auth-error-message"
 
 export function ErrorToaster() {
   const { localization } = useAuth()

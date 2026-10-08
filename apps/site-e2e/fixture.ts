@@ -4,7 +4,13 @@ import path from 'node:path';
 import { Page, test as baseTest } from '@playwright/test';
 
 import { PROVIDER_UI_PREFIX } from './constant';
-import { Ctx, createOrganization, genCtx, login } from './req/common';
+import {
+  Ctx,
+  createOrganization,
+  ensureOrganization,
+  genCtx,
+  login,
+} from './req/common';
 import {
   A7Ctx,
   a7ActivateLicenseAndChangePasswd,
@@ -55,7 +61,17 @@ export const test = baseTest.extend<
     },
     { scope: 'worker' },
   ],
-  storageState: ({ workerStorageState }, use) => use(workerStorageState),
+  storageState: async ({ workerStorageState, auth }, use) => {
+    // Earlier tests in this worker can switch, delete or replace its org state.
+    const ctx = await genCtx({ storageState: workerStorageState });
+    try {
+      await ensureOrganization(ctx, auth.organization!);
+      await ctx.storageState({ path: workerStorageState });
+    } finally {
+      await ctx.dispose();
+    }
+    await use(workerStorageState);
+  },
   workerStorageState: [
     async ({ auth }, use) => {
       console.log('auth', auth);

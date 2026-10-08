@@ -4,7 +4,8 @@ import {
   type AuthSocialProvider,
   authMutationKeys,
   getAuthLinkURL,
-  getSafeRedirectTo
+  getSafeRedirectTo,
+  validateEmailAddress
 } from "@better-auth-ui/core"
 import {
   isPasskeyAutoFillEnabled,
@@ -19,7 +20,13 @@ import {
 import { useIsMutating } from "@tanstack/react-query"
 import { Eye, EyeOff } from "lucide-react"
 import { useSearchParams } from "next/navigation"
-import { type SyntheticEvent, useState, useTransition } from "react"
+import {
+  type SyntheticEvent,
+  useEffect,
+  useRef,
+  useState,
+  useTransition
+} from "react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
@@ -43,6 +50,7 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { useSignInContinuation } from "@/lib/auth/use-sign-in-continuation"
 import { cn } from "@/lib/utils"
+import { AcceptInvitationNotice } from "./accept-invitation-notice"
 import { LastUsedBadge } from "./last-login-method/last-used-badge"
 import { ProviderButton } from "./provider-button"
 import { ProviderButtons, type SocialLayout } from "./provider-buttons"
@@ -113,6 +121,7 @@ export function SignIn({
 
   const [phase, setPhase] = useState<Phase>("email")
   const [enteredEmail, setEnteredEmail] = useState("")
+  const emailInputRef = useRef<HTMLInputElement>(null)
   const [ssoProviderId, setSsoProviderId] = useState<string | null>(null)
   const [isPolicyPending, startPolicyTransition] = useTransition()
   const [password, setPassword] = useState("")
@@ -173,19 +182,32 @@ export function SignIn({
     password?: string
   }>({})
 
+  // Adopt anything typed into the server-rendered field before hydration.
+  useEffect(() => {
+    const value = emailInputRef.current?.value
+    if (value) setEnteredEmail(value)
+  }, [])
+
   const handleEmailContinue = (e: SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault()
     const email = enteredEmail.trim()
+
+    const emailError = validateEmailAddress(email, {
+      invalidMessage: localization.auth.invalidEmail,
+      requiredMessage: localization.auth.fieldRequired
+    })
+    if (emailError) {
+      setFieldErrors((prev) => ({ ...prev, email: emailError.message }))
+      return
+    }
 
     startPolicyTransition(async () => {
       try {
         const policy = await checkEmailPolicy(email)
         setSsoProviderId(policy.type === "sso" ? policy.providerId : null)
         setPhase("credentials")
-      } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Failed to continue. Please try again."
-        )
+      } catch {
+        toast.error(localization.errors.generic)
       }
     })
   }
@@ -221,6 +243,7 @@ export function SignIn({
     <Card className={cn("w-full max-w-sm", className)}>
       <AuthPrompts view="signIn" />
       <ReauthenticationNotice />
+      <AcceptInvitationNotice />
       <CardHeader>
         <CardTitle className="text-xl font-semibold">
           {localization.auth.signIn}
@@ -253,6 +276,7 @@ export function SignIn({
                   </FieldLabel>
 
                   <Input
+                    ref={emailInputRef}
                     id="email"
                     name="email"
                     type="email"
@@ -515,7 +539,10 @@ export function SignIn({
               <FieldDescription className="text-center">
                 {localization.auth.needToCreateAnAccount}{" "}
                 <Link
-                  href={`${basePaths.auth}/${viewPaths.auth.signUp}`}
+                  href={getAuthLinkURL(
+                    `${basePaths.auth}/${viewPaths.auth.signUp}`,
+                    callbackTarget
+                  )}
                   className="underline underline-offset-4"
                 >
                   {localization.auth.signUp}

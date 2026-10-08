@@ -16,6 +16,8 @@ import type { ConfigStatus } from '@/lib/config/config-status';
 import { ConfigStatusProvider } from '@/lib/config/config-status-context';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 
+const authLocalization = { auth: { emailPlaceholder: 'name@company.com' } };
+
 function AuthProviderWrapper({
   children,
   initialConfigStatus,
@@ -127,6 +129,7 @@ function AuthProviderWrapper({
         basePaths={{ auth: '/auth', settings: '/account', organization: '' }}
         viewPaths={{ settings: { account: 'settings', security: 'security' } }}
         plugins={plugins}
+        localization={authLocalization}
         {...(socialProviders && { socialProviders })}
         {...(initialConfigStatus.twoFactor && { twoFactor: ['totp'] as ['totp'] })}
         {...(initialConfigStatus.requireEmailVerification && {
