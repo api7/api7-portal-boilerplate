@@ -73,6 +73,22 @@ ingress:
     #   hosts:
     #     - your-portal.example.com
 
+# Additional Ingress resources rendered next to the one above, one per list item.
+# Each item is named "<release fullname>-<name>" and takes the same fields as `ingress`.
+extraIngresses: []
+  # - name: internal
+  #   className: nginx-internal
+  #   annotations: {}
+  #   hosts:
+  #     - host: portal.internal.example.com
+  #       paths:
+  #         - path: /
+  #           pathType: Prefix
+  #   tls:
+  #     - secretName: portal-internal-tls
+  #       hosts:
+  #         - portal.internal.example.com
+
 # -- Expose the service via gateway-api HTTPRoute
 # Requires Gateway API resources and suitable controller installed within the cluster
 # (see: https://gateway-api.sigs.k8s.io/guides/)

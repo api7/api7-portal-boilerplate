@@ -4,17 +4,23 @@ import AdminSidebar from '@/components/admin/AdminSidebar';
 import Header from '@/components/layouts/Header';
 import TopBar from '@/components/layouts/TopBar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { PATH_ROOT } from '@/constants/path-prefix';
+import { PATH_LOGIN, PATH_ROOT } from '@/constants/path-prefix';
 import { getSessionAndOrganizations } from '@/lib/dal/session';
 
 // Platform-admin-only layout: not an org context, so it doesn't reuse $slug's beforeLoad.
 export const Route = createFileRoute('/admin')({
-  beforeLoad: async () => {
+  beforeLoad: async ({ location }) => {
     const { session } = await getSessionAndOrganizations({
       data: { respectPublicAccess: false },
     });
 
-    if (!session?.canAccessAdmin) {
+    if (!session) {
+      throw redirect({
+        href: `${PATH_LOGIN}?redirectTo=${encodeURIComponent(location.href)}`,
+      });
+    }
+
+    if (!session.canAccessAdmin) {
       throw redirect({ href: PATH_ROOT });
     }
 

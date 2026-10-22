@@ -1,6 +1,7 @@
-import { config } from 'dotenv';
-
+import path from 'node:path';
 import { defineConfig, devices } from '@playwright/test';
+import { config } from 'dotenv';
+import { escapeRegExp } from 'lodash';
 
 import { E2E_TARGET_URL } from './constant';
 
@@ -10,6 +11,11 @@ config({
 
 // For CI, you may want to set BASE_URL to the deployed application.
 const baseURL = E2E_TARGET_URL;
+
+// Playwright matches against absolute paths, so anchor to this directory.
+const UNIT_SPEC = new RegExp(
+  `^${escapeRegExp(path.join(__dirname, 'src', 'unit') + path.sep)}.*\\.spec\\.ts$`,
+);
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -65,7 +71,7 @@ export default defineConfig({
   projects: [
     {
       name: 'unit',
-      testMatch: /unit\/.*\.spec\.ts/,
+      testMatch: UNIT_SPEC,
     },
     {
       name: 'setup',
@@ -74,7 +80,7 @@ export default defineConfig({
     {
       name: 'chromium',
       dependencies: ['setup'],
-      testIgnore: /unit\/.*\.spec\.ts/,
+      testIgnore: UNIT_SPEC,
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1920, height: 1080 },

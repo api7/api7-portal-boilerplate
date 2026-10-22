@@ -4,7 +4,7 @@
     "config:recommended"
   ],
   "minimumReleaseAge": "1 day",
-  "platformAutomerge": true,
+  "platformAutomerge": false,
   "packageRules": [
     {
       "description": "Automerge minor and patch updates once required checks pass",

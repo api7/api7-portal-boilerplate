@@ -2,6 +2,7 @@ import { a7PutPublicAccess } from '../../req/dashboard/common';
 import {
   PATH_API_HUB,
   PATH_APPLICATIONS,
+  PATH_DASHBOARD_USERS,
   PATH_LOGIN,
   PATH_ROOT,
 } from '@site/constants/path-prefix';
@@ -49,6 +50,18 @@ test.describe('public access is `true`, test the behavior of guest users visitin
       await page.waitForTimeout(500);
       expect(page.url()).not.toContain(PATH_LOGIN);
     });
+  });
+
+  test('admin pages send guests to login with a return path', async ({
+    page,
+  }) => {
+    await page.goto(PATH_DASHBOARD_USERS);
+    await page.waitForURL((url) => url.pathname === PATH_LOGIN, {
+      timeout: 15_000,
+    });
+    expect(new URL(page.url()).searchParams.get('redirectTo')).toBe(
+      PATH_DASHBOARD_USERS,
+    );
   });
 
   notFoundPages.forEach(async (url) => {

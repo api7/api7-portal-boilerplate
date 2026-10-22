@@ -1,8 +1,8 @@
 import { Page, expect } from '@playwright/test';
 import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
 import {
+  PATH_ACCOUNT_ORGANIZATIONS,
   PATH_APPLICATIONS,
-  PATH_DASHBOARD_ORGANIZATIONS,
   PATH_ROOT,
 } from '@site/constants/path-prefix';
 
@@ -88,14 +88,9 @@ test.describe('Organization Switch - Data Refresh', () => {
     );
   });
 
-  test('should keep non-org routes without slug on organization switch', async ({
+  test('should open the selected organization applications when switching from a non-org route', async ({
     page,
   }) => {
-    // eslint-disable-next-line playwright/no-skipped-test -- flaky navigation target, not a removed route; intentionally left skipped
-    test.skip(
-      true,
-      'Dashboard organizations route is not stable for this flow',
-    );
     const testId = Date.now();
     const org1Name = `GlobalRouteOrgA${testId}`;
     const org2Name = `GlobalRouteOrgB${testId}`;
@@ -104,21 +99,20 @@ test.describe('Organization Switch - Data Refresh', () => {
     const org1Slug = await createOrganization(page, org1Name);
     const org2Slug = await createOrganization(page, org2Name);
 
-    const accountOrgsPath = PATH_DASHBOARD_ORGANIZATIONS;
-    await page.goto(accountOrgsPath);
-    await expect(page).toHaveURL(new RegExp(`${accountOrgsPath}(?:\\?.*)?$`));
+    for (const [orgName, orgSlug] of [
+      [org1Name, org1Slug],
+      [org2Name, org2Slug],
+    ]) {
+      await page.goto(PATH_ACCOUNT_ORGANIZATIONS);
+      await expect(page).toHaveURL(
+        new RegExp(`${PATH_ACCOUNT_ORGANIZATIONS}(?:\\?.*)?$`),
+      );
 
-    await switchToOrganization(page, org1Name);
-    await expect(page).toHaveURL(new RegExp(`${accountOrgsPath}(?:\\?.*)?$`));
-    await expect(page).not.toHaveURL(
-      new RegExp(`/${org1Slug}${accountOrgsPath}`),
-    );
-
-    await switchToOrganization(page, org2Name);
-    await expect(page).toHaveURL(new RegExp(`${accountOrgsPath}(?:\\?.*)?$`));
-    await expect(page).not.toHaveURL(
-      new RegExp(`/${org2Slug}${accountOrgsPath}`),
-    );
+      await switchToOrganization(page, orgName);
+      await expect(page).toHaveURL(
+        new RegExp(`/${orgSlug}/applications(?:\\?.*)?$`),
+      );
+    }
   });
 });
 

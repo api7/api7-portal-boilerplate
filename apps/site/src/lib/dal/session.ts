@@ -1,5 +1,5 @@
 import { createServerFn } from '@tanstack/react-start';
-import { getRequest } from '@tanstack/react-start/server';
+import { getCookie, getRequest } from '@tanstack/react-start/server';
 import { z } from 'zod';
 
 import { isPlatformAdmin } from '../auth/admin.server';
@@ -105,3 +105,11 @@ export const getSessionAndOrganizations = createServerFn({ method: 'GET' })
       };
     },
   );
+
+// Better Auth sets this cookie after the password step of a 2FA sign-in; its name isn't exported.
+export const hasTwoFactorChallengeCookie = createServerFn({
+  method: 'GET',
+}).handler(async () => {
+  const { name } = (await auth.$context).createAuthCookie('two_factor');
+  return !!getCookie(name);
+});

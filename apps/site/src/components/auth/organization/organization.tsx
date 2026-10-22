@@ -75,7 +75,8 @@ export function Organization({
   })
 
   useEffect(() => {
-    if (!isPending && !activeOrganization) {
+    // A null slug means the URL already left the org scope mid-navigation.
+    if (slug && !isPending && !activeOrganization) {
       navigate({
         to: `${basePaths.settings}/${organizationViewPaths.settings?.organizations}`,
         replace: true
@@ -86,7 +87,8 @@ export function Organization({
     isPending,
     navigate,
     organizationViewPaths.settings?.organizations,
-    activeOrganization
+    activeOrganization,
+    slug
   ])
 
   const currentView = useMemo(() => {

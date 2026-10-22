@@ -1,6 +1,13 @@
 import { type Page, expect } from '@playwright/test';
-import { PATH_ACCOUNT, PATH_LOGIN } from '@site/constants/path-prefix';
+import { AUTH_BASE_PATH } from '@site/constants/api-prefix';
+import {
+  PATH_ACCOUNT,
+  PATH_API_HUB,
+  PATH_LOGIN,
+  PATH_TWO_FACTOR,
+} from '@site/constants/path-prefix';
 
+import { E2E_TARGET_URL } from '../constant';
 import { test } from '../fixture';
 import { getConfigMapYaml, updateConfigMapYaml } from '../utils/devportal-config';
 import { restartDevPortal } from '../utils/shell';
@@ -371,6 +378,64 @@ test.describe('Two-Factor Authentication (TOTP only)', () => {
     // Cleanup
     await page.goto(`${PATH_ACCOUNT}/security`);
     await ensureTwoFactorDisabled(page, auth.password);
+  });
+
+  test('2FA challenge page sends visitors without a pending sign-in to sign-in', async ({
+    page,
+  }) => {
+    const auth = await createFreshAuth('totp-challenge-guard');
+    test.setTimeout(90_000);
+    const challengeUrl = `${PATH_TWO_FACTOR}?redirectTo=${encodeURIComponent(PATH_API_HUB)}`;
+    const otpInput = page.locator('input[autocomplete="one-time-code"]');
+    const expectSentToSignIn = async () => {
+      await page.waitForURL((url) => url.pathname === PATH_LOGIN, {
+        timeout: 15_000,
+      });
+      expect(new URL(page.url()).searchParams.get('redirectTo')).toBe(
+        PATH_API_HUB,
+      );
+      await expect(otpInput).toHaveCount(0);
+    };
+
+    await page.context().clearCookies();
+    await page.goto(challengeUrl);
+    await expectSentToSignIn();
+
+    // Static route segments are case-insensitive; the guard must still run.
+    await page.goto(
+      `/AUTH/two-factor?redirectTo=${encodeURIComponent(PATH_API_HUB)}`,
+    );
+    await expectSentToSignIn();
+
+    // Signed in but not mid sign-in: still no challenge to answer.
+    await ensureSignedInToSecurityPage(page, auth);
+    await page.goto(challengeUrl);
+    await expectSentToSignIn();
+
+    // A real challenge must keep rendering, reloads included.
+    const headers = { origin: E2E_TARGET_URL };
+    const enableRes = await page.request.post(
+      `${AUTH_BASE_PATH}/two-factor/enable`,
+      { headers, data: { password: auth.password } },
+    );
+    expect(enableRes.status()).toBe(200);
+    const { totpURI } = (await enableRes.json()) as { totpURI: string };
+    const enrollRes = await page.request.post(
+      `${AUTH_BASE_PATH}/two-factor/verify-totp`,
+      { headers, data: { code: await createTotpCode(totpURI) } },
+    );
+    expect(enrollRes.status()).toBe(200);
+    await page.context().clearCookies();
+    await page.goto(
+      `${PATH_LOGIN}?redirectTo=${encodeURIComponent(PATH_API_HUB)}`,
+    );
+    await page.waitForLoadState('networkidle');
+    await signIn(page, auth.email, auth.password);
+    await page.waitForURL((url) => url.pathname === PATH_TWO_FACTOR, {
+      timeout: 15_000,
+    });
+    await page.reload();
+    await expect(otpInput).toBeVisible({ timeout: 15_000 });
   });
 
   test('hides two-factor card when disabled', async ({ page }) => {

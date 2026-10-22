@@ -3,18 +3,31 @@ import {
   CatchNotFound,
   createFileRoute,
   notFound,
+  redirect,
   useLoaderData,
 } from '@tanstack/react-router';
 
 import { Auth } from '@/components/auth/auth';
 import { PageNotFound } from '@/components/slices/NotFound';
-import { checkEmailPolicy } from '@/lib/auth/email-policy';
+import { PATH_LOGIN } from '@/constants/path-prefix';
+import { checkEmailPolicy } from '@/lib/auth/check-email-policy';
+import { hasTwoFactorChallengeCookie } from '@/lib/dal/session';
 
 export const Route = createFileRoute('/auth/$path')({
   validateSearch: (search: Record<string, unknown>) => ({
     redirectTo:
       typeof search.redirectTo === 'string' ? search.redirectTo : undefined,
   }),
+  // The 2FA challenge only works mid sign-in; other auth views stay open.
+  beforeLoad: async ({ params, search }) => {
+    if (params.path !== 'two-factor') return;
+    if (await hasTwoFactorChallengeCookie()) return;
+
+    const query = search.redirectTo
+      ? `?redirectTo=${encodeURIComponent(search.redirectTo)}`
+      : '';
+    throw redirect({ href: `${PATH_LOGIN}${query}` });
+  },
   component: AuthPage,
 });
 

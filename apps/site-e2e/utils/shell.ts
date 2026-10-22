@@ -155,7 +155,27 @@ export const waitForGatewayPort = async (
   portForward: `${string}:${string}`,
 ) => {
   const [localPort] = portForward.split(':');
-  await waitForPort(parseInt(localPort, 10), 30000);
+  await waitForGatewayHttp(parseInt(localPort, 10), 30000);
+};
+
+// A TCP connect succeeds as soon as docker-proxy binds the port, before APISIX serves.
+const waitForGatewayHttp = async (port: number, timeout: number) => {
+  const url = `http://127.0.0.1:${port}/`;
+  const deadline = Date.now() + timeout;
+  let lastError: unknown;
+  while (Date.now() < deadline) {
+    try {
+      // Any status counts: APISIX answers 404 for unknown routes.
+      await fetch(url, { signal: AbortSignal.timeout(1000) });
+      return;
+    } catch (err) {
+      lastError = err;
+    }
+    await new Promise((r) => setTimeout(r, 500));
+  }
+  throw new Error(`Gateway did not answer HTTP on ${url} within ${timeout}ms`, {
+    cause: lastError,
+  });
 };
 
 const startDevPortalContainer = async () => {
@@ -282,7 +302,7 @@ export const deployGatewayContainer = async (
       .slice(0, 120),
   });
   try {
-    await waitForPort(E2E_GATEWAY_HTTP_PORT, 15000);
+    await waitForGatewayHttp(E2E_GATEWAY_HTTP_PORT, 15000);
   } catch (err) {
     const logs = await x(`docker logs --tail=200 ${shellQuote(name)} || true`);
     const ps = await x(
@@ -290,7 +310,7 @@ export const deployGatewayContainer = async (
     );
     throw new Error(
       [
-        `Gateway port ${E2E_GATEWAY_HTTP_PORT} not ready within 15s`,
+        `Gateway on port ${E2E_GATEWAY_HTTP_PORT} not ready within 15s`,
         `cause: ${String(err)}`,
         `ps:\n${String(ps.stdout ?? '').trim()}`,
         `logs:\n${String(logs.stdout ?? logs.stderr ?? '').trim()}`,
