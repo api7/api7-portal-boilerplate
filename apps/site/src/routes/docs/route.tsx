@@ -1,5 +1,4 @@
-import { createFileRoute, Outlet, useLoaderData } from '@tanstack/react-router';
-import { useFumadocsLoader } from 'fumadocs-core/source/client';
+import { Outlet, createFileRoute, useLoaderData } from '@tanstack/react-router';
 import { DocsLayout } from 'fumadocs-ui/layouts/docs';
 import { RootProvider } from 'fumadocs-ui/provider/tanstack';
 
@@ -7,28 +6,24 @@ import DocsSearch from '@/components/docs/DocsSearch';
 import Header from '@/components/layouts/Header';
 import ImpersonationBanner from '@/components/layouts/ImpersonationBanner';
 import TopBar from '@/components/layouts/TopBar';
-import { getSessionAndOrganizations } from '@/lib/dal/session';
-import { getDocsTree } from '@/lib/docs/data';
+import { source } from '@/lib/docs/source';
+import { peekSession } from '@/lib/query/session';
 
-// Always public — session is only fetched to drive Header/ImpersonationBanner,
+const pageTree = source.getPageTree();
+
+// Always public — session is only read to drive Header/ImpersonationBanner,
 // never gates access, unlike `_public`/`_sessionOnly`.
 export const Route = createFileRoute('/docs')({
-  beforeLoad: async () => {
-    const { session, orgs } = await getSessionAndOrganizations({
-      data: { respectPublicAccess: false },
-    });
+  beforeLoad: async ({ context }) => {
+    const { session, orgs } = await peekSession(context.queryClient);
     return { session, orgs: orgs ?? [] };
   },
-  loader: () => getDocsTree(),
   component: DocsPublicLayout,
 });
 
 function DocsPublicLayout() {
   const { session, orgs } = Route.useRouteContext();
   const { showApiHub } = useLoaderData({ from: '__root__' });
-  // `useFumadocsLoader` always looks for a `pageTree` key on the loader
-  // data, deserializing its heading/icon HTML strings back into JSX.
-  const { pageTree } = useFumadocsLoader(Route.useLoaderData());
 
   return (
     <>
@@ -45,12 +40,17 @@ function DocsPublicLayout() {
           showApiHub={showApiHub}
         />
       </TopBar>
-      <RootProvider theme={{ enabled: false }} search={{ SearchDialog: DocsSearch }}>
+      <RootProvider
+        theme={{ enabled: false }}
+        search={{ SearchDialog: DocsSearch }}
+      >
         <DocsLayout
           tree={pageTree}
           themeSwitch={{ enabled: false }}
           containerProps={{
-            style: { '--fd-docs-row-1': 'var(--app-top-bar-height)' } as React.CSSProperties,
+            style: {
+              '--fd-docs-row-1': 'var(--app-top-bar-height)',
+            } as React.CSSProperties,
           }}
         >
           <Outlet />

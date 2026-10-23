@@ -1,8 +1,5 @@
 'use client';
 
-import MiniSearch from 'minisearch';
-import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
 import {
   SearchDialog,
   SearchDialogClose,
@@ -15,38 +12,42 @@ import {
   type SearchItemType,
   type SharedProps,
 } from 'fumadocs-ui/components/dialog/search';
+import MiniSearch from 'minisearch';
+import { useMemo, useState } from 'react';
 
-import type { SearchSection } from '@/lib/docs/content';
+import { type SearchSection, getSearchSections } from '@/lib/docs/content';
 
 function highlight(text: string | undefined, terms: string[]): string {
   if (!text) return '';
   if (!terms.length) return text;
-  const escaped = terms.map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
+  const escaped = terms
+    .map((t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('|');
   return text.replace(new RegExp(`(${escaped})`, 'gi'), '<mark>$1</mark>');
 }
 
-async function fetchSearchIndex(): Promise<MiniSearch<SearchSection>> {
-  const res = await fetch('/api/docs-search');
-  if (!res.ok) throw new Error(`Failed to load search index: ${res.status}`);
-  const sections: SearchSection[] = await res.json();
+let searchIndex: MiniSearch<SearchSection> | undefined;
+
+function getSearchIndex(): MiniSearch<SearchSection> {
+  if (searchIndex) return searchIndex;
   const ms = new MiniSearch<SearchSection>({
     fields: ['content'],
     storeFields: ['url', 'type', 'content', 'pageTitle', 'sectionTitle'],
     searchOptions: { prefix: true, fuzzy: 0.2 },
   });
-  ms.addAll(sections);
+  ms.addAll(getSearchSections());
+  searchIndex = ms;
   return ms;
 }
 
-export default function DocsSearch({ open, onOpenChange, dialogHandle }: SharedProps) {
+export default function DocsSearch({
+  open,
+  onOpenChange,
+  dialogHandle,
+}: SharedProps) {
   const [search, setSearch] = useState('');
 
-  const { data: mini } = useQuery({
-    queryKey: ['docs-search-index'],
-    queryFn: fetchSearchIndex,
-    staleTime: Infinity,
-    gcTime: Infinity,
-  });
+  const mini = useMemo(() => (open ? getSearchIndex() : null), [open]);
 
   const items = useMemo((): SearchItemType[] | null => {
     if (!search.trim() || !mini) return null;
@@ -57,9 +58,13 @@ export default function DocsSearch({ open, onOpenChange, dialogHandle }: SharedP
       url: r.url as string,
       type: r.type as 'page' | 'heading' | 'text',
       content: highlight(r.content as string, r.terms),
-      breadcrumbs: r.type !== 'text'
-        ? undefined
-        : [r.pageTitle as string, ...(r.sectionTitle ? [r.sectionTitle as string] : [])],
+      breadcrumbs:
+        r.type !== 'text'
+          ? undefined
+          : [
+              r.pageTitle as string,
+              ...(r.sectionTitle ? [r.sectionTitle as string] : []),
+            ],
     }));
   }, [mini, search]);
 

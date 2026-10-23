@@ -43,7 +43,7 @@ import { bulkSubscribe } from '@/lib/dal/subscriptions';
 import type { UseDisclosureReturn } from '@/lib/hooks/useDisclosure';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import useApplicationList from '@/lib/query/useApplicationList';
-import useSubscriptionList from '@/lib/query/useSubscriptionList';
+import { useProductSubscriptionStatus } from '@/lib/query/product-subscription-status';
 import type {
   ApplicationListItem,
   SubscriptionStatus,
@@ -74,22 +74,14 @@ const SubscribeAPIProductModalApplication = (props: Props) => {
   }
 
   // Get products list with search and pagination
-  const appsReq = useApplicationList();
+  const appsReq = useApplicationList({ enabled: open });
+  const subscriptionStatus = useProductSubscriptionStatus(productId, open);
 
-  const subscribedAppsReq = useSubscriptionList({
-    api_product_id: productId,
-    status: ['subscribed'],
-  });
-  const waitingForApprovalAppsReq = useSubscriptionList({
-    api_product_id: productId,
-    status: ['wait_for_approval'],
-  });
-
-  // refetch when open or productId changes; query objects are unstable refs so omitted from deps
+  // refetch when opened or productId changes; query objects are unstable refs so omitted from deps
   useEffect(() => {
+    if (!open) return;
     appsReq.refetch();
-    subscribedAppsReq.refetch();
-    waitingForApprovalAppsReq.refetch();
+    subscriptionStatus.refetch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, productId]);
 
@@ -126,13 +118,15 @@ const SubscribeAPIProductModalApplication = (props: Props) => {
 
   // Prepare options for Select component
   const selectOptions = useCreation(() => {
+    // Subscribed applications must not look available before their status is known.
+    if (!subscriptionStatus.subscribed || !subscriptionStatus.waiting) return [];
     return (
       appsReq.data
         ?.map((data) => {
-          const isSubscribed = subscribedAppsReq.data?.find(
+          const isSubscribed = subscriptionStatus.subscribed?.find(
             (a) => a.application_id === data.id,
           );
-          const isWaitingForApproval = waitingForApprovalAppsReq.data?.find(
+          const isWaitingForApproval = subscriptionStatus.waiting?.find(
             (a) => a.application_id === data.id,
           );
           if (isSubscribed || isWaitingForApproval) return;
@@ -147,7 +141,7 @@ const SubscribeAPIProductModalApplication = (props: Props) => {
         })
         .filter((item) => !!item) ?? []
     );
-  }, [appsReq.data, subscribedAppsReq.data, waitingForApprovalAppsReq.data]);
+  }, [appsReq.data, subscriptionStatus.subscribed, subscriptionStatus.waiting]);
 
   const anchor = useComboboxAnchor();
 
@@ -184,7 +178,11 @@ const SubscribeAPIProductModalApplication = (props: Props) => {
               </ComboboxChips>
               <ComboboxContent anchor={anchor}>
                 <ComboboxEmpty>
-                  No apps are available for subscribing.
+                  {subscriptionStatus.isError
+                    ? 'Failed to load subscription status.'
+                    : subscriptionStatus.isLoading
+                      ? 'Loading…'
+                      : 'No apps are available for subscribing.'}
                 </ComboboxEmpty>
                 <ComboboxList>
                   {(item: Option) => (

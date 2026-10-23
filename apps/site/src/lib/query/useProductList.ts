@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 
 import { listApiProductsForOrganization } from '@/lib/dal/api-products';
 import { productListKey } from '@/lib/query/keys';
+import { LIST_STALE_TIME_MS } from '@/lib/query/stale-time';
 import type { SubscriptionStatus } from '@/types/portal-sdk';
 import type { WithSavePage } from '@/types/utils';
 import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
@@ -15,11 +16,12 @@ type Params = {
 
 type ProductListParams = WithSavePage<{
   initParams?: Params;
+  enabled?: boolean;
 }>;
 
 const useProductList = (p: ProductListParams = {}) => {
   const orgSlug = useOrganizationSlug();
-  const { savePage = false, initParams = {} } = p;
+  const { savePage = false, initParams = {}, enabled = true } = p;
   const { paramsKeepNum, updateParams } = useParams<Params>(initParams);
   const { onParamsChange } = useSavePage<TableParams>({
     savePage,
@@ -42,7 +44,8 @@ const useProductList = (p: ProductListParams = {}) => {
           application_id: paramsKeepNum.application_id,
         },
       }),
-    enabled: !!orgSlug,
+    enabled: enabled && !!orgSlug,
+    staleTime: LIST_STALE_TIME_MS,
   });
 
   return {

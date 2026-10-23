@@ -30,9 +30,12 @@ async function isPublicAccessEnabled(): Promise<boolean> {
 // after the handler body below is stripped for the client.
 type Organizations = Awaited<ReturnType<typeof AuthApi.api.listOrganizations>>;
 
-// The client-safe subset of a session — excludes session.session (token,
-// ipAddress, userAgent, ...), since this is returned by a server function
-// and ends up in the client's hydration payload.
+type AuthSession = NonNullable<
+  Awaited<ReturnType<typeof AuthApi.api.getSession>>
+>;
+
+// What the layouts' guards need from a session, plus the decisions that can
+// only be made on the server.
 export interface PublicSession {
   user: {
     id: string;
@@ -46,6 +49,9 @@ export interface PublicSession {
 
 export interface SessionAndOrganizations {
   session: PublicSession | null;
+  // Seeds better-auth-ui's own session query so its components render without
+  // fetching it again.
+  authSession: AuthSession | null;
   orgs: Organizations | null;
   // True when the instance requires 2FA and this session's user hasn't
   // enrolled yet — callers should redirect to /account/two-factor instead of
@@ -74,6 +80,7 @@ export const getSessionAndOrganizations = createServerFn({ method: 'GET' })
       if (!session?.user) {
         return {
           session: null,
+          authSession: null,
           orgs: null,
           publicAccessEnabled: respectPublicAccess
             ? await isPublicAccessEnabled()
@@ -97,6 +104,7 @@ export const getSessionAndOrganizations = createServerFn({ method: 'GET' })
           isImpersonating,
           canAccessAdmin: !isImpersonating && isPlatformAdmin(session.user),
         },
+        authSession: session,
         orgs,
         publicAccessEnabled: false,
         requiresTwoFactorEnrollment:

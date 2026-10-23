@@ -1,4 +1,9 @@
-import { createFileRoute, Outlet, redirect, useLoaderData } from '@tanstack/react-router';
+import {
+  Outlet,
+  createFileRoute,
+  redirect,
+  useLoaderData,
+} from '@tanstack/react-router';
 
 import MainLayout from '@/components/layouts/MainLayout';
 import {
@@ -6,16 +11,14 @@ import {
   PATH_LANDING,
   PATH_LOGIN,
 } from '@/constants/path-prefix';
-import { getSessionAndOrganizations } from '@/lib/dal/session';
+import { fetchSession } from '@/lib/query/session';
 
 // Guest access when the portal's public_access setting is on; otherwise
 // requires a session, and a session requires at least one organization.
 export const Route = createFileRoute('/_public')({
-  beforeLoad: async ({ location }) => {
+  beforeLoad: async ({ location, context }) => {
     const { session, orgs, publicAccessEnabled, requiresTwoFactorEnrollment } =
-      await getSessionAndOrganizations({
-        data: { respectPublicAccess: true },
-      });
+      await fetchSession(context.queryClient);
 
     if (!session) {
       if (!publicAccessEnabled) {

@@ -1,8 +1,8 @@
 'use client';
 
-import { useLocation, useNavigate, useRouter } from '@tanstack/react-router';
+import { useLocation, useNavigate } from '@tanstack/react-router';
 import { Check, ChevronDown, Eye, Globe } from 'lucide-react';
-import { useCallback, useTransition } from 'react';
+import { useCallback, useEffect, useTransition } from 'react';
 import type { OrganizationAuthClient } from '@better-auth-ui/core/plugins/organization';
 import { useAuth } from '@better-auth-ui/react';
 import { useListOrganizations } from '@better-auth-ui/react/plugins/organization';
@@ -77,8 +77,12 @@ function OrgSelector() {
 }
 
 export type ApiHubPageProps = {
-  data: ApiProductListItem[];
-  total: number;
+  data?: ApiProductListItem[];
+  total?: number;
+  isLoading: boolean;
+  isError?: boolean;
+  isFetching: boolean;
+  onReload: () => void;
   page: number;
   pageSize: number;
   search?: string;
@@ -89,6 +93,10 @@ export type ApiHubPageProps = {
 export default function ApiHubPage({
   data,
   total,
+  isLoading,
+  isError,
+  isFetching,
+  onReload,
   page,
   pageSize,
   search,
@@ -96,7 +104,6 @@ export default function ApiHubPage({
   basePath,
 }: ApiHubPageProps) {
   const navigate = useNavigate();
-  const router = useRouter();
   const { searchStr } = useLocation();
   const [isPending, startTransition] = useTransition();
 
@@ -111,6 +118,12 @@ export default function ApiHubPage({
     },
     [searchStr, basePath],
   );
+
+  useEffect(() => {
+    if (total === undefined || isFetching) return;
+    const totalPages = total > 0 ? Math.ceil(total / pageSize) : 1;
+    if (page > totalPages) navigate({ href: makeHref({ page: '1' }), replace: true });
+  }, [total, isFetching, page, pageSize, makeHref, navigate]);
 
   const navigateWithOverrides = (overrides: Record<string, string | undefined>) =>
     startTransition(() => navigate({ href: makeHref(overrides) }));
@@ -133,8 +146,9 @@ export default function ApiHubPage({
       <CardList<ApiProductListItem>
         CardItem={ProductCard}
         data={data}
-        isLoading={false}
-        isValidating={isPending}
+        isLoading={isLoading}
+        isError={isError}
+        isValidating={isPending || isFetching}
         pagination={{
           total,
           page,
@@ -144,7 +158,7 @@ export default function ApiHubPage({
           // it because onParamsChange already handles page_size + page=1 in one push.
           goToPage: (p) => { if (p > 0) navigateWithOverrides({ page: String(p) }); },
         }}
-        reload={() => router.invalidate()}
+        reload={onReload}
         onParamsChange={onParamsChange}
         showSearch
         defaultSearch={search}

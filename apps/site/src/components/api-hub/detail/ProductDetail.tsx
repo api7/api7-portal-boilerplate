@@ -14,7 +14,7 @@ import { MetaCardAvatar } from '@/components/base/meta-card/avatar';
 import { MetaCard } from '@/components/base/meta-card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
-import useSubscriptionList from '@/lib/query/useSubscriptionList';
+import { useProductSubscriptionStatus } from '@/lib/query/product-subscription-status';
 import { cn } from '@/lib/utils';
 import { type ApiProductExternal, type ApiProductGateway } from '../utils';
 
@@ -51,11 +51,10 @@ const MetaPart = ({ product }: { product: ApiProduct }) => {
 
 const OpenAPISpecTabContent = ({ product, id, isAuthenticated }: Omit<Props, 'basePath'>) => {
   const orgSlug = useOrganizationSlug();
-  const subscribedApps = useSubscriptionList({
-    api_product_id: id,
-    status: ['subscribed'],
-    enabled: !!orgSlug && isAuthenticated,
-  });
+  const { subscribedTotal } = useProductSubscriptionStatus(
+    id,
+    isAuthenticated,
+  );
 
   return (
     <div
@@ -64,7 +63,7 @@ const OpenAPISpecTabContent = ({ product, id, isAuthenticated }: Omit<Props, 'ba
         product.type === 'gateway' &&
           !!orgSlug &&
           !(product as ApiProductGateway).can_view_unsubscribed &&
-          subscribedApps.total === 0 &&
+          subscribedTotal === 0 &&
           'h-[70vh] overflow-hidden'
       )}
     >

@@ -1,6 +1,7 @@
 import { getSafeRedirectTo } from '@better-auth-ui/core';
 import { magicLinkPlugin } from '@better-auth-ui/core/plugins/magic-link';
 import { providerIcons } from '@better-auth-ui/react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useRouter } from '@tanstack/react-router';
 import type { SocialProvider } from 'better-auth/social-providers';
 import { ThemeProvider } from 'next-themes';
@@ -8,13 +9,17 @@ import Link from 'next/link';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef } from 'react';
 
 import { AuthProvider } from '@/components/auth/auth-provider';
+import {
+  PATH_ACCOUNT_SECURITY,
+  PATH_ACCOUNT_TWO_FACTOR,
+} from '@/constants/path-prefix';
 import { authClient } from '@/lib/auth/client';
 import { organizationPlugin } from '@/lib/auth/organization-plugin';
 import { twoFactorPlugin } from '@/lib/auth/two-factor-plugin';
-import { PATH_ACCOUNT_SECURITY, PATH_ACCOUNT_TWO_FACTOR } from '@/constants/path-prefix';
 import type { ConfigStatus } from '@/lib/config/config-status';
 import { ConfigStatusProvider } from '@/lib/config/config-status-context';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
+import { invalidateSession } from '@/lib/query/session';
 
 const authLocalization = { auth: { emailPlaceholder: 'name@company.com' } };
 
@@ -28,7 +33,19 @@ function AuthProviderWrapper({
   baseURL: string;
 }) {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const activeOrgSlug = useOrganizationSlug();
+
+  useEffect(() => {
+    const { $sessionSignal, $listOrg, $activeMemberRoleSignal } =
+      authClient.$store.atoms;
+    const unsubscribes = [
+      $sessionSignal,
+      $listOrg,
+      $activeMemberRoleSignal,
+    ].map((atom) => atom.listen(() => void invalidateSession(queryClient)));
+    return () => unsubscribes.forEach((unsubscribe) => unsubscribe());
+  }, [queryClient]);
 
   // When the active org's slug changes (e.g. user renames it in settings),
   // replace the stale slug in the current URL so a page refresh won't 404.
@@ -50,8 +67,14 @@ function AuthProviderWrapper({
         replace: true,
       });
     } else if (currentPath.startsWith(`/${prevSlug}/`)) {
-      const newPath = currentPath.replace(`/${prevSlug}/`, `/${activeOrgSlug}/`);
-      router.navigate({ href: newPath + window.location.search, replace: true });
+      const newPath = currentPath.replace(
+        `/${prevSlug}/`,
+        `/${activeOrgSlug}/`,
+      );
+      router.navigate({
+        href: newPath + window.location.search,
+        replace: true,
+      });
     }
   }, [activeOrgSlug, router]);
 
@@ -61,9 +84,11 @@ function AuthProviderWrapper({
   const navigate = useCallback(
     ({ to, replace }: { to: string; replace?: boolean }) => {
       const target = getSafeRedirectTo(to, baseURL);
+      // Auth signals fire on a delay, so drop the cached session before the next beforeLoad reads it.
+      void invalidateSession(queryClient);
       router.navigate({ href: target, replace });
     },
-    [router, baseURL],
+    [router, baseURL, queryClient],
   );
 
   const plugins = useMemo(() => {
@@ -87,14 +112,18 @@ function AuthProviderWrapper({
         twoFactorPlugin({
           paths: {
             setup: PATH_ACCOUNT_TWO_FACTOR,
-            security: PATH_ACCOUNT_SECURITY
-          }
-        }) as never
+            security: PATH_ACCOUNT_SECURITY,
+          },
+        }) as never,
       );
     }
 
     return list;
-  }, [activeOrgSlug, initialConfigStatus.magicLink, initialConfigStatus.twoFactor]);
+  }, [
+    activeOrgSlug,
+    initialConfigStatus.magicLink,
+    initialConfigStatus.twoFactor,
+  ]);
 
   // Patch providerIcons for any generic OAuth provider that lacks a built-in icon,
   // so <ProviderButton> doesn't crash on "React.createElement: type is invalid".
@@ -117,7 +146,10 @@ function AuthProviderWrapper({
         .map((p) => p.provider),
     ];
     return providers.length > 0 ? (providers as SocialProvider[]) : undefined;
-  }, [initialConfigStatus.socialProviders, initialConfigStatus.genericOAuthProviders]);
+  }, [
+    initialConfigStatus.socialProviders,
+    initialConfigStatus.genericOAuthProviders,
+  ]);
 
   return (
     <ConfigStatusProvider value={initialConfigStatus}>
@@ -131,10 +163,13 @@ function AuthProviderWrapper({
         plugins={plugins}
         localization={authLocalization}
         {...(socialProviders && { socialProviders })}
-        {...(initialConfigStatus.twoFactor && { twoFactor: ['totp'] as ['totp'] })}
-        {...(initialConfigStatus.requireEmailVerification && {
-          emailAndPassword: { requireEmailVerification: true },
+        {...(initialConfigStatus.twoFactor && {
+          twoFactor: ['totp'] as ['totp'],
         })}
+        emailAndPassword={{
+          enabled: initialConfigStatus.emailAndPasswordEnabled,
+          requireEmailVerification: initialConfigStatus.requireEmailVerification,
+        }}
       >
         {children}
       </AuthProvider>
@@ -152,8 +187,16 @@ export function Providers({
   baseURL: string;
 }) {
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <AuthProviderWrapper initialConfigStatus={initialConfigStatus} baseURL={baseURL}>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <AuthProviderWrapper
+        initialConfigStatus={initialConfigStatus}
+        baseURL={baseURL}
+      >
         {children}
       </AuthProviderWrapper>
     </ThemeProvider>

@@ -1,7 +1,7 @@
 import { createFileRoute } from '@tanstack/react-router';
 
 import { DocsPageView } from '@/components/docs/DocsPageView';
-import { getDocContent } from '@/lib/docs/data';
+import { getDocPageMeta } from '@/lib/docs/page-meta';
 import { source } from '@/lib/docs/source';
 
 type PageData = {
@@ -13,7 +13,7 @@ type PageData = {
 const splatToSlug = (splat?: string) => (splat ? splat.split('/') : []);
 
 export const Route = createFileRoute('/docs/$')({
-  loader: ({ params }) => getDocContent({ data: { slug: splatToSlug(params._splat) } }),
+  loader: ({ params }) => getDocPageMeta(splatToSlug(params._splat)),
   head: ({ loaderData }) => ({
     meta: [
       { title: loaderData?.title },
@@ -34,9 +34,10 @@ export const Route = createFileRoute('/docs/$')({
 
         const data = page.data as PageData;
         const content = await data.getText('processed');
-        const header = [`# ${data.title}`, data.description ? `\n${data.description}` : ''].join(
-          '',
-        );
+        const header = [
+          `# ${data.title}`,
+          data.description ? `\n${data.description}` : '',
+        ].join('');
         return new Response(`${header}\n\n${content}`, {
           headers: { 'Content-Type': 'text/plain; charset=utf-8' },
         });
@@ -46,6 +47,6 @@ export const Route = createFileRoute('/docs/$')({
 });
 
 function DocPage() {
-  const content = Route.useLoaderData();
-  return <DocsPageView content={content} />;
+  const { _splat } = Route.useParams();
+  return <DocsPageView slug={splatToSlug(_splat)} />;
 }

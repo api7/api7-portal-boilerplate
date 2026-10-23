@@ -97,6 +97,17 @@ export const getMemberActionPermissions = createServerFn({ method: 'GET' })
     };
   });
 
+export const getMemberRole = createServerFn({ method: 'GET' })
+  .middleware([orgScopedMiddleware])
+  .validator(orgSlugSchema)
+  .handler(async ({ context }) => {
+    const member = await auth.api.getActiveMemberRole({
+      headers: getRequest().headers,
+      query: { organizationId: context.organizationId },
+    });
+    return member?.role ?? null;
+  });
+
 export const listOrganizationInvitations = createServerFn({ method: 'GET' })
   .middleware([orgScopedMiddleware])
   .validator(orgSlugSchema)

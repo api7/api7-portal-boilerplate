@@ -1,6 +1,6 @@
 {
   "name": "@api7ee/site",
-  "version": "0.16.2",
+  "version": "0.16.3",
   "private": true,
   "type": "module",
   "scripts": {
@@ -88,7 +88,6 @@
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.1",
-    "@vitejs/plugin-rsc": "^0.5.34",
     "drizzle-kit": "^0.31.10",
     "eslint": "catalog:",
     "eslint-plugin-react-hooks": "^7.1.1",

@@ -4,7 +4,6 @@ import {
   useLoaderData,
   useLocation,
   useNavigate,
-  useRouter,
 } from '@tanstack/react-router';
 import { useCreation } from 'ahooks';
 import {
@@ -53,8 +52,11 @@ import {
 } from '@/lib/dal/admin-organizations';
 
 type Props = {
-  data: AdminOrganizationListItem[];
-  total: number;
+  data?: AdminOrganizationListItem[];
+  total?: number;
+  isLoading: boolean;
+  isError?: boolean;
+  onChanged: () => void;
   page: number;
   pageSize: number;
   search?: string;
@@ -227,11 +229,13 @@ function ActionCell({
 export default function OrganizationTable({
   data,
   total,
+  isLoading,
+  isError,
+  onChanged,
   page,
   pageSize,
   search,
 }: Props) {
-  const router = useRouter();
   const navigate = useNavigate();
   const { searchStr } = useLocation();
   const { showApiHub } = useLoaderData({ from: '__root__' });
@@ -310,7 +314,7 @@ export default function OrganizationTable({
             ownerId={row.original.owner?.user_id ?? null}
             ownerBanned={row.original.owner?.banned ?? false}
             showApiHub={showApiHub}
-            onDeleted={() => router.invalidate()}
+            onDeleted={onChanged}
           />
         ),
       },
@@ -322,7 +326,8 @@ export default function OrganizationTable({
     <DataTable
       columns={columns}
       data={data}
-      isLoading={false}
+      isLoading={isLoading}
+      isError={isError}
       nameSearch
       defaultSearch={search}
       text={{
@@ -338,7 +343,7 @@ export default function OrganizationTable({
         navigate({ href: makeHref(overrides) });
       }}
       pagination={{
-        total,
+        total: total ?? 0,
         pageIndex: page - 1,
         pageSize,
         goToPage: (targetPage) =>

@@ -11,7 +11,6 @@ import { z } from 'zod';
 export const docs = defineDocs({
   dir: 'content/docs',
   docs: {
-    async: true,
     schema: pageSchema.extend({
       llms: z
         .boolean()

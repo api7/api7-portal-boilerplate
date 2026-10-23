@@ -1,6 +1,6 @@
 "use client"
 
-import type { AuthView } from "@better-auth-ui/core"
+import { getAuthLinkURL, type AuthView } from "@better-auth-ui/core"
 import { useAuth } from "@better-auth-ui/react"
 import { type ComponentType, useEffect } from "react"
 
@@ -74,7 +74,7 @@ export function Auth({
   signUpConsentLabel,
   checkEmailPolicy
 }: AuthProps) {
-  const { basePaths, emailAndPassword, plugins, viewPaths, navigate } =
+  const { basePaths, emailAndPassword, plugins, redirectTo, viewPaths, navigate } =
     useAuth()
 
   if (!view && !path) {
@@ -99,11 +99,20 @@ export function Auth({
   useEffect(() => {
     if (shouldRedirectToSignIn) {
       navigate({
-        to: `${basePaths.auth}/${viewPaths.auth.signIn}`,
+        to: getAuthLinkURL(
+          `${basePaths.auth}/${viewPaths.auth.signIn}`,
+          redirectTo
+        ),
         replace: true
       })
     }
-  }, [shouldRedirectToSignIn, navigate, basePaths.auth, viewPaths.auth.signIn])
+  }, [
+    shouldRedirectToSignIn,
+    navigate,
+    basePaths.auth,
+    viewPaths.auth.signIn,
+    redirectTo
+  ])
 
   if (shouldRedirectToSignIn) {
     return null

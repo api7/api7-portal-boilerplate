@@ -5,7 +5,8 @@ import { TwoFactorSetup } from '@/components/auth/two-factor/two-factor-setup';
 
 export const Route = createFileRoute('/_sessionOnly/account/two-factor')({
   validateSearch: (search: Record<string, unknown>) => ({
-    redirectTo: typeof search.redirectTo === 'string' ? search.redirectTo : undefined,
+    redirectTo:
+      typeof search.redirectTo === 'string' ? search.redirectTo : undefined,
   }),
   component: TwoFactorSetupPage,
 });

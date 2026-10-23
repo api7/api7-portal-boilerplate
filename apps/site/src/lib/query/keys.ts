@@ -52,3 +52,29 @@ export const organizationInvitationsListKey = (orgSlug: string | null) => [
   orgSlug,
   'invitations',
 ];
+
+export const SESSION_KEY = ['session'] as const;
+
+export const appMetaKey = ['app-meta'] as const;
+
+export const adminApprovalsKey = (params: object) => [
+  'admin',
+  'approvals',
+  params,
+];
+
+export const adminOrganizationsKey = (params: object) => [
+  'admin',
+  'organizations',
+  params,
+];
+
+export const productSubscriptionStatusKey = (
+  orgSlug: string | null,
+  productId: string,
+) => ['portal', 'org', orgSlug, 'product', productId, 'subscription-status'];
+
+export const activeMemberRoleKey = (orgSlug: string | null) => [
+  'active-member-role',
+  orgSlug,
+];

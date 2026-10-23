@@ -1,0 +1,7 @@
+export const SESSION_STALE_TIME_MS = 5 * 60_000;
+
+export const PRODUCT_DETAIL_STALE_TIME_MS = 30_000;
+
+export const LIST_STALE_TIME_MS = 5_000;
+
+export const MEMBER_ROLE_STALE_TIME_MS = 30_000;

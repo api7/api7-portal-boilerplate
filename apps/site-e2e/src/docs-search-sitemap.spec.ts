@@ -1,49 +1,45 @@
-import { type APIRequestContext, expect, test } from '@playwright/test';
+import { readdirSync } from 'node:fs';
+import path from 'node:path';
+
+import { expect, test } from '@playwright/test';
 import { PATH_API_HUB } from '@site/constants/path-prefix';
+
+import { waitForHydration } from '../utils/helper';
 
 test.use({ storageState: { cookies: [], origins: [] } });
 
-type SearchSection = {
-  id: string;
-  url: string;
-  type: 'page' | 'heading' | 'text';
-  content: string;
-  pageTitle: string;
-};
+// The docs search index is built in the browser, so the docs pages are read from the content folder.
+const DOCS_DIR = path.resolve(__dirname, '../../site/content/docs');
 
-const getSearchIndex = async (request: APIRequestContext) => {
-  const res = await request.get('/api/docs-search');
-  expect(res.status()).toBe(200);
-  return (await res.json()) as SearchSection[];
-};
+const getDocPagePaths = () =>
+  readdirSync(DOCS_DIR)
+    .filter((file) => /\.mdx?$/.test(file))
+    .map((file) => file.replace(/\.mdx?$/, ''))
+    .map((name) => (name === 'index' ? '/docs' : `/docs/${name}`));
 
 test.describe('Docs search', () => {
-  test('the search index lists every docs page with its headings', async ({
-    request,
-  }) => {
-    const index = await getSearchIndex(request);
-    const pages = index.filter((section) => section.type === 'page');
+  test('searching for a page title opens that page', async ({ page }) => {
+    await page.goto('/docs');
+    await waitForHydration(page);
 
-    expect(pages.map((page) => page.url)).toEqual(
-      expect.arrayContaining(['/docs', '/docs/getting-started']),
-    );
-    for (const page of pages) {
-      expect(page.pageTitle).toBeTruthy();
-    }
-    expect(
-      index.some(
-        (section) =>
-          section.type === 'heading' &&
-          section.url === '/docs/getting-started#prerequisites',
-      ),
-    ).toBe(true);
+    await page.getByRole('button', { name: /^Search/ }).click();
+    const dialog = page.getByRole('dialog', { name: 'Search' });
+    await dialog
+      .getByPlaceholder('Search documentation…')
+      .fill('Running the project');
+    await dialog
+      .getByRole('button', { name: 'Running the project' })
+      .first()
+      .click();
+
+    await expect(page).toHaveURL(/\/docs\/getting-started$/);
   });
 
   test('searching from the docs opens the matching section', async ({
     page,
   }) => {
     await page.goto('/docs');
-    await page.waitForLoadState('networkidle');
+    await waitForHydration(page);
 
     await page.getByRole('button', { name: /^Search/ }).click();
     const dialog = page.getByRole('dialog', { name: 'Search' });
@@ -68,9 +64,7 @@ test.describe('Sitemap', () => {
     const locs = [...(await res.text()).matchAll(/<loc>([^<]+)<\/loc>/g)].map(
       (match) => match[1],
     );
-    const docPages = (await getSearchIndex(request))
-      .filter((section) => section.type === 'page')
-      .map((section) => `${baseURL}${section.url}`);
+    const docPages = getDocPagePaths().map((docPath) => `${baseURL}${docPath}`);
 
     expect(locs).toEqual(
       expect.arrayContaining([

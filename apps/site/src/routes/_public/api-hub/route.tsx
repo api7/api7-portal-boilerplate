@@ -1,15 +1,8 @@
 import { createFileRoute, notFound } from '@tanstack/react-router';
-import { createServerFn } from '@tanstack/react-start';
-
-import { getConfig } from '@/lib/config';
-
-const getApiHubEnabled = createServerFn({ method: 'GET' }).handler(
-  async () => getConfig().app.apiHub?.enabled !== false,
-);
 
 export const Route = createFileRoute('/_public/api-hub')({
-  beforeLoad: async () => {
-    if (!(await getApiHubEnabled())) {
+  beforeLoad: ({ context }) => {
+    if (!context.appMeta.showApiHub) {
       throw notFound();
     }
   },

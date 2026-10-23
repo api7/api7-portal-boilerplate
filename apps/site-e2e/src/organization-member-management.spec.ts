@@ -223,7 +223,7 @@ test.describe('Organization member management', () => {
       .click();
     await expect(
       page.locator('[data-sonner-toast][data-type="error"]'),
-    ).toBeVisible();
+    ).toContainText('You cannot leave the organization as the only owner');
 
     await expect(page).toHaveURL(new RegExp(`/${organization.slug}/members$`));
     expect(await listOrganizationIds(ownerCtx)).toContain(organization.id);

@@ -1,17 +1,18 @@
 import { useQuery } from '@tanstack/react-query';
 
-import { listApplications } from '@/lib/dal/applications';
-import { applicationListKey } from '@/lib/query/keys';
+import { applicationListQueryOptions } from '@/lib/query/applications';
 import type { WithSavePage } from '@/types/utils';
 import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
 import { useParams } from '../hooks/useParams';
 import { useSavePage } from '../hooks/useSavePage';
 
-type ApplicationListParams = WithSavePage<TableParams>;
+type ApplicationListParams = WithSavePage<TableParams> & {
+  enabled?: boolean;
+};
 
 export const useApplicationList = (params: ApplicationListParams = {}) => {
   const orgSlug = useOrganizationSlug();
-  const { savePage = false, ...initParams } = params;
+  const { savePage = false, enabled = true, ...initParams } = params;
   const { paramsKeepNum, updateParams } = useParams(initParams);
   const { onParamsChange } = useSavePage<TableParams>({
     savePage,
@@ -20,12 +21,8 @@ export const useApplicationList = (params: ApplicationListParams = {}) => {
   const goToPage = (page: number) =>
     onParamsChange({ page: page < 1 ? 1 : page });
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
-    queryKey: applicationListKey(orgSlug, paramsKeepNum),
-    queryFn: () =>
-      listApplications({
-        data: { organizationSlug: orgSlug!, ...paramsKeepNum },
-      }),
-    enabled: !!orgSlug,
+    ...applicationListQueryOptions(orgSlug!, paramsKeepNum),
+    enabled: enabled && !!orgSlug,
   });
 
   return {

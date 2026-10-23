@@ -1,18 +1,21 @@
-import { createFileRoute, Outlet, redirect, useLoaderData } from '@tanstack/react-router';
+import {
+  Outlet,
+  createFileRoute,
+  redirect,
+  useLoaderData,
+} from '@tanstack/react-router';
 
 import AdminSidebar from '@/components/admin/AdminSidebar';
 import Header from '@/components/layouts/Header';
 import TopBar from '@/components/layouts/TopBar';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { PATH_LOGIN, PATH_ROOT } from '@/constants/path-prefix';
-import { getSessionAndOrganizations } from '@/lib/dal/session';
+import { fetchSession } from '@/lib/query/session';
 
 // Platform-admin-only layout: not an org context, so it doesn't reuse $slug's beforeLoad.
 export const Route = createFileRoute('/admin')({
-  beforeLoad: async ({ location }) => {
-    const { session } = await getSessionAndOrganizations({
-      data: { respectPublicAccess: false },
-    });
+  beforeLoad: async ({ location, context }) => {
+    const { session } = await fetchSession(context.queryClient);
 
     if (!session) {
       throw redirect({

@@ -1,27 +1,33 @@
-import { createFileRoute, notFound, redirect } from '@tanstack/react-router';
+import {
+  createFileRoute,
+  notFound,
+  redirect,
+  useLocation,
+} from '@tanstack/react-router';
 
-import ProductDetail from '@/components/api-hub/detail/ProductDetail';
+import ProductDetailView from '@/components/api-hub/detail/ProductDetailView';
 import { PATH_API_HUB, PATH_LOGIN } from '@/constants/path-prefix';
-import { getApiProduct } from '@/lib/dal/api-products';
+import { loadQuery } from '@/lib/query/load-query';
+import { productDetailQueryOptions } from '@/lib/query/product-detail';
+
+const loginHrefFor = (href: string) =>
+  `${PATH_LOGIN}?redirectTo=${encodeURIComponent(href)}`;
 
 export const Route = createFileRoute('/_public/api-hub/$id')({
-  beforeLoad: async ({ params, context, location }) => {
-    const product = await getApiProduct({ data: params.id });
+  loader: async ({ params, context, location }) => {
+    const product = await loadQuery(
+      context.queryClient,
+      productDetailQueryOptions(null, params.id),
+    );
+    // `undefined` means a client navigation, where the view handles these cases.
+    if (product === undefined) return undefined;
 
-    // A guest can't tell "doesn't exist" apart from "exists but logged_in" —
-    // the backend hides both behind a 404 — so send them to login first and
-    // only show a real 404 once we know they're authenticated.
     if ((!product || product.visibility === 'logged_in') && !context.session) {
-      throw redirect({
-        href: `${PATH_LOGIN}?redirectTo=${encodeURIComponent(location.href)}`,
-      });
+      throw redirect({ href: loginHrefFor(location.href) });
     }
-
     if (!product) throw notFound();
-
-    return { product };
+    return product;
   },
-  loader: ({ context }) => context.product,
   head: ({ loaderData }) => ({
     meta: [
       { title: loaderData?.name ?? 'Product Details' },
@@ -37,15 +43,17 @@ export const Route = createFileRoute('/_public/api-hub/$id')({
 });
 
 function ProductDetailPage() {
-  const product = Route.useLoaderData();
+  const { id } = Route.useParams();
   const { session } = Route.useRouteContext();
+  const location = useLocation();
 
   return (
-    <ProductDetail
-      product={product}
-      id={product.id}
+    <ProductDetailView
+      orgSlug={null}
+      id={id}
       isAuthenticated={!!session?.user}
       basePath={PATH_API_HUB}
+      loginHref={loginHrefFor(location.href)}
     />
   );
 }

@@ -22,16 +22,11 @@ import { PATH_APPLICATIONS } from '@/constants/path-prefix';
 import { useCanManageApplications } from '@/lib/auth/useApplicationPermission';
 import useDisclosure from '@/lib/hooks/useDisclosure';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
+import { resolveApplicationTab } from '@/lib/query/application-tab';
 import useApplicationDetail from '@/lib/query/useApplicationDetail';
 import ApplicationSubscriptions from './components/ApplicationSubscriptions';
 import ApplicationUsage from './components/Usage';
 
-// URL param value → internal tab key
-const PARAM_TO_TAB: Record<string, string> = {
-  subscriptions: 'subscriptions',
-  authentication: 'credentials',
-  usage: 'usage',
-};
 // Internal tab key → URL param value
 const TAB_TO_PARAM: Record<string, string> = {
   subscriptions: 'subscriptions',
@@ -79,10 +74,7 @@ const DetailTabs = ({ applicationId }: { applicationId: string }) => {
 
   const searchParams = new URLSearchParams(searchStr);
   const tabParam = searchParams.get('tab');
-  const activeKey = tabParam ? PARAM_TO_TAB[tabParam] : undefined;
-  const effectiveKey = (activeKey && items.find((t) => t.key === activeKey))
-    ? activeKey
-    : items[0]?.key;
+  const effectiveKey = resolveApplicationTab(applicationDetail, tabParam);
 
   const handleTabChange = (key: string) => {
     const params = new URLSearchParams(searchStr);

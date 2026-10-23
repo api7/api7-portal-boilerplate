@@ -17,6 +17,7 @@ import {
   a7GenCtx,
 } from './req/dashboard/common';
 import { BetterAuthLogin } from './req/type';
+import { waitForHydration } from './utils/helper';
 
 export const genAuth = (id: string): BetterAuthLogin => {
   return {
@@ -93,6 +94,15 @@ export const test = baseTest.extend<
     const a7Ctx = await a7GenCtx(a7AuthConf);
     await a7ActivateLicenseAndChangePasswd(a7Ctx);
     await use(a7Ctx);
+  },
+  page: async ({ page }, use) => {
+    const goto = page.goto.bind(page);
+    page.goto = async (url, options) => {
+      const response = await goto(url, options);
+      await waitForHydration(page);
+      return response;
+    };
+    await use(page);
   },
   ctx: async ({ storageState }, use) => {
     const ctx = await genCtx({ storageState });

@@ -6,19 +6,25 @@ import {
 } from 'fumadocs-ui/layouts/docs/page';
 
 import CopyPageButton from '@/components/docs/CopyPageButton';
-import type { getDocContent } from '@/lib/docs/data';
+import { getMDXComponents } from '@/components/docs/mdx';
+import { source } from '@/lib/docs/source';
 
-type DocContent = Awaited<ReturnType<typeof getDocContent>>;
+export function DocsPageView({ slug }: { slug: string[] }) {
+  const page = source.getPage(slug);
+  if (!page) return null;
 
-export function DocsPageView({ content }: { content: DocContent }) {
+  const { title, description, full, toc, body: MDX } = page.data;
+
   return (
-    <DocsPage toc={content.toc} full={content.full}>
+    <DocsPage toc={toc} full={full}>
       <div className="mb-3 flex flex-wrap items-start justify-between gap-4">
-        <DocsTitle className="flex-1">{content.title}</DocsTitle>
-        <CopyPageButton title={content.title} />
+        <DocsTitle className="flex-1">{title}</DocsTitle>
+        <CopyPageButton title={title} />
       </div>
-      <DocsDescription>{content.description}</DocsDescription>
-      <DocsBody>{content.body}</DocsBody>
+      <DocsDescription>{description}</DocsDescription>
+      <DocsBody>
+        <MDX components={getMDXComponents()} />
+      </DocsBody>
     </DocsPage>
   );
 }

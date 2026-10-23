@@ -7,10 +7,10 @@ import {
 import { usePreventHashScroll } from './usePreventHashScroll';
 import ScalarDocs from './ScalarDocs';
 import { type ApiProductGateway, useParsedProduct } from '../utils';
+import { Alert } from '@/components/base/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { placeholderOpenAPI } from '@/constants/placeholder-openapi';
-import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
-import useSubscriptionList from '@/lib/query/useSubscriptionList';
+import { useProductSubscriptionStatus } from '@/lib/query/product-subscription-status';
 
 type RealDocProps = {
   data: ApiProductGateway;
@@ -76,19 +76,10 @@ const ProductGatewayMockDoc = () => {
  */
 const ProductGatewayAPI = ({ data, isAuthenticated }: { data: ApiProductGateway; isAuthenticated: boolean }) => {
   const authorized = isAuthenticated;
-  const orgSlug = useOrganizationSlug();
-  const subscribedApps = useSubscriptionList({
-    api_product_id: data.id,
-    status: ['subscribed'],
-    enabled: !!orgSlug,
-  });
-  const waitingForApprovalApps = useSubscriptionList({
-    api_product_id: data.id,
-    status: ['wait_for_approval'],
-    enabled: !!orgSlug,
-  });
+  const { subscribedTotal, waitingTotal, isLoading, isError, refetch } =
+    useProductSubscriptionStatus(data.id);
 
-  if (subscribedApps.isLoading || waitingForApprovalApps.isLoading) {
+  if (isLoading) {
     return <Skeleton className="w-full h-full absolute left-0 top-0 z-10" />;
   }
   const { can_view_unsubscribed } = data;
@@ -104,10 +95,22 @@ const ProductGatewayAPI = ({ data, isAuthenticated }: { data: ApiProductGateway;
     );
   }
   if (!can_view_unsubscribed && authorized) {
-    if (subscribedApps.total > 0) {
+    if (isError) {
+      return (
+        <>
+          <ProductGatewayMockDoc />
+          <Alert
+            variant="destructive"
+            title="Failed to load subscription status"
+            description="Reload the page to try again."
+          />
+        </>
+      );
+    }
+    if (subscribedTotal > 0) {
       return <ProductGatewayRealDoc data={data} />;
     }
-    if (subscribedApps.total === 0 && waitingForApprovalApps.total > 0) {
+    if (subscribedTotal === 0 && waitingTotal > 0) {
       return (
         <>
           <ProductGatewayMockDoc />
@@ -115,16 +118,13 @@ const ProductGatewayAPI = ({ data, isAuthenticated }: { data: ApiProductGateway;
         </>
       );
     }
-    if (subscribedApps.total === 0 && waitingForApprovalApps.total === 0) {
+    if (subscribedTotal === 0 && waitingTotal === 0) {
       return (
         <>
           <ProductGatewayMockDoc />
           <SubscribeToUnlock
             productId={data.id}
-            onSuccess={() => {
-              subscribedApps.refetch();
-              waitingForApprovalApps.refetch();
-            }}
+            onSuccess={() => void refetch()}
           />
         </>
       );

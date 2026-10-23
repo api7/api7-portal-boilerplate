@@ -11,7 +11,10 @@ export type ConfigStatus = {
   magicLink: boolean;
   twoFactor: boolean;
   twoFactorRequired: boolean;
+  emailAndPasswordEnabled: boolean;
   requireEmailVerification: boolean;
+  // Whether `auth.sso.providers` routes any email domain to an SSO provider.
+  emailDomainSso: boolean;
   applicationDetail: {
     subscriptions: boolean;
     usage: boolean;

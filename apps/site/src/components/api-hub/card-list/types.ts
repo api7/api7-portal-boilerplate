@@ -9,6 +9,7 @@ export type CardListProps<T extends object> = {
   CardItem: FC<CardItemProps<T>>;
   data?: T[];
   isLoading: boolean;
+  isError?: boolean;
   isValidating?: boolean;
   title?: string;
   extra?: ReactNode;

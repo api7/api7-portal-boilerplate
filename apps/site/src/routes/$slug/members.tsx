@@ -13,6 +13,7 @@ import {
   listOrganizationMembers,
 } from '@/lib/dal/organization-members';
 import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
+import { loadQuery } from '@/lib/query/load-query';
 import {
   organizationInvitationsListKey,
   organizationMemberPermissionsKey,
@@ -21,12 +22,10 @@ import {
 
 export const Route = createFileRoute('/$slug/members')({
   loader: async ({ context: { queryClient }, params }) => {
-    // `allSettled`, not `all` — these three are independent prefetches for
-    // separate parts of the page; one failing (a transient permission-check
-    // error, say) shouldn't take down the whole route when each one's
-    // client-side `useQuery` can just fetch it instead.
+    // `allSettled`: each part of the page also fetches itself with `useQuery`,
+    // so one failing prefetch shouldn't take down the whole route.
     await Promise.allSettled([
-      queryClient.ensureQueryData({
+      loadQuery(queryClient, {
         queryKey: organizationMembersListKey(
           params.slug,
           DEFAULT_MEMBERS_PARAMS,
@@ -35,20 +34,23 @@ export const Route = createFileRoute('/$slug/members')({
           listOrganizationMembers({
             data: { organizationSlug: params.slug, ...DEFAULT_MEMBERS_PARAMS },
           }),
+        staleTime: 30_000,
       }),
-      queryClient.ensureQueryData({
+      loadQuery(queryClient, {
         queryKey: organizationMemberPermissionsKey(params.slug),
         queryFn: () =>
           getMemberActionPermissions({
             data: { organizationSlug: params.slug },
           }),
+        staleTime: 30_000,
       }),
-      queryClient.ensureQueryData({
+      loadQuery(queryClient, {
         queryKey: organizationInvitationsListKey(params.slug),
         queryFn: () =>
           listOrganizationInvitations({
             data: { organizationSlug: params.slug },
           }),
+        staleTime: 30_000,
       }),
     ]);
   },

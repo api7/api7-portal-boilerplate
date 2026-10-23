@@ -36,8 +36,12 @@ export function getConfigStatus(): ConfigStatus {
     credentialsTabs: { keyAuth: true, basicAuth: true, oauth: true },
   };
 
+  const emailAndPasswordEnabled = config.auth.emailAndPassword.enabled;
   const requireEmailVerification =
     config.auth.emailAndPassword.requireEmailVerification;
+  const emailDomainSso = (config.auth.sso?.providers ?? []).some(
+    (p) => p.domains.length > 0,
+  );
 
   return {
     socialProviders,
@@ -45,7 +49,9 @@ export function getConfigStatus(): ConfigStatus {
     magicLink,
     twoFactor,
     twoFactorRequired,
+    emailAndPasswordEnabled,
     requireEmailVerification,
+    emailDomainSso,
     applicationDetail,
   };
 }

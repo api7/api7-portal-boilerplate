@@ -68,7 +68,9 @@ export type SignInProps = {
    * Looks up the org's SSO policy for an email's domain before showing the
    * password form — app-specific (reads the deployment's SSO config), so
    * it's injected rather than imported directly. Omitting it disables the
-   * SSO branch entirely; every email falls through to credentials.
+   * SSO branch entirely; every email falls through to credentials. When
+   * email + password auth and magic link are both unavailable, the email
+   * step exists only to route to SSO, so it's hidden unless this is provided.
    */
   checkEmailPolicy?: (email: string) => Promise<SignInEmailPolicy>
 }
@@ -95,7 +97,7 @@ export function SignIn({
   className,
   socialLayout,
   socialPosition = "bottom",
-  checkEmailPolicy = defaultCheckEmailPolicy
+  checkEmailPolicy
 }: SignInProps) {
   const {
     authClient,
@@ -130,6 +132,8 @@ export function SignIn({
     (plugin) => plugin.id === "magicLink"
   )
   const hasMagicLink = !!magicLinkPluginInstance
+  const showEmailStep =
+    !!emailAndPassword?.enabled || hasMagicLink || !!checkEmailPolicy
   // `magicLinkPlugin` is only conditionally registered (see app/providers.tsx),
   // so this can't go through `useAuthPlugin` — it throws when the plugin
   // isn't installed. Read the label straight off the plugin instance instead,
@@ -203,7 +207,20 @@ export function SignIn({
 
     startPolicyTransition(async () => {
       try {
-        const policy = await checkEmailPolicy(email)
+        const policy = await (checkEmailPolicy ?? defaultCheckEmailPolicy)(
+          email
+        )
+        if (
+          !emailAndPassword?.enabled &&
+          !hasMagicLink &&
+          policy.type !== "sso"
+        ) {
+          setFieldErrors((prev) => ({
+            ...prev,
+            email: "Single sign-on is not configured for this email address."
+          }))
+          return
+        }
         setSsoProviderId(policy.type === "sso" ? policy.providerId : null)
         setPhase("credentials")
       } catch {
@@ -234,7 +251,7 @@ export function SignIn({
   }
 
   const showSeparator =
-    emailAndPassword?.enabled && socialProviders && socialProviders.length > 0
+    showEmailStep && socialProviders && socialProviders.length > 0
 
   const showMagicLinkSeparator =
     emailAndPassword?.enabled && hasMagicLink && !ssoProviderId
@@ -267,7 +284,7 @@ export function SignIn({
           )}
 
           {/* Phase 1: email input */}
-          {phase === "email" && (
+          {phase === "email" && showEmailStep && (
             <form onSubmit={handleEmailContinue}>
               <FieldGroup>
                 <Field data-invalid={!!fieldErrors.email}>
@@ -526,7 +543,7 @@ export function SignIn({
 
         {phase === "email" && (
           <div className="flex flex-col gap-3 items-center w-full mt-4">
-            {emailAndPassword?.forgotPassword && (
+            {emailAndPassword?.enabled && emailAndPassword.forgotPassword && (
               <Link
                 href={`${basePaths.auth}/${viewPaths.auth.forgotPassword}`}
                 className="self-center text-sm underline-offset-4 hover:underline"
@@ -554,7 +571,7 @@ export function SignIn({
 
         {phase === "credentials" && !ssoProviderId && (
           <div className="flex flex-col gap-3 items-center w-full mt-4">
-            {emailAndPassword?.forgotPassword && (
+            {emailAndPassword?.enabled && emailAndPassword.forgotPassword && (
               <Link
                 href={`${basePaths.auth}/${viewPaths.auth.forgotPassword}`}
                 className="self-center text-sm underline-offset-4 hover:underline"

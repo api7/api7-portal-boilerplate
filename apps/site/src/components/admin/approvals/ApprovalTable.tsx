@@ -51,8 +51,10 @@ const renderStatus = (approval: Approval) => {
 };
 
 type Props = {
-  data: Approval[];
-  total: number;
+  data?: Approval[];
+  total?: number;
+  isLoading: boolean;
+  isError?: boolean;
   page: number;
   pageSize: number;
   refetch: () => void;
@@ -61,6 +63,8 @@ type Props = {
 const ApprovalTable: React.FC<Props> = ({
   data,
   total,
+  isLoading,
+  isError,
   page,
   pageSize,
   refetch,
@@ -187,7 +191,8 @@ const ApprovalTable: React.FC<Props> = ({
         data-testid="approval-table"
         columns={columns}
         data={data}
-        isLoading={false}
+        isLoading={isLoading}
+        isError={isError}
         nameSearch
         text={{ searchPlaceholder: 'Search type, resource, applicant' }}
         onParamsChange={(params: Record<string, unknown>) => {
@@ -206,7 +211,7 @@ const ApprovalTable: React.FC<Props> = ({
           navigate({ href: makeHref(overrides) });
         }}
         pagination={{
-          total,
+          total: total ?? 0,
           pageIndex: page - 1,
           pageSize,
           goToPage: (targetPage) =>

@@ -11,6 +11,7 @@ import { Auth } from '@/components/auth/auth';
 import { PageNotFound } from '@/components/slices/NotFound';
 import { PATH_LOGIN } from '@/constants/path-prefix';
 import { checkEmailPolicy } from '@/lib/auth/check-email-policy';
+import { useConfigStatus } from '@/lib/config/config-status-context';
 import { hasTwoFactorChallengeCookie } from '@/lib/dal/session';
 
 export const Route = createFileRoute('/auth/$path')({
@@ -43,6 +44,7 @@ function AuthView() {
   const { path } = Route.useParams();
   const { name, signUpConsentLabel } = useLoaderData({ from: '__root__' });
   const { viewPaths, plugins } = useAuth();
+  const { emailDomainSso } = useConfigStatus();
 
   const isKnownAuthPath =
     Object.values(viewPaths.auth).includes(path) ||
@@ -62,7 +64,11 @@ function AuthView() {
       <Auth
         path={path}
         signUpConsentLabel={signUpConsentLabel}
-        checkEmailPolicy={(email) => checkEmailPolicy({ data: email })}
+        checkEmailPolicy={
+          emailDomainSso
+            ? (email) => checkEmailPolicy({ data: email })
+            : undefined
+        }
       />
     </div>
   );

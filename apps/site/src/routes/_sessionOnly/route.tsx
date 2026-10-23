@@ -1,15 +1,18 @@
-import { createFileRoute, Outlet, redirect, useLoaderData } from '@tanstack/react-router';
+import {
+  Outlet,
+  createFileRoute,
+  redirect,
+  useLoaderData,
+} from '@tanstack/react-router';
 
 import MainLayout from '@/components/layouts/MainLayout';
 import { PATH_LOGIN } from '@/constants/path-prefix';
-import { getSessionAndOrganizations } from '@/lib/dal/session';
+import { fetchSession } from '@/lib/query/session';
 
 // Requires a session but no organization.
 export const Route = createFileRoute('/_sessionOnly')({
-  beforeLoad: async ({ location }) => {
-    const { session, orgs } = await getSessionAndOrganizations({
-      data: { respectPublicAccess: false },
-    });
+  beforeLoad: async ({ location, context }) => {
+    const { session, orgs } = await fetchSession(context.queryClient);
 
     if (!session) {
       throw redirect({

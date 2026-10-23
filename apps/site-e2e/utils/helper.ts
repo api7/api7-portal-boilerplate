@@ -1,7 +1,20 @@
-import { request } from '@playwright/test';
+import { type Page, request } from '@playwright/test';
 import { diff } from 'just-diff';
 import * as net from 'net';
 import { parse, stringify } from 'yaml';
+
+// The server renders buttons before React attaches their handlers, so an early click is lost.
+// Scalar renders its own buttons outside React, so they are skipped.
+export const waitForHydration = async (page: Page) => {
+  await page.waitForFunction(
+    () =>
+      [...document.querySelectorAll('button, [role="menuitem"]')]
+        .filter((el) => !el.closest('[class*="scalar"]'))
+        .every((el) => Object.keys(el).some((key) => key.startsWith('__reactProps'))),
+    null,
+    { timeout: 15_000 },
+  );
+};
 
 export const randomId = (prefix = '') => {
   const seed = (+Date.now()).toString();

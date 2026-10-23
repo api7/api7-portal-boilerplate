@@ -1,4 +1,5 @@
-import { createFileRoute, useRouter } from '@tanstack/react-router';
+import { useQuery } from '@tanstack/react-query';
+import { createFileRoute } from '@tanstack/react-router';
 import { z } from 'zod';
 
 import ApprovalTable from '@/components/admin/approvals/ApprovalTable';
@@ -8,7 +9,8 @@ import {
   DEFAULT_PAGE_SIZE,
   MAX_PAGE_SIZE,
 } from '@/constants/common';
-import { listApprovals } from '@/lib/dal/admin-approvals';
+import { approvalsQueryOptions } from '@/lib/query/admin-lists';
+import { loadQuery } from '@/lib/query/load-query';
 
 const searchSchema = z.object({
   page: z.coerce.number().int().positive().catch(DEFAULT_PAGE),
@@ -26,14 +28,15 @@ const searchSchema = z.object({
 export const Route = createFileRoute('/admin/approvals')({
   validateSearch: searchSchema,
   loaderDeps: ({ search }) => search,
-  loader: async ({ deps }) => listApprovals({ data: deps }),
+  loader: ({ deps, context }) =>
+    loadQuery(context.queryClient, approvalsQueryOptions(deps)),
   component: AdminApprovalsPage,
 });
 
 function AdminApprovalsPage() {
-  const { list, total } = Route.useLoaderData();
+  const deps = Route.useLoaderDeps();
   const { page, page_size } = Route.useSearch();
-  const router = useRouter();
+  const { data, isLoading, isError, refetch } = useQuery(approvalsQueryOptions(deps));
 
   return (
     <div className="card-container">
@@ -43,11 +46,13 @@ function AdminApprovalsPage() {
         className="mb-6"
       />
       <ApprovalTable
-        data={list}
-        total={total}
+        data={data?.list}
+        total={data?.total}
+        isLoading={isLoading}
+        isError={isError}
         page={page}
         pageSize={page_size}
-        refetch={() => router.invalidate()}
+        refetch={() => void refetch()}
       />
     </div>
   );

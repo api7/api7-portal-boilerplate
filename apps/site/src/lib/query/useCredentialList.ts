@@ -1,8 +1,8 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { useBoolean, useDeepCompareEffect } from 'ahooks';
 
+import { credentialListQueryOptions } from '@/lib/query/credentials';
 import type { WithSavePage } from '@/types/utils';
-import { listCredentials } from '../dal/credentials';
 import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
 import { useParams } from '../hooks/useParams';
 import { useSavePage } from '../hooks/useSavePage';
@@ -55,20 +55,7 @@ export const useCredentialList = (params: CredentialListParams) => {
   const goToPage = (page: number) =>
     onParamsChange({ page: page < 1 ? 1 : page });
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
-    queryKey: [
-      'portal',
-      'org',
-      orgSlug,
-      'application',
-      paramsOnlyStr.application_id,
-      'credentials',
-      paramsOnlyStr,
-    ],
-    placeholderData: keepPreviousData,
-    queryFn: () =>
-      listCredentials({
-        data: { organizationSlug: orgSlug!, ...paramsOnlyStr },
-      }),
+    ...credentialListQueryOptions(orgSlug!, paramsOnlyStr),
     enabled: enabled && localEnabled && !!orgSlug,
   });
 

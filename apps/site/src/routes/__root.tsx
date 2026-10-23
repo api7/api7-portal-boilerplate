@@ -1,9 +1,9 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import {
-  createRootRouteWithContext,
   HeadContent,
   Outlet,
   Scripts,
+  createRootRouteWithContext,
 } from '@tanstack/react-router';
 import { createServerFn } from '@tanstack/react-start';
 import type { ReactNode } from 'react';
@@ -11,7 +11,7 @@ import type { ReactNode } from 'react';
 import { Providers } from '@/components/providers';
 import { Toaster } from '@/components/ui/sonner';
 import { getConfigStatus } from '@/lib/config/config-status';
-
+import { appMetaKey } from '@/lib/query/keys';
 import appCss from '../globals.css?url';
 import { getConfig } from '../lib/config';
 
@@ -32,7 +32,14 @@ const getAppMeta = createServerFn({ method: 'GET' }).handler(async () => {
 });
 
 export const Route = createRootRouteWithContext<RouterContext>()({
-  loader: () => getAppMeta(),
+  beforeLoad: async ({ context }) => ({
+    appMeta: await context.queryClient.fetchQuery({
+      queryKey: appMetaKey,
+      queryFn: () => getAppMeta(),
+      staleTime: Infinity,
+    }),
+  }),
+  loader: ({ context }) => context.appMeta,
   head: ({ loaderData }) => ({
     meta: [
       { charSet: 'utf-8' },

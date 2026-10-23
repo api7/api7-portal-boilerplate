@@ -3,7 +3,6 @@ import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import { tanstackStart } from '@tanstack/react-start/plugin/vite';
 import viteReact from '@vitejs/plugin-react';
-import rsc from '@vitejs/plugin-rsc';
 import { fumadocsMdx } from 'fumadocs-mdx/vite';
 import { nitro } from 'nitro/vite';
 import { defineConfig } from 'vite';
@@ -36,6 +35,8 @@ export default defineConfig({
     },
   },
   nitro: {
+    // Keep nitro from tracing `tslib` into `.output/server/package.json`, which would make the Dockerfile run `pnpm install --prod` for a package nothing imports.
+    traceDeps: ['!tslib'],
     // Nitro route rules only support a trailing `**` wildcard, not wildcard-then-suffix,
     // so the per-page `/docs/:path*.md` case is handled directly in `docs/$.tsx` instead.
     routeRules: {
@@ -46,8 +47,9 @@ export default defineConfig({
   plugins: [
     fumadocsMdx({ macro: { include: ['src/**/*.ts', 'src/**/*.tsx'] } }),
     tailwindcss(),
-    tanstackStart({ rsc: { enabled: true }, importProtection: {behavior: 'error'} }),
-    rsc(),
+    tanstackStart({
+      importProtection: { behavior: 'error' },
+    }),
     nitro(),
     viteReact(),
     {

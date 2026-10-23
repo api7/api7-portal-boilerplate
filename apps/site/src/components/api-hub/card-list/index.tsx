@@ -17,6 +17,7 @@ const CardList = <T extends object>({
   CardItem,
   data = [],
   isLoading,
+  isError = false,
   isValidating = false,
   title = '',
   toolBar = [],
@@ -114,7 +115,11 @@ const CardList = <T extends object>({
 
           {!data.length && !isLoading && (
             <div className="h-60">
-              <ListEmpty description={text.noData ?? 'No Data'} />
+              <ListEmpty
+                description={
+                  isError ? 'Failed to load data' : (text.noData ?? 'No Data')
+                }
+              />
             </div>
           )}
 

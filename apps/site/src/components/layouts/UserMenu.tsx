@@ -1,6 +1,6 @@
 import type { OrganizationAuthClient } from '@better-auth-ui/core/plugins/organization';
 import { useAuth } from '@better-auth-ui/react';
-import { useActiveOrganization } from '@better-auth-ui/react/plugins/organization';
+import { useListOrganizations } from '@better-auth-ui/react/plugins/organization';
 import type { Organization } from 'better-auth/client';
 import { LayoutDashboard } from 'lucide-react';
 import { useLocation } from '@tanstack/react-router';
@@ -13,6 +13,7 @@ import { DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { RESERVED_FIRST_SEGMENTS } from '@/constants/common';
 import { PATH_DASHBOARD_USERS } from '@/constants/path-prefix';
 import { ThemeToggle } from '@/components/layouts/ThemeToggle';
+import { useOrganizationSlug } from '@/lib/hooks/useOrganizationSlug';
 import { cn } from '@/lib/utils';
 
 // Keeps the current tab when already on an org-scoped page.
@@ -26,8 +27,13 @@ function switchOrgHref(pathname: string, newSlug: string): string {
 const UserMenu = ({ authorized, canAccessAdmin }: { authorized: boolean; canAccessAdmin: boolean }) => {
   const { pathname } = useLocation();
   const { authClient, basePaths, navigate, viewPaths } = useAuth<OrganizationAuthClient>();
-  const { data: activeOrganization, isPending: activeOrganizationPending } =
-    useActiveOrganization(authClient);
+  const slug = useOrganizationSlug();
+  // The list is already in the cache, so the current org needs no request of its own.
+  const { data: organizations, isPending: activeOrganizationPending } =
+    useListOrganizations(authClient);
+  const activeOrganization = slug
+    ? organizations?.find((org) => org.slug === slug)
+    : undefined;
 
   const handleSetActive = (organization: Organization | null) => {
     navigate({

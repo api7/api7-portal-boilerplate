@@ -71,12 +71,16 @@ function LandingPage() {
                   Add a new organization
                 </h2>
                 <p className="text-sm text-muted-foreground">
-                  Set up a new organization to start collaborating with your team
+                  Set up a new organization to start collaborating with your
+                  team
                 </p>
               </div>
             </div>
             <div className="flex w-full justify-start sm:w-auto sm:justify-end">
-              <CreateOrganizationDialog open={open} onOpenChange={onOpenChange} />
+              <CreateOrganizationDialog
+                open={open}
+                onOpenChange={onOpenChange}
+              />
               <Button
                 size="lg"
                 className="w-full sm:w-40"
@@ -95,8 +99,13 @@ function LandingPage() {
               <Mail className="w-5 h-5 text-accent-foreground" />
             </div>
             <div>
-              <h2 className="font-semibold text-foreground">View Pending Invitations</h2>
-              <p className="text-sm text-muted-foreground">Please find an organizer to invite you, and then accept the invitations to join organizations</p>
+              <h2 className="font-semibold text-foreground">
+                View Pending Invitations
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                Please find an organizer to invite you, and then accept the
+                invitations to join organizations
+              </p>
             </div>
           </div>
           <UserInvitations />

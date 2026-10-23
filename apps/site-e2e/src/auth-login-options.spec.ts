@@ -81,13 +81,16 @@ const signUp = async (account: ReturnType<typeof createAccount>) => {
   }
 };
 
-const withConfig = (mutate: (config: ConfigMapData) => void) => {
+const withConfig = (
+  mutate: (config: ConfigMapData) => void,
+  testing = true,
+) => {
   let defaultConfig: string | null = null;
 
   test.beforeAll(async () => {
     defaultConfig = await getConfigMapYaml();
     await patchConfigMapYaml<ConfigMapData>(mutate);
-    await restartDevPortal();
+    await restartDevPortal(testing);
   });
 
   test.afterAll(async () => {
@@ -210,7 +213,45 @@ test.describe.serial('Email and password disabled', () => {
 
   withConfig((config) => {
     config.auth.emailAndPassword.enabled = false;
+    config.auth.sso = { providers: [] };
   });
+
+  test('password UI is hidden and non-SSO emails can use magic link', async ({
+    page,
+  }) => {
+    await page.goto(PATH_LOGIN);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByText('Forgot password?')).toBeHidden();
+    await expect(page.getByRole('link', { name: 'Sign Up' })).toBeHidden();
+
+    await page.getByLabel('Email').fill('someone@other.example.com');
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(page.getByText('Send Magic Link')).toBeVisible();
+    await expect(page.getByLabel('Password')).toBeHidden();
+    await expect(page.getByText('Forgot password?')).toBeHidden();
+  });
+
+  for (const path of [
+    'sign-up',
+    'forgot-password',
+    'reset-password',
+    'reset-link-sent',
+  ]) {
+    test(`${path} redirects to sign-in with the original destination`, async ({
+      page,
+    }) => {
+      const redirectTo =
+        '/organization/accept-invitation?invitationId=example#accept';
+      await page.goto(
+        `/auth/${path}?redirectTo=${encodeURIComponent(redirectTo)}`,
+      );
+      await expect(page).toHaveURL(
+        (url) =>
+          url.pathname === PATH_LOGIN &&
+          url.searchParams.get('redirectTo') === redirectTo,
+      );
+    });
+  }
 
   test('password sign-in and sign-up are refused while SSO stays available', async ({
     page,
@@ -238,6 +279,99 @@ test.describe.serial('Email and password disabled', () => {
     await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: 'Continue with Keycloak' }).click();
     await expect(page).toHaveURL(KEYCLOAK_AUTH_URL);
+  });
+});
+
+test.describe.serial('SSO-only sign-in without magic link', () => {
+  test.setTimeout(600_000);
+
+  test.beforeAll(createOidcClient);
+
+  test.afterAll(deleteOidcClient);
+
+  withConfig((config) => {
+    config.auth.emailAndPassword.enabled = false;
+    config.auth.sso = { providers: [] };
+  }, false);
+
+  test('only the SSO button is shown without domain routing', async ({
+    page,
+  }) => {
+    await page.goto(PATH_LOGIN);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByLabel('Email')).toBeHidden();
+    await expect(page.getByLabel('Password')).toBeHidden();
+    await expect(page.getByText('Send Magic Link')).toBeHidden();
+    await expect(page.getByText('Forgot password?')).toBeHidden();
+    await expect(page.getByRole('link', { name: 'Sign Up' })).toBeHidden();
+    await page.getByRole('button', { name: 'Continue with Keycloak' }).click();
+    await expect(page).toHaveURL(KEYCLOAK_AUTH_URL);
+  });
+
+  test('empty domain rules do not expose an unusable email step', async ({
+    page,
+  }) => {
+    await patchConfigMapYaml<ConfigMapData>((config) => {
+      config.auth.sso = {
+        providers: [{ providerId: PROVIDER_ID, domains: [] }],
+      };
+    });
+    await restartDevPortal(false);
+
+    await page.goto(PATH_LOGIN);
+    await page.waitForLoadState('networkidle');
+    await expect(page.getByLabel('Email')).toBeHidden();
+    await expect(
+      page.getByRole('button', { name: 'Continue with Keycloak' }),
+    ).toBeVisible();
+  });
+
+  test('domain routing rejects unmatched emails and discovers an SSO-only provider', async ({
+    page,
+  }) => {
+    await patchConfigMapYaml<ConfigMapData>((config) => {
+      config.auth.sso = {
+        providers: [
+          {
+            providerId: PROVIDER_ID,
+            domains: [`@${SSO_DOMAIN.replace('.', '\\.')}$`],
+          },
+        ],
+      };
+      config.auth.genericOAuthProviders = config.auth.genericOAuthProviders.map(
+        (provider) =>
+          provider.providerId === PROVIDER_ID
+            ? { ...provider, ssoOnly: true }
+            : provider,
+      );
+    });
+    await restartDevPortal(false);
+
+    await page.goto(PATH_LOGIN);
+    await page.waitForLoadState('networkidle');
+    await expect(
+      page.getByRole('button', { name: 'Continue with Keycloak' }),
+    ).toBeHidden();
+    await page.getByLabel('Email').fill('someone@other.example.com');
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(
+      page.getByText(
+        'Single sign-on is not configured for this email address.',
+      ),
+    ).toBeVisible();
+    await expect(page.getByLabel('Email')).toBeVisible();
+    await expect(page.getByLabel('Password')).toBeHidden();
+    await expect(page.getByText('Send Magic Link')).toBeHidden();
+
+    const email = `someone@${SSO_DOMAIN}`;
+    await page.getByLabel('Email').fill(email);
+    await page.getByRole('button', { name: 'Continue', exact: true }).click();
+    await expect(page.getByText(email, { exact: true })).toBeVisible();
+    await expect(page.getByLabel('Password')).toBeHidden();
+    await expect(page.getByText('Send Magic Link')).toBeHidden();
+    await page.getByRole('button', { name: 'Continue with Keycloak' }).click();
+    await expect(page).toHaveURL(KEYCLOAK_AUTH_URL);
+    expect(new URL(page.url()).searchParams.get('login_hint')).toBe(email);
   });
 });
 

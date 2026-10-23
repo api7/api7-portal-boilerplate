@@ -76,6 +76,7 @@ const SubscribeAPIProductModal = (props: Props) => {
   // Get products list with search and pagination
   const productListQuery = useProductList({
     initParams: { application_id: applicationId },
+    enabled: open,
   });
 
   useEffect(() => {

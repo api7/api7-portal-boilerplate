@@ -178,7 +178,7 @@ const waitForGatewayHttp = async (port: number, timeout: number) => {
   });
 };
 
-const startDevPortalContainer = async () => {
+const startDevPortalContainer = async (testing: boolean) => {
   if (!fs.existsSync(E2E_DEVPORTAL_CONFIG_PATH)) {
     throw new Error(
       `Missing E2E developer portal config: ${E2E_DEVPORTAL_CONFIG_PATH}`,
@@ -192,6 +192,7 @@ const startDevPortalContainer = async () => {
       `--name ${E2E_FE_CONTAINER}`,
       `--network ${E2E_NETWORK}`,
       '-p 127.0.0.1:3001:3001',
+      `-e TESTING=${testing}`,
       `-v ${shellQuote(E2E_DEVPORTAL_CONFIG_PATH)}:/app/apps/site/config.yaml:ro`,
       shellQuote(E2E_FE_IMAGE),
     ].join(' '),
@@ -199,13 +200,8 @@ const startDevPortalContainer = async () => {
   );
 };
 
-export const restartDevPortal = async (
-  _deploymentName = 'developer-portal',
-  _serviceName = 'developer-portal',
-  _portForward: `${string}:${string}` = '3001:3001',
-  _ns = DEFAULT_NAMESPACE,
-) => {
-  await startDevPortalContainer();
+export const restartDevPortal = async (testing = true) => {
+  await startDevPortalContainer(testing);
   await waitForPort(3001, 120000);
   await new Promise((resolve) => setTimeout(resolve, 5000));
 };

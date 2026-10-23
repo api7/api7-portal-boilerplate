@@ -1,9 +1,8 @@
 import type { ListSubscriptionsData } from '@api7/portal-sdk/unstable-types';
 import { useQuery } from '@tanstack/react-query';
 
-import { subscriptionListKey } from '@/lib/query/keys';
+import { subscriptionListQueryOptions } from '@/lib/query/subscriptions';
 import type { WithSavePage } from '@/types/utils';
-import { listSubscriptions } from '../dal/subscriptions';
 import { useOrganizationSlug } from '../hooks/useOrganizationSlug';
 import { useParams } from '../hooks/useParams';
 import { useSavePage } from '../hooks/useSavePage';
@@ -32,11 +31,7 @@ export const useSubscriptionList = (params: UseSubscriptionListParams = {}) => {
     onParamsChange({ page: page < 1 ? 1 : page });
 
   const { refetch, data, isLoading, isFetching, isError } = useQuery({
-    queryKey: subscriptionListKey(orgSlug, paramsOnlyStr),
-    queryFn: () =>
-      listSubscriptions({
-        data: { organizationSlug: orgSlug!, ...paramsOnlyStr },
-      }),
+    ...subscriptionListQueryOptions(orgSlug!, paramsOnlyStr),
     enabled: enabled !== false && !!orgSlug,
   });
 

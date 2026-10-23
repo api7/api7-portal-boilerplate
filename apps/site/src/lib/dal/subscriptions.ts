@@ -38,6 +38,21 @@ export const listSubscriptions = createServerFn({ method: 'GET' })
     );
   });
 
+export const getProductSubscriptionStatus = createServerFn({ method: 'GET' })
+  .middleware([orgScopedMiddleware])
+  .validator(orgSlugSchema.extend({ productId: z.string().min(1) }))
+  .handler(async ({ data: { productId }, context }) => {
+    const { subscription } = getPortalForOrganization(context.organizationId);
+    const [subscribed, waiting] = await Promise.all([
+      subscription.list({ api_product_id: productId, status: ['subscribed'] }),
+      subscription.list({
+        api_product_id: productId,
+        status: ['wait_for_approval'],
+      }),
+    ]);
+    return { subscribed, waiting };
+  });
+
 export const bulkSubscribe = createServerFn({ method: 'POST' })
   .middleware([orgWriteRoleMiddleware])
   .validator(bulkSubscribeSchema)
